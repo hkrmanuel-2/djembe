@@ -1,10 +1,80 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
+import LoopLibrary from "../../components/UI/DAW-Lite/LoopLibrary.jsx";
 
-export default function App() {
+
+export default function DAWLite() {
+
+  const [draggedLoop, setDraggedLoop] = useState(null);
+  const [placedLoops, setPlacedLoops] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [bpm, setBpm] = useState(120);
+  const [currentBeat, setCurrentBeat] = useState(0);
+  const intervalRef = useRef(null);
+
+  // Playback logic
+  useEffect(() => {
+    if (isPlaying) {
+      const beatDuration = (60 / bpm) * 1000 / 2;
+      intervalRef.current = setInterval(() => {
+        setCurrentBeat((prev) => (prev + 1) % 8);
+      }, beatDuration);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isPlaying, bpm]);
+
+  const handleDragStart = (loop) => {
+    setDraggedLoop(loop);
+  };
+
+  const handleDrop = (row, col) => {
+    if (draggedLoop) {
+      const newLoop = {
+        id: Date.now(),
+        type: draggedLoop.name,
+        color: draggedLoop.color,
+        border: draggedLoop.border,
+        row,
+        col,
+        span: 2,
+      };
+      setPlacedLoops([...placedLoops, newLoop]);
+      setDraggedLoop(null);
+    }
+  };
+
+  const removeLoop = (id) => {
+    setPlacedLoops(placedLoops.filter(loop => loop.id !== id));
+  };
+
+  const handlePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleStop = () => {
+    setIsPlaying(false);
+    setCurrentBeat(0);
+  };
+
+  const handleRewind = () => {
+    setCurrentBeat(0);
+  };
+
+  const handleBpmChange = (e) => {
+    setBpm(parseInt(e.target.value));
+  };
+
   return (
     <div className="min-h-screen bg-[#cfeefa] flex items-center justify-center p-6">
       <div className="w-full max-w-[1800px] bg-[#eaf5f9] rounded-xl border border-black shadow-lg overflow-hidden">
-        
+
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black">
           <h1 className="text-3xl font-bold text-[#003c82] tracking-wide">DAW-LITE</h1>
@@ -16,16 +86,7 @@ export default function App() {
         <div className="flex">
 
           {/* LOOP LIBRARY */}
-          <div className="w-[260px] border-r border-black p-6">
-            <h2 className="text-xl font-bold mb-6 text-black">LOOP LIBRARY</h2>
-
-            <div className="flex flex-col gap-5">
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-            </div>
-          </div>
+          <LoopLibrary />
 
           {/* TIMELINE GRID */}
           <div className="flex-1 p-6">
