@@ -1,71 +1,42 @@
-import React from "react";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import DAWLite from '../src/assets/pages/DAW-Lite/DAWLite';
 
-export default function App() {
+function App() {
   return (
-    <div className="min-h-screen bg-[#cfeefa] flex items-center justify-center p-6">
-      <div className="w-full max-w-[1800px] bg-[#eaf5f9] rounded-xl border border-black shadow-lg overflow-hidden">
-        
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black">
-          <h1 className="text-3xl font-bold text-[#003c82] tracking-wide">DAW-LITE</h1>
+    <Router>
+      <div className="App">
+        {/* Navigation (optional) */}
+        <nav className="bg-gray-800 text-white p-4">
+          <Link to="/" className="px-4 hover:text-blue-300">Home</Link>
+          <Link to="/daw" className="px-4 hover:text-blue-300">DAW-LITE</Link>
+        </nav>
 
-          <div className="w-[350px] h-[40px] bg-gray-300 rounded-full"></div>
-        </div>
+        {/* Routes */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/daw" element={<DAWLite />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
 
-        {/* MAIN AREA */}
-        <div className="flex">
-
-          {/* LOOP LIBRARY */}
-          <div className="w-[260px] border-r border-black p-6">
-            <h2 className="text-xl font-bold mb-6 text-black">LOOP LIBRARY</h2>
-
-            <div className="flex flex-col gap-5">
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-              <div className="w-full h-[50px] bg-gray-300 rounded-md"></div>
-            </div>
-          </div>
-
-          {/* TIMELINE GRID */}
-          <div className="flex-1 p-6">
-            <div className="grid grid-cols-10 grid-rows-5 gap-0 border border-black">
-              {Array.from({ length: 60 }).map((_, i) => (
-                <div key={i} className="border border-black h-[100px] bg-[#e9f4f8]"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* FOOTER / TRANSPORT */}
-        <div className="border-t border-black p-6 flex items-center justify-center gap-10 bg-[#eaf5f9]">
-
-          {/* REWIND */}
-          <button className="w-14 h-14 border-2 border-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200">
-            ⏮
-          </button>
-
-          {/* PLAY */}
-          <button className="w-14 h-14 border-2 border-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200">
-            ▶
-          </button>
-
-          {/* STOP */}
-          <button className="w-14 h-14 border-2 border-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200">
-            ⏹
-          </button>
-
-          {/* BPM CONTROL */}
-          <div className="flex items-center gap-3 ml-6">
-            <div className="w-[150px] h-[12px] bg-gray-400 rounded-full relative">
-              <div className="absolute left-[50%] top-1/2 transform -translate-y-1/2 w-[20px] h-[20px] bg-black rounded-full"></div>
-            </div>
-            <span className="text-xl font-semibold text-black">120</span>
-          </div>
-
-        </div>
-
+// Simple Home component
+function Home() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Welcome to DAW-LITE</h1>
+        <Link
+          to="/daw"
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600"
+        >
+          Open DAW
+        </Link>
       </div>
     </div>
   );
 }
+
+export default App;

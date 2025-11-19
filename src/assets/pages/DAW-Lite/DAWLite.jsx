@@ -1,34 +1,40 @@
-import React, { useState, useEffect, useRef } from "react";
-import LoopLibrary from "../../components/UI/DAW-Lite/LoopLibrary.jsx";
-
+import React, { useState, useEffect } from "react";
+import { useStore } from "../../../store/useStore.js";
+import LoopLibrary from "../../../components/UI/DAW-Lite/LoopLibrary.jsx";
+import Timeline from "../../../components/UI/DAW-Lite/Timeline.jsx";
+import TransportControls from "../../../components/UI/DAW-Lite/Transportcontrols.jsx";
+import ProjectMenu from "../../../components/UI/DAW-Lite/Projectmenu.jsx";
 
 export default function DAWLite() {
-
   const [draggedLoop, setDraggedLoop] = useState(null);
-  const [placedLoops, setPlacedLoops] = useState([]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [bpm, setBpm] = useState(120);
-  const [currentBeat, setCurrentBeat] = useState(0);
-  const intervalRef = useRef(null);
 
-  // Playback logic
+  // Get state from Zustand store
+  const placedLoops = useStore((state) => state.project.placedLoops);
+  const isPlaying = useStore((state) => state.transport.isPlaying);
+  const bpm = useStore((state) => state.transport.bpm);
+  const currentBeat = useStore((state) => state.transport.currentBeat);
+  const projectName = useStore((state) => state.project.name);
+  const error = useStore((state) => state.error);
+  const audioInitialized = useStore((state) => state.audioInitialized);
+
+  // Get actions from store
+  const loadLoops = useStore((state) => state.loadLoops);
+  const initAudio = useStore((state) => state.initAudio);
+  const addPlacedLoop = useStore((state) => state.addPlacedLoop);
+  const removePlacedLoop = useStore((state) => state.removePlacedLoop);
+  const setProjectName = useStore((state) => state.setProjectName);
+
+  // Load loops from database on mount
   useEffect(() => {
-    if (isPlaying) {
-      const beatDuration = (60 / bpm) * 1000 / 2;
-      intervalRef.current = setInterval(() => {
-        setCurrentBeat((prev) => (prev + 1) % 8);
-      }, beatDuration);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+    loadLoops();
+  }, [loadLoops]);
+
+  // Initialize audio when loops are loaded
+  useEffect(() => {
+    if (!audioInitialized) {
+      initAudio();
     }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isPlaying, bpm]);
+  }, [audioInitialized, initAudio]);
 
   const handleDragStart = (loop) => {
     setDraggedLoop(loop);
@@ -38,37 +44,22 @@ export default function DAWLite() {
     if (draggedLoop) {
       const newLoop = {
         id: Date.now(),
+        loopId: draggedLoop.id,
         type: draggedLoop.name,
         color: draggedLoop.color,
         border: draggedLoop.border,
+        icon: draggedLoop.icon,
         row,
         col,
         span: 2,
       };
-      setPlacedLoops([...placedLoops, newLoop]);
+      addPlacedLoop(newLoop);
       setDraggedLoop(null);
     }
   };
 
-  const removeLoop = (id) => {
-    setPlacedLoops(placedLoops.filter(loop => loop.id !== id));
-  };
-
-  const handlePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleStop = () => {
-    setIsPlaying(false);
-    setCurrentBeat(0);
-  };
-
-  const handleRewind = () => {
-    setCurrentBeat(0);
-  };
-
-  const handleBpmChange = (e) => {
-    setBpm(parseInt(e.target.value));
+  const handleDragOver = (e) => {
+    e.preventDefault();
   };
 
   return (
@@ -77,55 +68,55 @@ export default function DAWLite() {
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black">
-          <h1 className="text-3xl font-bold text-[#003c82] tracking-wide">DAW-LITE</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-[#003c82] tracking-wide">DAW-LITE</h1>
 
-          <div className="w-[350px] h-[40px] bg-gray-300 rounded-full"></div>
+            {/* Audio Status Indicator */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${audioInitialized ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-xs text-gray-600">
+                {audioInitialized ? 'Audio Ready' : 'Initializing...'}
+              </span>
+            </div>
+          </div>
+
+          {/* Editable Project Name */}
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            className="w-[350px] h-[40px] bg-white border-2 border-gray-300 rounded-full px-6 text-center font-semibold text-gray-700 focus:outline-none focus:border-[#003c82]"
+            placeholder="Project Name"
+          />
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mx-4 mt-4">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Project Menu (Save/Load) */}
+        <ProjectMenu />
 
         {/* MAIN AREA */}
         <div className="flex">
+          <LoopLibrary onDragStart={handleDragStart} />
 
-          {/* LOOP LIBRARY */}
-          <LoopLibrary />
-
-          {/* TIMELINE GRID */}
-          <div className="flex-1 p-6">
-            <div className="grid grid-cols-10 grid-rows-5 gap-0 border border-black">
-              {Array.from({ length: 60 }).map((_, i) => (
-                <div key={i} className="border border-black h-[100px] bg-[#e9f4f8]"></div>
-              ))}
-            </div>
-          </div>
+          <Timeline
+            placedLoops={placedLoops}
+            currentBeat={currentBeat}
+            isPlaying={isPlaying}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            removeLoop={removePlacedLoop}
+          />
         </div>
 
-        {/* FOOTER / TRANSPORT */}
-        <div className="border-t border-black p-6 flex items-center justify-center gap-10 bg-[#eaf5f9]">
-
-          {/* REWIND */}
-          <button className="w-14 h-14 border-2 border-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200">
-            ⏮
-          </button>
-
-          {/* PLAY */}
-          <button className="w-14 h-14 border-2 border-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200">
-            ▶
-          </button>
-
-          {/* STOP */}
-          <button className="w-14 h-14 border-2 border-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200">
-            ⏹
-          </button>
-
-          {/* BPM CONTROL */}
-          <div className="flex items-center gap-3 ml-6">
-            <div className="w-[150px] h-[12px] bg-gray-400 rounded-full relative">
-              <div className="absolute left-[50%] top-1/2 transform -translate-y-1/2 w-[20px] h-[20px] bg-black rounded-full"></div>
-            </div>
-            <span className="text-xl font-semibold text-black">120</span>
-          </div>
-
-        </div>
-
+        {/* Transport Controls */}
+        <TransportControls />
       </div>
     </div>
   );
