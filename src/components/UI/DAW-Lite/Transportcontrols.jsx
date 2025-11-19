@@ -28,8 +28,7 @@ export default function TransportControls() {
             {/* PLAY/PAUSE */}
             <button
                 onClick={togglePlay}
-                disabled={!audioInitialized}
-                className={`w-16 h-16 border-2 border-black rounded-full flex items-center justify-center text-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 ${transport.isPlaying ? 'bg-yellow-200 hover:bg-yellow-300' : 'hover:bg-green-200'
+                className={`w-16 h-16 border-2 border-black rounded-full flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95 ${transport.isPlaying ? 'bg-yellow-200 hover:bg-yellow-300' : 'hover:bg-green-200'
                     }`}
             >
                 {transport.isPlaying ? '⏸' : '▶'}

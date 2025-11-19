@@ -1,6 +1,5 @@
-import React from 'react';
 import { useStore } from '../../../store/useStore.js';
-import Looputton from './Loopbutton.jsx';
+import LoopButton from './Loopbutton';
 
 export default function LoopLibrary({ onDragStart }) {
     // Load loops from Zustand store (which loads from database)

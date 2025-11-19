@@ -64,7 +64,7 @@ export const useStore = create(
             error: error.message, 
             isLoading: false,
             library: [
-              { id: "1", name: "Adowa Drum", url: "/loops/adowa.mp3", color: "bg-purple-400", hoverColor: "hover:bg-purple-500", border: "border-purple-600", icon: "🥁" },
+              { id: "1", name: "KICK", url: "https://dtghqnhhsgbvhxlmtwwn.supabase.co/storage/v1/object/public/Loops/kick.wav", color: "bg-purple-400", hoverColor: "hover:bg-purple-500", border: "border-purple-600", icon: "🥁" },
               { id: "2", name: "Bell", url: "/loops/bell.mp3", color: "bg-yellow-300", hoverColor: "hover:bg-yellow-400", border: "border-yellow-500", icon: "🔔" },
               { id: "3", name: "Shaker", url: "/loops/shaker.mp3", color: "bg-orange-300", hoverColor: "hover:bg-orange-400", border: "border-orange-500", icon: "🎵" },
               { id: "4", name: "Melody Loop", url: "/loops/melody.mp3", color: "bg-pink-300", hoverColor: "hover:bg-pink-400", border: "border-pink-500", icon: "🎹" },

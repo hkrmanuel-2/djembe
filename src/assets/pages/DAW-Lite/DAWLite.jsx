@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../../../store/useStore.js";
 import LoopLibrary from "../../../components/UI/DAW-Lite/LoopLibrary.jsx";
 import Timeline from "../../../components/UI/DAW-Lite/Timeline.jsx";
@@ -19,7 +19,6 @@ export default function DAWLite() {
 
   // Get actions from store
   const loadLoops = useStore((state) => state.loadLoops);
-  const initAudio = useStore((state) => state.initAudio);
   const addPlacedLoop = useStore((state) => state.addPlacedLoop);
   const removePlacedLoop = useStore((state) => state.removePlacedLoop);
   const setProjectName = useStore((state) => state.setProjectName);
@@ -28,13 +27,6 @@ export default function DAWLite() {
   useEffect(() => {
     loadLoops();
   }, [loadLoops]);
-
-  // Initialize audio when loops are loaded
-  useEffect(() => {
-    if (!audioInitialized) {
-      initAudio();
-    }
-  }, [audioInitialized, initAudio]);
 
   const handleDragStart = (loop) => {
     setDraggedLoop(loop);
@@ -73,9 +65,9 @@ export default function DAWLite() {
 
             {/* Audio Status Indicator */}
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${audioInitialized ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className={`w-2 h-2 rounded-full ${audioInitialized ? 'bg-green-500' : 'bg-yellow-500'}`} />
               <span className="text-xs text-gray-600">
-                {audioInitialized ? 'Audio Ready' : 'Initializing...'}
+                {audioInitialized ? 'Audio Ready' : 'Click Play to start'}
               </span>
             </div>
           </div>
