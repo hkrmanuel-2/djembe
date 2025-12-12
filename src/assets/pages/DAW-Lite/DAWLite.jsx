@@ -41,14 +41,24 @@ export default function DAWLite() {
         color: draggedLoop.color,
         border: draggedLoop.border,
         icon: draggedLoop.icon,
+        url: draggedLoop.url,  
         row,
         col,
         span: 2,
       };
+  
       addPlacedLoop(newLoop);
+  
+
+      if (newLoop.url) {
+        const audio = new Audio(newLoop.url);
+        audio.play().catch((err) => console.log("Audio play error:", err));
+      }
+  
       setDraggedLoop(null);
     }
   };
+  
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -109,6 +119,8 @@ export default function DAWLite() {
 
         {/* Transport Controls */}
         <TransportControls />
+        
+        
       </div>
     </div>
   );
