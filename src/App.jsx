@@ -7,6 +7,8 @@ import Signup from './assets/pages/Auth/Signup';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { Button } from './components/ui/button';
+import World1 from './components/Worlds/World1';
+import World2 from './components/Worlds/World2'; // new World2 component
 
 function App() {
   const { initAuth, isAuthenticated, signOut, userProfile, userType } = useAuthStore();
@@ -33,6 +35,8 @@ function App() {
                   {userType === 'teacher' && (
                     <Link to="/admin" className="px-4 hover:text-blue-300">Admin</Link>
                   )}
+                  <Link to="/world1" className="px-4 hover:text-blue-300">World 1</Link>
+                  <Link to="/world2" className="px-4 hover:text-blue-300">World 2</Link>
                 </>
               )}
             </div>
@@ -76,6 +80,18 @@ function App() {
           <Route path="/daw" element={
             <ProtectedRoute>
               <DAWLite />
+            </ProtectedRoute>
+          } />
+
+          {/* Worlds Routes */}
+          <Route path="/world1" element={
+            <ProtectedRoute>
+              <World1 />
+            </ProtectedRoute>
+          } />
+          <Route path="/world2" element={
+            <ProtectedRoute>
+              <World2 />
             </ProtectedRoute>
           } />
         </Routes>
