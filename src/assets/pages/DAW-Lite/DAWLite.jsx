@@ -21,7 +21,30 @@ export default function DAWLite() {
   const loadLoops = useStore((state) => state.loadLoops);
   const addPlacedLoop = useStore((state) => state.addPlacedLoop);
   const removePlacedLoop = useStore((state) => state.removePlacedLoop);
+  const updatePlacedLoop = useStore((state) => state.updatePlacedLoop);
   const setProjectName = useStore((state) => state.setProjectName);
+
+  // Calculate loop span based on audio duration and BPM (target: 4 bars = 16 beats)
+  const calculateSpan = async (audioUrl, targetBars = 4) => {
+    return new Promise((resolve) => {
+      const audio = new Audio(audioUrl);
+      audio.addEventListener('loadedmetadata', () => {
+        const duration = audio.duration; // seconds
+        const secondsPerBeat = 60 / bpm;
+        const beats = duration / secondsPerBeat;
+        // Round to nearest beat, minimum target bars
+        const targetBeats = targetBars * 4; // 4 beats per bar
+        const calculatedBeats = Math.max(targetBeats, Math.round(beats));
+        // Convert to grid units (4 subdivisions per beat = 16th notes)
+        const gridUnits = calculatedBeats * 4;
+        resolve(Math.max(16, Math.round(gridUnits))); // Minimum 4 bars (16 beats * 4 = 64 grid units, but let's use 16 for 4 bars)
+      });
+      audio.addEventListener('error', () => {
+        resolve(64); // Fallback: 4 bars * 4 beats * 4 subdivisions = 64 grid units
+      });
+      audio.load();
+    });
+  };
 
   // Load loops from database on mount
   useEffect(() => {
@@ -32,8 +55,13 @@ export default function DAWLite() {
     setDraggedLoop(loop);
   };
 
-  const handleDrop = (row, col) => {
+  const handleDrop = async (row, col) => {
     if (draggedLoop) {
+      // Calculate span based on audio duration
+      const span = draggedLoop.url 
+        ? await calculateSpan(draggedLoop.url, 4)
+        : 64; // Default: 4 bars (64 grid units)
+      
       const newLoop = {
         id: Date.now(),
         loopId: draggedLoop.id,
@@ -44,19 +72,37 @@ export default function DAWLite() {
         url: draggedLoop.url,  
         row,
         col,
-        span: 2,
+        span,
       };
   
+      // Check for overlaps - remove overlapping loops on same track
+      const overlappingLoops = placedLoops.filter(loop => 
+        loop.row === row && 
+        (col < loop.col + loop.span && col + span > loop.col)
+      );
+      
+      // Remove overlapping loops
+      overlappingLoops.forEach(loop => removePlacedLoop(loop.id));
+      
       addPlacedLoop(newLoop);
-  
 
+      // Preview sound
       if (newLoop.url) {
         const audio = new Audio(newLoop.url);
+        audio.volume = 0.5;
         audio.play().catch((err) => console.log("Audio play error:", err));
       }
   
       setDraggedLoop(null);
     }
+  };
+
+  const handlePlacedLoopDrag = (loopId, newRow, newCol) => {
+    updatePlacedLoop(loopId, { row: newRow, col: newCol });
+  };
+
+  const handleLoopTrim = (loopId, updates) => {
+    updatePlacedLoop(loopId, updates);
   };
   
 
@@ -111,9 +157,12 @@ export default function DAWLite() {
             placedLoops={placedLoops}
             currentBeat={currentBeat}
             isPlaying={isPlaying}
+            bpm={bpm}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             removeLoop={removePlacedLoop}
+            onLoopDrag={handlePlacedLoopDrag}
+            onLoopTrim={handleLoopTrim}
           />
         </div>
 

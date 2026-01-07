@@ -12,18 +12,42 @@ export const useStore = create(
       let startTime = 0; // Tone.now() when transport started
       let lastTriggeredBeat = -1; // to avoid retriggering same beat multiple frames
 
-      // helper: trigger a single placed loop (one-shot)
-      const triggerPlacedLoop = (loop) => {
-        if (!loop || !loop.url) return;
+      // Active audio players for continuous playback
+      const activePlayers = new Map(); // loop.id -> Audio
+
+      // helper: start playing a loop continuously
+      const startLoopPlayback = (loop) => {
+        if (!loop || !loop.url || activePlayers.has(loop.id)) return;
         try {
-          const a = new Audio(loop.url);
-          a.play().catch((err) => {
-            // browsers may block autoplay if you haven't started audio context; log for debugging
-            console.warn("Audio trigger error:", err);
+          const audio = new Audio(loop.url);
+          audio.loop = true;
+          audio.volume = 0.7;
+          audio.play().catch((err) => {
+            console.warn("Audio play error:", err);
           });
+          activePlayers.set(loop.id, audio);
         } catch (err) {
           console.warn("Failed to play placed loop:", err);
         }
+      };
+
+      // helper: stop playing a loop
+      const stopLoopPlayback = (loopId) => {
+        const audio = activePlayers.get(loopId);
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+          activePlayers.delete(loopId);
+        }
+      };
+
+      // Stop all loops
+      const stopAllLoops = () => {
+        activePlayers.forEach((audio) => {
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        activePlayers.clear();
       };
 
       // update loop called by requestAnimationFrame
@@ -46,7 +70,9 @@ export const useStore = create(
         const now = Tone.now(); // use Tone's clock
         const elapsed = now - startTime;
         const floatBeat = elapsed / secondsPerBeat; // e.g., 0.0..n
-        const beatIndex = Math.floor(floatBeat) % (project.bars || 10); // ensure wrap
+        const beatsPerBar = 4;
+        const totalBeats = (project.bars || 10) * beatsPerBar; // 10 bars * 4 beats = 40 beats
+        const beatIndex = Math.floor(floatBeat) % totalBeats; // ensure wrap (0-39 for 10 bars)
 
         // update currentBeat in store if changed
         if (beatIndex !== transport.currentBeat) {
@@ -59,15 +85,28 @@ export const useStore = create(
         if (beatIndex !== lastTriggeredBeat) {
           lastTriggeredBeat = beatIndex;
 
-          // find all placed loops that should start on this beat (col === beatIndex)
+          // Manage continuous loop playback based on playhead position
+          const subdivisionsPerBeat = 4;
           const placed = get().project.placedLoops || [];
+
           placed.forEach((p) => {
-            // If your placed loop lengths/span >1 you'd want more advanced logic.
-            // For now, trigger loops whose column equals current beat.
-            if (p.col === beatIndex) {
-              // Use a lightweight HTML Audio to play a single instance.
-              // This avoids reusing the persistent Tone.Player objects which are looped.
-              triggerPlacedLoop(p);
+            // Convert loop's grid column and span to beat indices
+            const loopStartBeat = Math.floor(p.col / subdivisionsPerBeat);
+            const loopEndBeat = Math.floor((p.col + p.span) / subdivisionsPerBeat);
+
+            // Check if playhead is within this loop's range
+            const isPlayheadInLoop = beatIndex >= loopStartBeat && beatIndex < loopEndBeat;
+
+            if (isPlayheadInLoop) {
+              // Start playing if not already playing
+              if (!activePlayers.has(p.id)) {
+                startLoopPlayback(p);
+              }
+            } else {
+              // Stop playing if playhead left the loop
+              if (activePlayers.has(p.id)) {
+                stopLoopPlayback(p.id);
+              }
             }
           });
         }
@@ -256,6 +295,9 @@ export const useStore = create(
             // ignore
           }
 
+          // Stop all loop playback
+          stopAllLoops();
+
           if (rafId) {
             cancelAnimationFrame(rafId);
             rafId = null;
@@ -295,6 +337,9 @@ export const useStore = create(
           } catch (err) {
             // ignore
           }
+
+          // Stop all loop playback
+          stopAllLoops();
 
           // stop any persistent players if desired
           const { players } = get();
@@ -357,7 +402,18 @@ export const useStore = create(
           set((state) => ({
             project: {
               ...state.project,
-              placedLoops: state.project.placedLoops.filter((loop) => loop.loop_id !== id),
+              placedLoops: state.project.placedLoops.filter((loop) => loop.id !== id),
+            },
+          }));
+        },
+
+        updatePlacedLoop: (id, updates) => {
+          set((state) => ({
+            project: {
+              ...state.project,
+              placedLoops: state.project.placedLoops.map((loop) =>
+                loop.id === id ? { ...loop, ...updates } : loop
+              ),
             },
           }));
         },
