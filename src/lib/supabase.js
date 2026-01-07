@@ -12,7 +12,16 @@ if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase credentials are required. Please add them to your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase client with localStorage for persistent sessions
+// This allows "Remember this device" functionality
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
 
 /* 
 ==================================================

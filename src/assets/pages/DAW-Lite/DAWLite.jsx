@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../../../store/useStore.js";
-import LoopLibrary from "../../../components/UI/DAW-Lite/LoopLibrary.jsx";
-import Timeline from "../../../components/UI/DAW-Lite/Timeline.jsx";
-import TransportControls from "../../../components/UI/DAW-Lite/Transportcontrols.jsx";
-import ProjectMenu from "../../../components/UI/DAW-Lite/Projectmenu.jsx";
+import LoopLibrary from "../../../components/ui/DAW-Lite/LoopLibrary.jsx";
+import Timeline from "../../../components/ui/DAW-Lite/Timeline.jsx";
+import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols.jsx";
+import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
 
 export default function DAWLite() {
   const [draggedLoop, setDraggedLoop] = useState(null);

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import * as Tone from "tone";
 import { supabase } from "../lib/supabase";
+import { useAuthStore } from "./useAuthStore";
 
 export const useStore = create(
   persist(
@@ -115,7 +116,7 @@ export const useStore = create(
 
             // Map database fields to app format
             const loops = data.map((loop) => ({
-              id: loop.id,
+              id: loop.loop_id,
               name: loop.name,
               url: loop.url,
               color: loop.color || "bg-purple-400",
@@ -161,7 +162,7 @@ export const useStore = create(
                   icon: "🎵",
                 },
                 {
-                  id: "4",
+                  loop_id: "4",
                   name: "Melody Loop",
                   url: "/loops/melody.mp3",
                   color: "bg-pink-300",
@@ -186,7 +187,7 @@ export const useStore = create(
               if (loop.url) {
                 // create persistent players only if you plan to use Tone players for looping playback
                 // We keep them but set loop: false to avoid interfering with our placed-loop one-shot triggering.
-                players[loop.id] = new Tone.Player({
+                players[loop.loop_id] = new Tone.Player({
                   url: loop.url,
                   loop: false,
                 }).toDestination();
@@ -300,7 +301,7 @@ export const useStore = create(
           Object.values(players).forEach((player) => {
             try {
               player.stop();
-            } catch (e) {}
+            } catch (e) { }
           });
 
           set((state) => ({
@@ -316,7 +317,7 @@ export const useStore = create(
         rewind: () => {
           try {
             Tone.Transport.position = 0;
-          } catch (e) {}
+          } catch (e) { }
           set((state) => ({
             transport: { ...state.transport, currentBeat: 0 },
           }));
@@ -329,7 +330,7 @@ export const useStore = create(
           // update Tone transport bpm and store bpm
           try {
             Tone.Transport.bpm.value = bpm;
-          } catch (err) {}
+          } catch (err) { }
           set((state) => ({
             transport: { ...state.transport, bpm },
             project: { ...state.project, bpm },
@@ -356,7 +357,7 @@ export const useStore = create(
           set((state) => ({
             project: {
               ...state.project,
-              placedLoops: state.project.placedLoops.filter((loop) => loop.id !== id),
+              placedLoops: state.project.placedLoops.filter((loop) => loop.loop_id !== id),
             },
           }));
         },
@@ -384,9 +385,27 @@ export const useStore = create(
           set({ isLoading: true, error: null });
 
           try {
+            // Get current user from auth store
+            const authState = useAuthStore.getState();
+            const userProfile = authState.userProfile;
+            const userType = authState.userType;
+
+            if (!userProfile) {
+              throw new Error("User not authenticated. Please log in.");
+            }
+
+            // Get student_id or teacher_id based on user type
+            const userId = userType === "student"
+              ? userProfile.student_id
+              : userProfile.teacher_id;
+
+            if (!userId) {
+              throw new Error(`Unable to get ${userType} ID. Please contact support.`);
+            }
+
             const { project } = get();
             const projectData = {
-              name: project.name,
+              title: project.name, // Schema uses 'title', not 'name'
               bpm: project.bpm,
               placed_loops: project.placedLoops,
               bars: project.bars,
@@ -395,14 +414,18 @@ export const useStore = create(
 
             let result;
 
-            if (project.id) {
+            if (project.id || project.project_id) {
+              // Update existing project
+              const projectId = project.id || project.project_id;
               result = await supabase
                 .from("projects")
                 .update(projectData)
-                .eq("id", project.id)
+                .eq("project_id", projectId)
                 .select()
                 .single();
             } else {
+              // Create new project - include student_id
+              projectData.student_id = userId;
               projectData.created_at = new Date().toISOString();
               result = await supabase
                 .from("projects")
@@ -416,7 +439,9 @@ export const useStore = create(
             set((state) => ({
               project: {
                 ...state.project,
-                id: result.data.id,
+                id: result.data.project_id,
+                project_id: result.data.project_id,
+                name: result.data.title || result.data.name,
               },
               isLoading: false,
               error: null,
@@ -437,15 +462,16 @@ export const useStore = create(
             const { data, error } = await supabase
               .from("projects")
               .select("*")
-              .eq("id", projectId)
+              .eq("project_id", projectId)
               .single();
 
             if (error) throw error;
 
             set({
               project: {
-                id: data.id,
-                name: data.name,
+                id: data.project_id,
+                project_id: data.project_id,
+                name: data.title || data.name, // Schema uses 'title'
                 bpm: data.bpm,
                 placedLoops: data.placed_loops || [],
                 bars: data.bars || 10,
@@ -467,15 +493,38 @@ export const useStore = create(
           set({ isLoading: true, error: null });
 
           try {
+            // Get current user from auth store
+            const authState = useAuthStore.getState();
+            const userProfile = authState.userProfile;
+
+            if (!userProfile) {
+              throw new Error("User not authenticated. Please log in.");
+            }
+
+            const userId = authState.userType === "student"
+              ? userProfile.student_id
+              : userProfile.teacher_id;
+
+            if (!userId) {
+              throw new Error("Unable to get user ID. Please contact support.");
+            }
+
             const { data, error } = await supabase
               .from("projects")
-              .select("id, name, bpm, created_at, updated_at")
+              .select("project_id, title, bpm, created_at, updated_at")
+              .eq("student_id", userId)
               .order("updated_at", { ascending: false });
 
             if (error) throw error;
 
-            set({ userProjects: data, isLoading: false, error: null });
-            return { success: true, data };
+            // Map title to name for compatibility
+            const mappedData = (data || []).map(project => ({
+              ...project,
+              name: project.title || project.name,
+            }));
+
+            set({ userProjects: mappedData, isLoading: false, error: null });
+            return { success: true, data: mappedData };
           } catch (error) {
             console.error("Load projects error:", error);
             set({ isLoading: false, error: error.message });
@@ -490,12 +539,12 @@ export const useStore = create(
             const { error } = await supabase
               .from("projects")
               .delete()
-              .eq("id", projectId);
+              .eq("project_id", projectId);
 
             if (error) throw error;
 
             set((state) => ({
-              userProjects: state.userProjects.filter((p) => p.id !== projectId),
+              userProjects: state.userProjects.filter((p) => (p.project_id !== projectId && p.id !== projectId)),
               isLoading: false,
               error: null,
             }));

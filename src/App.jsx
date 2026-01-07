@@ -1,41 +1,86 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import DAWLite from '../src/assets/pages/DAW-Lite/DAWLite';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import DAWLite from './assets/pages/DAW-Lite/DAWLite';
+import Home from './assets/pages/Home';
+import Login from './assets/pages/Auth/Login';
+import Signup from './assets/pages/Auth/Signup';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAuthStore } from './store/useAuthStore';
+import { Button } from './components/ui/button';
 
 function App() {
+  const { initAuth, isAuthenticated, signOut, userProfile, userType } = useAuthStore();
+
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <Router>
       <div className="App">
-        {/* Navigation (optional) */}
+        {/* Navigation */}
         <nav className="bg-gray-800 text-white p-4">
-          <Link to="/" className="px-4 hover:text-blue-300">Home</Link>
-          <Link to="/daw" className="px-4 hover:text-blue-300">DAW-LITE</Link>
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-4">
+              <Link to="/" className="px-4 hover:text-blue-300">Home</Link>
+              {isAuthenticated && (
+                <>
+                  <Link to="/daw" className="px-4 hover:text-blue-300">DAW-LITE</Link>
+                  {userType === 'teacher' && (
+                    <Link to="/admin" className="px-4 hover:text-blue-300">Admin</Link>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              {isAuthenticated ? (
+                <>
+                  <span className="text-sm">
+                    {userProfile?.first_name} {userProfile?.last_name} ({userType})
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={handleSignOut}
+                    className="text-white border-white hover:bg-gray-700"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="px-4 hover:text-blue-300">Login</Link>
+                  <Link to="/signup" className="px-4 hover:text-blue-300">Sign Up</Link>
+                </>
+              )}
+            </div>
+          </div>
         </nav>
 
         {/* Routes */}
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/daw" element={<DAWLite />} />
+          <Route path="/login" element={
+            isAuthenticated ? <Navigate to="/" replace /> : <Login />
+          } />
+          <Route path="/signup" element={
+            isAuthenticated ? <Navigate to="/" replace /> : <Signup />
+          } />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          <Route path="/daw" element={
+            <ProtectedRoute>
+              <DAWLite />
+            </ProtectedRoute>
+          } />
         </Routes>
       </div>
     </Router>
-  );
-}
-
-// Simple Home component
-function Home() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to DAW-LITE</h1>
-        <Link
-          to="/daw"
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600"
-        >
-          Open DAW
-        </Link>
-      </div>
-    </div>
   );
 }
 
