@@ -12,7 +12,7 @@ export default function ProjectMenu() {
     const deleteProject = useStore((state) => state.deleteProject);
     const userProjects = useStore((state) => state.userProjects);
     const isLoading = useStore((state) => state.isLoading);
-    const currentProjectId = useStore((state) => state.project.id);
+    const currentProjectId = useStore((state) => state.project.project_id);
 
     const showNotification = (message, type = "success") => {
         setNotification({ message, type });
@@ -109,8 +109,8 @@ export default function ProjectMenu() {
                         <div className="space-y-2">
                             {userProjects.map((project) => (
                                 <div
-                                    key={project.id}
-                                    className={`flex items-center justify-between p-3 rounded-md border-2 ${project.id === currentProjectId
+                                    key={project.project_id}
+                                    className={`flex items-center justify-between p-3 rounded-md border-2 ${project.prokect_id === currentProjectId
                                         ? "border-blue-500 bg-blue-50"
                                         : "border-gray-200"
                                         }`}
@@ -122,16 +122,16 @@ export default function ProjectMenu() {
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
-                                        {project.id !== currentProjectId && (
+                                        {project.project_id !== currentProjectId && (
                                             <button
-                                                onClick={() => handleLoadProject(project.id)}
+                                                onClick={() => handleLoadProject(project.project_id)}
                                                 className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
                                             >
                                                 Load
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => handleDelete(project.id, project.name)}
+                                            onClick={() => handleDelete(project.project_id, project.name)}
                                             className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
                                         >
                                             Delete
