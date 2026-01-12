@@ -51,7 +51,8 @@ const World1: React.FC = () => {
     // Load GLTF from Supabase
     const audiLoader = new GLTFLoader();
     audiLoader.load(
-      "https://dtghqnhhsgbvhxlmtwwn.supabase.co/storage/v1/object/public/World%202/scene.gltf",
+      "/models/viola_desmond_the_roseland_theatre.glb",
+
       (gltf) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, 0, 1);

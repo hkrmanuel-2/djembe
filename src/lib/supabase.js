@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS loops (
   color VARCHAR(50) DEFAULT 'bg-purple-400',
   hover_color VARCHAR(50) DEFAULT 'hover:bg-purple-500',
   border VARCHAR(50) DEFAULT 'border-purple-600',
+  bpm INTEGER DEFAULT 120,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -82,12 +83,15 @@ CREATE TRIGGER update_projects_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- 7. INSERT SAMPLE LOOPS
-INSERT INTO loops (name, url, icon, color, hover_color, border) VALUES
-  ('Adowa Drum', '/loops/adowa.mp3', '🥁', 'bg-purple-400', 'hover:bg-purple-500', 'border-purple-600'),
-  ('Bell', '/loops/bell.mp3', '🔔', 'bg-yellow-300', 'hover:bg-yellow-400', 'border-yellow-500'),
-  ('Shaker', '/loops/shaker.mp3', '🎵', 'bg-orange-300', 'hover:bg-orange-400', 'border-orange-500'),
-  ('Melody Loop', '/loops/melody.mp3', '🎹', 'bg-pink-300', 'hover:bg-pink-400', 'border-pink-500')
+-- 7. ADD BPM COLUMN IF IT DOESN'T EXIST (for existing databases)
+ALTER TABLE loops ADD COLUMN IF NOT EXISTS bpm INTEGER DEFAULT 120;
+
+-- 8. INSERT SAMPLE LOOPS (with BPM)
+INSERT INTO loops (name, url, icon, color, hover_color, border, bpm) VALUES
+  ('Adowa Drum', '/loops/adowa.mp3', '🥁', 'bg-purple-400', 'hover:bg-purple-500', 'border-purple-600', 120),
+  ('Bell', '/loops/bell.mp3', '🔔', 'bg-yellow-300', 'hover:bg-yellow-400', 'border-yellow-500', 120),
+  ('Shaker', '/loops/shaker.mp3', '🎵', 'bg-orange-300', 'hover:bg-orange-400', 'border-orange-500', 120),
+  ('Melody Loop', '/loops/melody.mp3', '🎹', 'bg-pink-300', 'hover:bg-pink-400', 'border-pink-500', 120)
 ON CONFLICT DO NOTHING;
 
 */

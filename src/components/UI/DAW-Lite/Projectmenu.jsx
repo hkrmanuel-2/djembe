@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useStore } from "../../../store/useStore.js";
+import { exportProjectAsAudio } from "../../../lib/audioExport.js";
 
 export default function ProjectMenu() {
     const [showProjects, setShowProjects] = useState(false);
@@ -13,6 +14,11 @@ export default function ProjectMenu() {
     const userProjects = useStore((state) => state.userProjects);
     const isLoading = useStore((state) => state.isLoading);
     const currentProjectId = useStore((state) => state.project.project_id);
+    const placedLoops = useStore((state) => state.project.placedLoops);
+    const bpm = useStore((state) => state.transport.bpm);
+    const bars = useStore((state) => state.project.bars);
+    const projectName = useStore((state) => state.project.name);
+    const [isExporting, setIsExporting] = useState(false);
 
     const showNotification = (message, type = "success") => {
         setNotification({ message, type });
@@ -59,6 +65,25 @@ export default function ProjectMenu() {
         }
     };
 
+    const handleExport = async () => {
+        if (placedLoops.length === 0) {
+            showNotification("No loops to export. Add some loops to your project first.", "error");
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const filename = projectName || 'untitled-project';
+            await exportProjectAsAudio(placedLoops, bpm, bars, filename);
+            showNotification("Project exported successfully! Check your downloads folder.", "success");
+        } catch (error) {
+            console.error('Export error:', error);
+            showNotification(`Export failed: ${error.message}`, "error");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="border-b border-gray-300 bg-gray-50 px-6 py-3">
             {/* Buttons */}
@@ -81,6 +106,14 @@ export default function ProjectMenu() {
                     className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors font-semibold text-sm"
                 >
                     📂 Load Projects
+                </button>
+                <button
+                    onClick={handleExport}
+                    disabled={isExporting || placedLoops.length === 0}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={placedLoops.length === 0 ? "Add loops to export" : "Export project as MP3 audio file"}
+                >
+                    {isExporting ? "⏳ Exporting..." : "⬇️ Export MP3"}
                 </button>
             </div>
 

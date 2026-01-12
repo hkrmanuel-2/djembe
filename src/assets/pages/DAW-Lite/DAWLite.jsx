@@ -4,6 +4,7 @@ import LoopLibrary from "../../../components/ui/DAW-Lite/LoopLibrary.jsx";
 import Timeline from "../../../components/ui/DAW-Lite/Timeline.jsx";
 import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols.jsx";
 import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
+import AILoopGenerator from "../../../components/ui/DAW-Lite/AILoopGenerator.jsx";
 
 export default function DAWLite() {
   const [draggedLoop, setDraggedLoop] = useState(null);
@@ -14,6 +15,7 @@ export default function DAWLite() {
   const bpm = useStore((state) => state.transport.bpm);
   const currentBeat = useStore((state) => state.transport.currentBeat);
   const projectName = useStore((state) => state.project.name);
+  const projectBars = useStore((state) => state.project.bars);
   const error = useStore((state) => state.error);
   const audioInitialized = useStore((state) => state.audioInitialized);
 
@@ -23,6 +25,7 @@ export default function DAWLite() {
   const removePlacedLoop = useStore((state) => state.removePlacedLoop);
   const updatePlacedLoop = useStore((state) => state.updatePlacedLoop);
   const setProjectName = useStore((state) => state.setProjectName);
+  const updateProjectDimensions = useStore((state) => state.updateProjectDimensions);
 
   // Calculate loop span based on audio duration and BPM (target: 4 bars = 16 beats)
   const calculateSpan = async (audioUrl, targetBars = 4) => {
@@ -61,6 +64,18 @@ export default function DAWLite() {
       const span = draggedLoop.url 
         ? await calculateSpan(draggedLoop.url, 4)
         : 64; // Default: 4 bars (64 grid units)
+      
+      // Check if loop extends beyond current timeline
+      const subdivisionsPerBeat = 4;
+      const beatsPerBar = 4;
+      const loopEndCol = col + span;
+      const currentTotalCols = (projectBars || 10) * beatsPerBar * subdivisionsPerBeat;
+      const requiredBars = Math.ceil(loopEndCol / (beatsPerBar * subdivisionsPerBeat));
+      
+      // Extend timeline if needed
+      if (requiredBars > (projectBars || 10)) {
+        updateProjectDimensions(requiredBars, 5); // Keep rows at 5 for now, Timeline will calculate if more needed
+      }
       
       const newLoop = {
         id: Date.now(),
@@ -110,6 +125,16 @@ export default function DAWLite() {
     e.preventDefault();
   };
 
+  const handleExtendTimeline = (bars, rows) => {
+    updateProjectDimensions(bars, rows);
+  };
+
+  const handleLoopGenerated = (newLoop) => {
+    // Loop is already added to library and will appear automatically
+    // Could show a notification here if needed
+    console.log('New AI loop generated:', newLoop);
+  };
+
   return (
     <div className="min-h-screen bg-[#cfeefa] flex items-center justify-center p-6">
       <div className="w-full max-w-[1800px] bg-[#eaf5f9] rounded-xl border border-black shadow-lg overflow-hidden">
@@ -151,18 +176,24 @@ export default function DAWLite() {
 
         {/* MAIN AREA */}
         <div className="flex">
-          <LoopLibrary onDragStart={handleDragStart} />
+          <div className="flex">
+            <AILoopGenerator onLoopGenerated={handleLoopGenerated} />
+            <LoopLibrary onDragStart={handleDragStart} />
+          </div>
 
           <Timeline
             placedLoops={placedLoops}
             currentBeat={currentBeat}
             isPlaying={isPlaying}
             bpm={bpm}
+            bars={projectBars}
+            rows={5}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             removeLoop={removePlacedLoop}
             onLoopDrag={handlePlacedLoopDrag}
             onLoopTrim={handleLoopTrim}
+            onExtendTimeline={handleExtendTimeline}
           />
         </div>
 
