@@ -111,8 +111,8 @@ export default function DAWLite() {
   };
 
   return (
-    <div className="min-h-screen bg-[#cfeefa] flex items-center justify-center p-6">
-      <div className="w-full max-w-[1800px] bg-[#eaf5f9] rounded-xl border border-black shadow-lg overflow-hidden">
+    <div className="min-h-screen bg-app-bg flex items-center justify-center p-6">
+      <div className="w-full max-w-[1800px] bg-white rounded-xl border border-black shadow-lg overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black">
