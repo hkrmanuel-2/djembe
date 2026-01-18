@@ -40,7 +40,7 @@ export default function AssignmentsNew() {
 
     try {
       const { data, error } = await supabase
-        .from("assignment_submissions")
+        .from("submissions")
         .select("*")
         .eq("student_id", user.id);
 
