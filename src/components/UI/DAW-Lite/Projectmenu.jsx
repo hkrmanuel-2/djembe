@@ -85,44 +85,44 @@ export default function ProjectMenu() {
     };
 
     return (
-        <div className="border-b border-gray-300 bg-gray-50 px-6 py-3">
+        <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm px-4 py-2 flex-shrink-0">
             {/* Buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-2">
                 <button
                     onClick={handleNew}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-semibold text-sm"
+                    className="px-3 py-1.5 bg-blue-500/80 text-white rounded-md hover:bg-blue-500 transition-colors font-semibold text-xs shadow-lg"
                 >
                     📄 New
                 </button>
                 <button
                     onClick={handleSave}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-semibold text-sm disabled:opacity-50"
+                    className="px-3 py-1.5 bg-green-500/80 text-white rounded-md hover:bg-green-500 transition-colors font-semibold text-xs disabled:opacity-50 shadow-lg"
                 >
                     💾 {isLoading ? "Saving..." : "Save"}
                 </button>
                 <button
                     onClick={handleLoadClick}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors font-semibold text-sm"
+                    className="px-3 py-1.5 bg-purple-500/80 text-white rounded-md hover:bg-purple-500 transition-colors font-semibold text-xs shadow-lg"
                 >
-                    📂 Load Projects
+                    📂 Load
                 </button>
                 <button
                     onClick={handleExport}
                     disabled={isExporting || placedLoops.length === 0}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-orange-500/80 text-white rounded-md hover:bg-orange-500 transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     title={placedLoops.length === 0 ? "Add loops to export" : "Export project as MP3 audio file"}
                 >
-                    {isExporting ? "⏳ Exporting..." : "⬇️ Export MP3"}
+                    {isExporting ? "⏳ Exp..." : "⬇️ Export"}
                 </button>
             </div>
 
             {/* Notification */}
             {notification && (
                 <div
-                    className={`mt-3 p-3 rounded-md text-sm font-semibold ${notification.type === "success"
-                        ? "bg-green-100 text-green-800 border border-green-300"
-                        : "bg-red-100 text-red-800 border border-red-300"
+                    className={`mt-2 p-2 rounded-md text-xs font-semibold backdrop-blur-sm ${notification.type === "success"
+                        ? "bg-green-500/20 text-green-300 border border-green-400/30"
+                        : "bg-red-500/20 text-red-300 border border-red-400/30"
                         }`}
                 >
                     {notification.message}
@@ -131,26 +131,26 @@ export default function ProjectMenu() {
 
             {/* Projects List */}
             {showProjects && (
-                <div className="mt-4 bg-white border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto">
-                    <h3 className="font-bold text-lg mb-3 text-gray-800">Your Projects</h3>
+                <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    <h3 className="font-bold text-lg mb-3 text-white">Your Projects</h3>
 
                     {isLoading ? (
-                        <p className="text-gray-600">Loading...</p>
+                        <p className="text-white/60">Loading...</p>
                     ) : userProjects.length === 0 ? (
-                        <p className="text-gray-600">No saved projects yet.</p>
+                        <p className="text-white/60">No saved projects yet.</p>
                     ) : (
                         <div className="space-y-2">
                             {userProjects.map((project) => (
                                 <div
                                     key={project.project_id}
                                     className={`flex items-center justify-between p-3 rounded-md border-2 ${project.prokect_id === currentProjectId
-                                        ? "border-blue-500 bg-blue-50"
-                                        : "border-gray-200"
+                                        ? "border-blue-400/50 bg-blue-500/20"
+                                        : "border-white/20 bg-white/5"
                                         }`}
                                 >
                                     <div>
-                                        <h4 className="font-semibold text-gray-800">{project.name}</h4>
-                                        <p className="text-xs text-gray-500">
+                                        <h4 className="font-semibold text-white">{project.name}</h4>
+                                        <p className="text-xs text-white/60">
                                             BPM: {project.bpm} • {new Date(project.updated_at).toLocaleDateString()}
                                         </p>
                                     </div>
@@ -158,14 +158,14 @@ export default function ProjectMenu() {
                                         {project.project_id !== currentProjectId && (
                                             <button
                                                 onClick={() => handleLoadProject(project.project_id)}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 shadow-lg"
                                             >
                                                 Load
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleDelete(project.project_id, project.name)}
-                                            className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                                            className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 shadow-lg"
                                         >
                                             Delete
                                         </button>

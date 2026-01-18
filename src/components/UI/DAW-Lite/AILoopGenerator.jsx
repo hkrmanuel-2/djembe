@@ -127,81 +127,82 @@ export default function AILoopGenerator({ onLoopGenerated }) {
   };
 
   return (
-    <div className="w-[280px] border-r border-black p-6 bg-gradient-to-b from-purple-50 to-purple-100">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-black">AI LOOP GENERATOR</h2>
+    <div className="w-[240px] border-r border-white/10 p-3 bg-white/5 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+        <h2 className="text-lg font-bold text-white">AI GEN</h2>
         {credits !== null && (
-          <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded border border-gray-300">
-            {credits} credits
+          <span className="text-xs text-white/70 bg-white/10 px-2 py-1 rounded border border-white/20">
+            {credits}
           </span>
         )}
       </div>
 
-      {!apiKey && (
-        <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
-          <p className="text-xs text-yellow-800 mb-2">
-            <strong>Setup Required:</strong> Add VITE_SUNO_API_KEY to your .env file to generate AI loops.
-          </p>
-          <p className="text-xs text-yellow-700">
-            Get your API key from{' '}
-            <a
-              href="https://sunoapi.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline font-semibold"
-            >
-              sunoapi.org
-            </a>
-          </p>
-        </div>
-      )}
-
-      <div className="mb-4">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Prompt ({projectBpm} BPM)
-        </label>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g., upbeat electronic dance music, smooth jazz piano, energetic rock drums..."
-          className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg text-sm resize-none"
-          rows={4}
-          disabled={isGenerating}
-        />
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
-          <p className="text-xs text-red-800">{error}</p>
-        </div>
-      )}
-
-      <button
-        onClick={handleGenerate}
-        disabled={isGenerating || !prompt.trim()}
-        className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all ${
-          isGenerating || !prompt.trim()
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-purple-600 hover:bg-purple-700 active:scale-95'
-        }`}
-      >
-        {isGenerating ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="animate-spin">⏳</span>
-            Generating...
-          </span>
-        ) : (
-          '✨ Generate AI Loop'
+      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
+        {!apiKey && (
+          <div className="mb-3 p-2 bg-yellow-500/20 border border-yellow-400/30 rounded-lg backdrop-blur-sm flex-shrink-0">
+            <p className="text-[10px] text-yellow-200 mb-1">
+              <strong>Setup:</strong> Add API key
+            </p>
+            <p className="text-[10px] text-yellow-300/80">
+              <a
+                href="https://sunoapi.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-300 hover:underline font-semibold"
+              >
+                sunoapi.org
+              </a>
+            </p>
+          </div>
         )}
-      </button>
 
-      <div className="mt-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
-        <p className="text-xs text-blue-800 font-semibold mb-1">💡 Tips:</p>
-        <ul className="text-xs text-blue-700 space-y-1">
-          <li>• Describe the style and mood</li>
-          <li>• Loops match your project BPM</li>
-          <li>• Generated loops appear in library</li>
-        </ul>
+        <div className="mb-3 flex-shrink-0">
+          <label className="block text-xs font-semibold text-white/70 mb-1">
+            Prompt ({projectBpm} BPM)
+          </label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="upbeat electronic..."
+            className="w-full px-2 py-2 border border-white/20 rounded-lg text-xs resize-none bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-white/40"
+            rows={3}
+            disabled={isGenerating}
+          />
+        </div>
+
+        {error && (
+          <div className="mb-3 p-2 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm flex-shrink-0">
+            <p className="text-[10px] text-red-200">{error}</p>
+          </div>
+        )}
+
+        <button
+          onClick={handleGenerate}
+          disabled={isGenerating || !prompt.trim()}
+          className={`w-full py-2 px-3 rounded-lg font-semibold text-sm text-white transition-all shadow-lg flex-shrink-0 ${
+            isGenerating || !prompt.trim()
+              ? 'bg-white/10 cursor-not-allowed'
+              : 'bg-purple-600/80 hover:bg-purple-600 active:scale-95'
+          }`}
+        >
+          {isGenerating ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⏳</span>
+              <span className="text-xs">Gen...</span>
+            </span>
+          ) : (
+            '✨ Generate'
+          )}
+        </button>
+
+        <div className="mt-3 p-2 bg-blue-500/20 border border-blue-400/30 rounded-lg backdrop-blur-sm flex-shrink-0">
+          <p className="text-xs text-blue-300 font-semibold mb-1">💡 Tips:</p>
+          <ul className="text-[10px] text-blue-200/80 space-y-0.5">
+            <li>• Describe style</li>
+            <li>• Matches BPM</li>
+            <li>• Shows in library</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

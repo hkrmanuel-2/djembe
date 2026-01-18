@@ -183,30 +183,30 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
   };
 
   return (
-    <div className="flex-1 p-6 overflow-x-auto overflow-y-auto">
+    <div className="flex-1 p-3 overflow-x-auto overflow-y-auto flex flex-col">
       {/* Zoom Controls */}
-      <div className="mb-4 flex items-center justify-end gap-2 sticky top-0 bg-[#eaf5f9] z-50 pb-2">
-        <span className="text-xs font-semibold text-gray-600">Zoom:</span>
+      <div className="mb-2 flex items-center justify-end gap-2 flex-shrink-0">
+        <span className="text-[10px] font-semibold text-white/70">Zoom:</span>
         <button
           onClick={handleZoomOut}
-          className="w-8 h-8 border-2 border-gray-300 rounded bg-white hover:bg-gray-100 flex items-center justify-center text-sm font-bold transition-colors"
+          className="w-6 h-6 border border-white/20 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors text-white"
           title="Zoom Out"
         >
           −
         </button>
-        <span className="text-xs font-semibold text-gray-700 w-12 text-center">
+        <span className="text-[10px] font-semibold text-white w-10 text-center">
           {Math.round(zoom * 100)}%
         </span>
         <button
           onClick={handleZoomIn}
-          className="w-8 h-8 border-2 border-gray-300 rounded bg-white hover:bg-gray-100 flex items-center justify-center text-sm font-bold transition-colors"
+          className="w-6 h-6 border border-white/20 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors text-white"
           title="Zoom In"
         >
           +
         </button>
         <button
           onClick={handleZoomReset}
-          className="px-3 h-8 border-2 border-gray-300 rounded bg-white hover:bg-gray-100 text-xs font-semibold text-gray-700 transition-colors"
+          className="px-2 h-6 border border-white/20 rounded bg-white/10 hover:bg-white/20 text-[10px] font-semibold text-white transition-colors"
           title="Reset Zoom"
         >
           Reset
@@ -214,8 +214,8 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
       </div>
 
       <div
-        className="timeline-container relative border-2 border-black bg-white"
-        style={{ 
+        className="timeline-container relative border-2 border-white/20 bg-black/40 backdrop-blur-sm rounded-lg"
+        style={{
           minWidth: `${800 * zoom}px`,
         }}
         onMouseMove={handleTrimMove}
@@ -223,11 +223,11 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
         onMouseLeave={handleTrimEnd}
       >
         {/* Track Labels */}
-        <div className="absolute left-0 top-0 bottom-0 border-r-2 border-gray-600 bg-gray-100 z-10" style={{ width: `${64 * zoom}px` }}>
+        <div className="absolute left-0 top-0 bottom-0 border-r-2 border-white/20 bg-white/5 backdrop-blur-sm z-10" style={{ width: `${64 * zoom}px` }}>
           {Array.from({ length: rows }).map((_, i) => (
-            <div 
-              key={i} 
-              className="border-b border-gray-400 flex items-center justify-center text-xs font-semibold text-gray-600"
+            <div
+              key={i}
+              className="border-b border-white/10 flex items-center justify-center text-xs font-semibold text-white/60"
               style={{ height: `${cellHeight}px` }}
             >
               Track {i + 1}
@@ -286,14 +286,14 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
                 <div
                   key={i}
                   className={`transition-colors ${isBarStart
-                    ? 'border-l-2 border-gray-700 bg-gray-50'
+                    ? 'border-l-2 border-white/30 bg-white/5'
                     : isBeatStart
-                      ? 'border-l border-gray-500 bg-[#e9f4f8]'
-                      : 'border-l border-gray-300 bg-[#e9f4f8]'
-                    } ${row === 0 ? 'border-t-2 border-gray-600' : 'border-t border-gray-400'
-                    } ${row === rows - 1 ? 'border-b-2 border-gray-600' : ''
-                    } ${isCurrentBeat ? 'bg-blue-200' : ''
-                    } hover:bg-gray-50`}
+                      ? 'border-l border-white/20 bg-white/[0.02]'
+                      : 'border-l border-white/10 bg-white/[0.02]'
+                    } ${row === 0 ? 'border-t-2 border-white/20' : 'border-t border-white/10'
+                    } ${row === rows - 1 ? 'border-b-2 border-white/20' : ''
+                    } ${isCurrentBeat ? 'bg-blue-500/20' : ''
+                    } hover:bg-white/10`}
                   style={{ height: `${cellHeight}px` }}
                 />
               );
@@ -396,8 +396,8 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
         {Array.from({ length: bars }).map((_, i) => (
           <div
             key={i}
-            className="text-center font-semibold text-gray-600 border-l-2 border-gray-700"
-            style={{ 
+            className="text-center font-semibold text-white/60 border-l-2 border-white/30"
+            style={{
               width: `${(beatsPerBar * subdivisionsPerBeat / totalCols) * 800 * zoom}px`,
               fontSize: `${12 * zoom}px`
             }}

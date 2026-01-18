@@ -1,10 +1,36 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { Info, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 
-const World1: React.FC = () => {
+const World2New: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showInfo, setShowInfo] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+
+  const resetCamera = () => {
+    if (cameraRef.current && controlsRef.current) {
+      cameraRef.current.position.set(-8, 1.5, -10);
+      cameraRef.current.lookAt(5, 1.5, -15);
+      controlsRef.current.reset();
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -23,6 +49,7 @@ const World1: React.FC = () => {
     );
     camera.position.set(-8, 1.5, -10);
     camera.lookAt(5, 1.5, -15);
+    cameraRef.current = camera;
 
     // Renderer
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -47,12 +74,12 @@ const World1: React.FC = () => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controlsRef.current = controls;
 
-    // Load GLTF from Supabase
+    // Load GLTF
     const audiLoader = new GLTFLoader();
     audiLoader.load(
       "/models/viola_desmond_the_roseland_theatre.glb",
-
       (gltf) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, 0, 1);
@@ -75,13 +102,15 @@ const World1: React.FC = () => {
         });
 
         scene.add(gltf.scene);
-        console.log("GLTF model loaded successfully");
+        setLoading(false);
       },
       (xhr) => {
-        console.log("GLTF model " + (xhr.loaded / xhr.total) * 100 + "% loaded");
+        const progress = (xhr.loaded / xhr.total) * 100;
+        setLoadingProgress(progress);
       },
       (error) => {
         console.error("Error loading GLTF model:", error);
+        setLoading(false);
       }
     );
 
@@ -109,25 +138,136 @@ const World1: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-      <div
-        id="info"
-        style={{
-          position: "absolute",
-          top: "10px",
-          left: "10px",
-          width: "100%",
-          color: "white",
-          textAlign: "center",
-          fontFamily: "Arial, sans-serif",
-          zIndex: 100,
-        }}
-      >
-        Auditorium World
+    <div className="relative w-screen h-screen overflow-hidden bg-black">
+      {/* 3D Canvas */}
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black"
+          >
+            <div className="text-center">
+              <div className="text-6xl mb-6">🎭</div>
+              <h2 className="text-3xl font-bold text-white mb-4">Auditorium World</h2>
+              <div className="w-64 h-2 bg-white/10 rounded-full overflow-hidden mb-2">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${loadingProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <p className="text-white/60 text-sm">Loading {Math.round(loadingProgress)}%</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Bar */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-6">
+        <div className="flex items-center justify-between">
+          {/* Title */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="px-6 py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎭</span>
+              <div>
+                <h1 className="text-white font-bold text-lg">Auditorium World</h1>
+                <p className="text-white/60 text-xs">Interactive 3D Environment</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Controls */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2"
+          >
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+            >
+              <Info size={20} className="text-white" />
+            </button>
+            <button
+              onClick={resetCamera}
+              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+            >
+              <RotateCcw size={20} className="text-white" />
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+            >
+              {isFullscreen ? (
+                <Minimize2 size={20} className="text-white" />
+              ) : (
+                <Maximize2 size={20} className="text-white" />
+              )}
+            </button>
+          </motion.div>
+        </div>
       </div>
-      <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />
+
+      {/* Info Panel */}
+      <AnimatePresence>
+        {showInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-6 left-6 right-6 md:left-6 md:right-auto md:max-w-md z-10"
+          >
+            <div className="p-6 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10">
+              <h3 className="text-xl font-bold text-white mb-3">About This World</h3>
+              <p className="text-white/80 text-sm leading-relaxed mb-4">
+                Step into a grand auditorium designed for spectacular performances. Perfect for concerts,
+                recitals, and large ensemble presentations.
+              </p>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Drag to rotate the camera</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Scroll to zoom in/out</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Right-click drag to pan</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Controls Hint */}
+      {!showInfo && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
+        >
+          <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+            <p className="text-white/60 text-xs">
+              Drag to explore • Scroll to zoom
+            </p>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };
 
-export default World1;
+export default World2New;
