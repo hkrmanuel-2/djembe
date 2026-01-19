@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import DAWLite from './assets/pages/DAW-Lite/DAWLite';
 import Home from './assets/pages/Home';
+import Landing_page from './Landing_page';
 import Login from './assets/pages/Auth/Login';
 import Signup from './assets/pages/Auth/Signup';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -26,14 +27,16 @@ function App() {
         <nav className="bg-gray-800 text-white p-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
-              <Link to="/" className="px-4 hover:text-blue-300">Home</Link>
-              {isAuthenticated && (
+              {isAuthenticated ? (
                 <>
+                  <Link to="/home" className="px-4 hover:text-blue-300">Home</Link>
                   <Link to="/daw" className="px-4 hover:text-blue-300">DAW-LITE</Link>
                   {userType === 'teacher' && (
                     <Link to="/admin" className="px-4 hover:text-blue-300">Admin</Link>
                   )}
                 </>
+              ) : (
+                <Link to="/" className="px-4 hover:text-blue-300">Home</Link>
               )}
             </div>
             <div className="flex items-center gap-4">
@@ -62,13 +65,14 @@ function App() {
 
         {/* Routes */}
         <Routes>
+          <Route path="/" element={<Landing_page />} />
           <Route path="/login" element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Login />
+            isAuthenticated ? <Navigate to="/home" replace /> : <Login />
           } />
           <Route path="/signup" element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Signup />
+            isAuthenticated ? <Navigate to="/home" replace /> : <Signup />
           } />
-          <Route path="/" element={
+          <Route path="/home" element={
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>

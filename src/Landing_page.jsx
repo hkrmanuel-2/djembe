@@ -880,7 +880,7 @@ const styles = {
     transition: 'all 0.2s ease',
   },
   ctaSecondaryButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#1A2B4A',
     color: '#FFFFFF',
     border: '2px solid rgba(255,255,255,0.25)',
     borderRadius: '50px',
