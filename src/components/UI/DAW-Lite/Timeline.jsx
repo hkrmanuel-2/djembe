@@ -1,12 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Waveform from "./Waveform";
 
-export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onDrop, onDragOver, removeLoop, onLoopDrag, onLoopTrim }) {
-  const rows = 5; // Tracks
-  const bars = 10;
+export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onDrop, onDragOver, removeLoop, onLoopDrag, onLoopTrim, bars: propBars, rows: propRows, onExtendTimeline }) {
   const beatsPerBar = 4;
   const subdivisionsPerBeat = 4; // 16th notes
-  const totalCols = bars * beatsPerBar * subdivisionsPerBeat; // 160 grid units
+  const DEFAULT_BARS = 10;
+  const DEFAULT_ROWS = 5;
+  const [zoom, setZoom] = useState(1); // Zoom level (1 = 100%)
+  
+  // Calculate required bars and rows based on placed loops
+  const calculateRequiredDimensions = () => {
+    if (placedLoops.length === 0) {
+      // No loops - return to default
+      return { bars: DEFAULT_BARS, rows: DEFAULT_ROWS };
+    }
+    
+    let maxCol = 0;
+    let maxRow = 0;
+    
+    placedLoops.forEach(loop => {
+      const loopEndCol = loop.col + loop.span;
+      if (loopEndCol > maxCol) maxCol = loopEndCol;
+      if (loop.row >= maxRow) maxRow = loop.row + 1;
+    });
+    
+    // Convert columns to bars (round up), but don't go below default
+    const requiredBars = Math.max(DEFAULT_BARS, Math.ceil(maxCol / (beatsPerBar * subdivisionsPerBeat)));
+    const requiredRows = Math.max(DEFAULT_ROWS, maxRow || DEFAULT_ROWS);
+    
+    return { bars: requiredBars, rows: requiredRows };
+  };
+  
+  const { bars, rows } = calculateRequiredDimensions();
+  const totalCols = bars * beatsPerBar * subdivisionsPerBeat;
+  
+  // Calculate cell dimensions based on zoom
+  const baseCellHeight = 100;
+  const cellHeight = baseCellHeight * zoom;
+  
+  // Notify parent if timeline dimensions changed (extend or shrink)
+  useEffect(() => {
+    if (onExtendTimeline) {
+      const currentBars = propBars || DEFAULT_BARS;
+      const currentRows = propRows || DEFAULT_ROWS;
+      
+      // Update if dimensions changed (either extended or shrunk)
+      if (bars !== currentBars || rows !== currentRows) {
+        onExtendTimeline(bars, rows);
+      }
+    }
+  }, [bars, rows, propBars, propRows, onExtendTimeline]);
   const [draggedLoopId, setDraggedLoopId] = useState(null);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [trimmingLoopId, setTrimmingLoopId] = useState(null);
@@ -61,9 +104,9 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     const y = e.clientY - rect.top;
 
     const cellWidth = rect.width / totalCols;
-    const cellHeight = 100;
+    const currentCellHeight = baseCellHeight * zoom;
     let newCol = Math.max(0, Math.min(totalCols - 1, Math.floor(x / cellWidth)));
-    let newRow = Math.max(0, Math.min(rows - 1, Math.floor(y / cellHeight)));
+    let newRow = Math.max(0, Math.min(rows - 1, Math.floor(y / currentCellHeight)));
 
     // Snap to grid
     newCol = snapToGrid(newCol);
@@ -77,11 +120,6 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     setDraggedLoopId(null);
   };
 
-  const handleCellDrop = (e, row, col) => {
-    e.preventDefault();
-    const snappedCol = snapToGrid(col);
-    onDrop(row, snappedCol);
-  };
 
   const handleTrimStart = (e, loop, side) => {
     e.stopPropagation();
@@ -98,6 +136,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     const rect = timeline.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const cellWidth = rect.width / totalCols;
+    const currentCellHeight = baseCellHeight * zoom;
     let newCol = Math.max(0, Math.min(totalCols - 1, Math.floor(x / cellWidth)));
     newCol = snapToGrid(newCol);
 
@@ -130,30 +169,111 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     setTrimSide(null);
   };
 
+  // Zoom controls
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 0.25, 3)); // Max 300%
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 0.25, 0.5)); // Min 50%
+  };
+
+  const handleZoomReset = () => {
+    setZoom(1);
+  };
+
   return (
-    <div className="flex-1 p-6 overflow-x-auto">
+    <div className="flex-1 p-3 overflow-x-auto overflow-y-auto flex flex-col">
+      {/* Zoom Controls */}
+      <div className="mb-2 flex items-center justify-end gap-2 flex-shrink-0">
+        <span className="text-[10px] font-semibold text-white/70">Zoom:</span>
+        <button
+          onClick={handleZoomOut}
+          className="w-6 h-6 border border-white/20 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors text-white"
+          title="Zoom Out"
+        >
+          −
+        </button>
+        <span className="text-[10px] font-semibold text-white w-10 text-center">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          onClick={handleZoomIn}
+          className="w-6 h-6 border border-white/20 rounded bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors text-white"
+          title="Zoom In"
+        >
+          +
+        </button>
+        <button
+          onClick={handleZoomReset}
+          className="px-2 h-6 border border-white/20 rounded bg-white/10 hover:bg-white/20 text-[10px] font-semibold text-white transition-colors"
+          title="Reset Zoom"
+        >
+          Reset
+        </button>
+      </div>
+
       <div
-        className="timeline-container relative border-2 border-black bg-white"
-        style={{ minWidth: '800px' }}
+        className="timeline-container relative border-2 border-white/20 bg-black/40 backdrop-blur-sm rounded-lg"
+        style={{
+          minWidth: `${800 * zoom}px`,
+        }}
         onMouseMove={handleTrimMove}
         onMouseUp={handleTrimEnd}
         onMouseLeave={handleTrimEnd}
       >
         {/* Track Labels */}
-        <div className="absolute left-0 top-0 bottom-0 w-16 border-r-2 border-gray-600 bg-gray-100 z-10">
+        <div className="absolute left-0 top-0 bottom-0 border-r-2 border-white/20 bg-white/5 backdrop-blur-sm z-10" style={{ width: `${64 * zoom}px` }}>
           {Array.from({ length: rows }).map((_, i) => (
-            <div key={i} className="h-[100px] border-b border-gray-400 flex items-center justify-center text-xs font-semibold text-gray-600">
+            <div
+              key={i}
+              className="border-b border-white/10 flex items-center justify-center text-xs font-semibold text-white/60"
+              style={{ height: `${cellHeight}px` }}
+            >
               Track {i + 1}
             </div>
           ))}
         </div>
 
         {/* Main Timeline Grid */}
-        <div className="ml-16 relative" style={{ width: 'calc(100% - 4rem)' }}>
-          <div className="grid gap-0 relative" style={{
-            gridTemplateColumns: `repeat(${totalCols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 100px)`
-          }}>
+        <div className="relative" style={{ width: 'calc(100% - 4rem)', marginLeft: `${64 * zoom}px` }}>
+          <div 
+            className="grid gap-0 relative"
+            style={{
+              gridTemplateColumns: `repeat(${totalCols}, ${800 * zoom / totalCols}px)`,
+              gridTemplateRows: `repeat(${rows}, ${cellHeight}px)`
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // Use actual mouse position relative to timeline container for accurate positioning
+              const timeline = e.currentTarget.closest('.timeline-container');
+              if (!timeline) return;
+              
+              const rect = timeline.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              
+              // Account for the left margin (track labels)
+              const gridAreaLeft = 64; // 4rem = 64px
+              const gridX = x - gridAreaLeft;
+              const gridAreaWidth = rect.width - gridAreaLeft;
+              
+              // Calculate column and row from actual mouse position
+              const cellWidth = gridAreaWidth / totalCols;
+              const cellHeight = 100;
+              
+              let calculatedCol = Math.max(0, Math.min(totalCols - 1, Math.floor(gridX / cellWidth)));
+              let calculatedRow = Math.max(0, Math.min(rows - 1, Math.floor(y / cellHeight)));
+              
+              // Snap to grid
+              const snappedCol = snapToGrid(calculatedCol);
+              
+              onDrop(calculatedRow, snappedCol);
+            }}
+            onDragOver={onDragOver}
+          >
             {Array.from({ length: rows * totalCols }).map((_, i) => {
               const row = Math.floor(i / totalCols);
               const col = i % totalCols;
@@ -165,17 +285,16 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
               return (
                 <div
                   key={i}
-                  onDrop={(e) => handleCellDrop(e, row, col)}
-                  onDragOver={onDragOver}
-                  className={`h-[100px] transition-colors ${isBarStart
-                    ? 'border-l-2 border-gray-700 bg-gray-50'
+                  className={`transition-colors ${isBarStart
+                    ? 'border-l-2 border-white/30 bg-white/5'
                     : isBeatStart
-                      ? 'border-l border-gray-500 bg-[#e9f4f8]'
-                      : 'border-l border-gray-300 bg-[#e9f4f8]'
-                    } ${row === 0 ? 'border-t-2 border-gray-600' : 'border-t border-gray-400'
-                    } ${row === rows - 1 ? 'border-b-2 border-gray-600' : ''
-                    } ${isCurrentBeat ? 'bg-blue-200' : ''
-                    } hover:bg-gray-50`}
+                      ? 'border-l border-white/20 bg-white/[0.02]'
+                      : 'border-l border-white/10 bg-white/[0.02]'
+                    } ${row === 0 ? 'border-t-2 border-white/20' : 'border-t border-white/10'
+                    } ${row === rows - 1 ? 'border-b-2 border-white/20' : ''
+                    } ${isCurrentBeat ? 'bg-blue-500/20' : ''
+                    } hover:bg-white/10`}
+                  style={{ height: `${cellHeight}px` }}
                 />
               );
             })}
@@ -198,11 +317,11 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
                   onDragEnd={handlePlacedLoopDragEnd}
                   style={{
                     position: 'absolute',
-                    top: `${loop.row * 100}px`,
+                    top: `${loop.row * cellHeight}px`,
                     left: `${(loop.col / totalCols) * 100}%`,
                     width: `${(loop.span / totalCols) * 100}%`,
-                    height: '100px',
-                    minWidth: '40px',
+                    height: `${cellHeight}px`,
+                    minWidth: `${40 * zoom}px`,
                   }}
                   className={`${loop.color} border-2 ${loop.border} rounded-md flex items-center justify-between px-3 font-semibold text-sm shadow-lg group hover:shadow-xl transition-all cursor-move active:cursor-grabbing relative overflow-hidden opacity-80 hover:opacity-90 ${isLoopPlaying ? 'ring-2 ring-yellow-400 ring-opacity-75' : ''
                     }`}
@@ -212,7 +331,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
                     <Waveform
                       audioUrl={loop.url}
                       width={loopWidth}
-                      height={100}
+                      height={cellHeight}
                     />
                   )}
 
@@ -273,12 +392,15 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
       </div>
 
       {/* Bar Numbers */}
-      <div className="ml-16 mt-2 flex">
+      <div className="mt-2 flex" style={{ marginLeft: `${64 * zoom}px` }}>
         {Array.from({ length: bars }).map((_, i) => (
           <div
             key={i}
-            className="text-center text-xs font-semibold text-gray-600 border-l-2 border-gray-700"
-            style={{ width: `${(beatsPerBar * subdivisionsPerBeat / totalCols) * 100}%` }}
+            className="text-center font-semibold text-white/60 border-l-2 border-white/30"
+            style={{
+              width: `${(beatsPerBar * subdivisionsPerBeat / totalCols) * 800 * zoom}px`,
+              fontSize: `${12 * zoom}px`
+            }}
           >
             {i + 1}
           </div>

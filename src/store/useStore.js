@@ -12,42 +12,30 @@ export const useStore = create(
       let startTime = 0; // Tone.now() when transport started
       let lastTriggeredBeat = -1; // to avoid retriggering same beat multiple frames
 
-      // Active audio players for continuous playback
-      const activePlayers = new Map(); // loop.id -> Audio
+      // Track which loop instances have been triggered at which beat
+      // This prevents retriggering the same loop instance multiple times
+      const triggeredLoops = new Set(); // Set of "loopId-beatIndex" strings
 
-      // helper: start playing a loop continuously
-      const startLoopPlayback = (loop) => {
-        if (!loop || !loop.url || activePlayers.has(loop.id)) return;
+      // helper: play a loop once (DAW-style, not continuous looping)
+      const playLoopOnce = (loop) => {
+        if (!loop || !loop.url) return;
         try {
           const audio = new Audio(loop.url);
-          audio.loop = true;
+          audio.loop = false; // Play once, don't loop
           audio.volume = 0.7;
           audio.play().catch((err) => {
             console.warn("Audio play error:", err);
           });
-          activePlayers.set(loop.id, audio);
+          // Let the audio play to completion naturally - don't track it
         } catch (err) {
           console.warn("Failed to play placed loop:", err);
         }
       };
 
-      // helper: stop playing a loop
-      const stopLoopPlayback = (loopId) => {
-        const audio = activePlayers.get(loopId);
-        if (audio) {
-          audio.pause();
-          audio.currentTime = 0;
-          activePlayers.delete(loopId);
-        }
-      };
-
-      // Stop all loops
+      // Stop all loops (for stop/rewind)
       const stopAllLoops = () => {
-        activePlayers.forEach((audio) => {
-          audio.pause();
-          audio.currentTime = 0;
-        });
-        activePlayers.clear();
+        // Clear triggered loops tracking so they can play again
+        triggeredLoops.clear();
       };
 
       // update loop called by requestAnimationFrame
@@ -85,27 +73,40 @@ export const useStore = create(
         if (beatIndex !== lastTriggeredBeat) {
           lastTriggeredBeat = beatIndex;
 
-          // Manage continuous loop playback based on playhead position
+          // DAW-style playback: trigger loops when playhead reaches their start beat
           const subdivisionsPerBeat = 4;
           const placed = get().project.placedLoops || [];
 
           placed.forEach((p) => {
-            // Convert loop's grid column and span to beat indices
+            // Convert loop's grid column to beat index (start beat)
             const loopStartBeat = Math.floor(p.col / subdivisionsPerBeat);
-            const loopEndBeat = Math.floor((p.col + p.span) / subdivisionsPerBeat);
 
-            // Check if playhead is within this loop's range
-            const isPlayheadInLoop = beatIndex >= loopStartBeat && beatIndex < loopEndBeat;
-
-            if (isPlayheadInLoop) {
-              // Start playing if not already playing
-              if (!activePlayers.has(p.id)) {
-                startLoopPlayback(p);
-              }
-            } else {
-              // Stop playing if playhead left the loop
-              if (activePlayers.has(p.id)) {
-                stopLoopPlayback(p.id);
+            // Trigger playback when playhead reaches the loop's start beat
+            if (beatIndex === loopStartBeat) {
+              // Create unique key for this loop instance at this beat
+              // Include a "cycle" identifier to handle timeline looping
+              const totalBeats = (project.bars || 10) * beatsPerBar;
+              const cycle = Math.floor(floatBeat / totalBeats);
+              const triggerKey = `${p.id}-${loopStartBeat}-${cycle}`;
+              
+              // Only trigger if we haven't already triggered this loop in this cycle
+              if (!triggeredLoops.has(triggerKey)) {
+                triggeredLoops.add(triggerKey);
+                playLoopOnce(p);
+                
+                // Clean up old triggers from previous cycles to prevent memory buildup
+                // Remove triggers from cycles that are more than 2 cycles behind
+                if (triggeredLoops.size > 500) {
+                  triggeredLoops.forEach((key) => {
+                    const parts = key.split('-');
+                    if (parts.length === 3) {
+                      const keyCycle = parseInt(parts[2], 10);
+                      if (cycle - keyCycle > 2) {
+                        triggeredLoops.delete(key);
+                      }
+                    }
+                  });
+                }
               }
             }
           });
@@ -155,13 +156,14 @@ export const useStore = create(
 
             // Map database fields to app format
             const loops = data.map((loop) => ({
-              id: loop.loop_id,
+              id: loop.loop_id || loop.id,
               name: loop.name,
               url: loop.url,
               color: loop.color || "bg-purple-400",
               hoverColor: loop.hover_color || "hover:bg-purple-500",
               border: loop.border || "border-purple-600",
               icon: loop.icon || "🎵",
+              bpm: loop.bpm || 120, // Default to 120 if not specified
             }));
 
             set({ library: loops, isLoading: false });
@@ -369,6 +371,8 @@ export const useStore = create(
           // reset internals so next start begins at 0
           startTime = Tone.now();
           lastTriggeredBeat = -1;
+          // Clear triggered loops so they can play again from the start
+          stopAllLoops();
         },
 
         setBpm: (bpm) => {
@@ -422,6 +426,24 @@ export const useStore = create(
           set((state) => ({
             project: { ...state.project, name },
           }));
+        },
+
+        updateProjectDimensions: (bars, rows) => {
+          set((state) => {
+            const defaultBars = 10;
+            const defaultRows = 5;
+            // Allow shrinking back to default when loops are deleted
+            const newBars = bars || defaultBars;
+            const newRows = rows || defaultRows;
+            
+            return {
+              project: { 
+                ...state.project, 
+                bars: newBars,
+                // Note: rows is not stored in project, but Timeline calculates it dynamically
+              },
+            };
+          });
         },
 
         newProject: () => {
@@ -616,7 +638,6 @@ export const useStore = create(
     },
     {
       name: "daw-storage",
-      // Only persist essential fields, avoid saving ephemeral timing internals
       partialize: (state) => ({
         transport: {
           bpm: state.transport.bpm,

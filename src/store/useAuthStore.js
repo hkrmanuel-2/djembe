@@ -129,8 +129,7 @@ export const useAuthStore = create(
             last_name: lastName,
             email: email,
             school_id: schoolId,
-            // If password_hash is required and not nullable, you may need to adjust your schema
-            // password_hash: '', // Placeholder - Supabase Auth handles passwords
+
           };
 
           let profileResult;
