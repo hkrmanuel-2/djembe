@@ -10,9 +10,11 @@ export default function World2() {
   const controlsRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  // Animation references
-  const mixerRef = useRef(null);
-  const actionRef = useRef(null);
+  // Animation references - separate for each character
+  const drummerMixerRef = useRef(null);
+  const drummerActionRef = useRef(null);
+  const pianistMixerRef = useRef(null);
+  const pianistActionRef = useRef(null);
   const clockRef = useRef(new THREE.Clock());
   
   // Raycasting references
@@ -128,25 +130,25 @@ export default function World2() {
 
         scene.add(model);
 
-        // Setup animation mixer
+        // Setup animation mixer for drummer
         if (gltf.animations && gltf.animations.length > 0) {
-          console.log('Animations found:', gltf.animations.map(a => a.name));
-          
+          console.log('Drummer animations found:', gltf.animations.map(a => a.name));
+
           const mixer = new THREE.AnimationMixer(model);
-          mixerRef.current = mixer;
+          drummerMixerRef.current = mixer;
 
           // Get the first animation clip
           const clip = gltf.animations[0];
           const action = mixer.clipAction(clip);
-          
-          // Configure the action
-          action.setLoop(THREE.LoopRepeat); 
-          action.clampWhenFinished = false;
-          actionRef.current = action;
 
-          console.log('Animation ready - click on the drummer to play!');
+          // Configure the action
+          action.setLoop(THREE.LoopRepeat);
+          action.clampWhenFinished = false;
+          drummerActionRef.current = action;
+
+          console.log('Drummer animation ready - click on the drummer to play!');
         } else {
-          console.log('No animations found in the model');
+          console.log('No animations found in the drummer model');
         }
       },
       (xhr) => {
@@ -173,17 +175,17 @@ export default function World2() {
 
         if (intersects.length > 0) {
           console.log('Drummer clicked!');
-          
+
           // Toggle animation playback
-          if (actionRef.current) {
-            if (actionRef.current.isRunning()) {
+          if (drummerActionRef.current) {
+            if (drummerActionRef.current.isRunning()) {
               // Stop the animation
-              actionRef.current.fadeOut(0.3);
-              console.log('Animation stopped');
+              drummerActionRef.current.fadeOut(0.3);
+              console.log('Drummer animation stopped');
             } else {
               // Play the animation
-              actionRef.current.reset().fadeIn(0.3).play();
-              console.log('Animation playing');
+              drummerActionRef.current.reset().fadeIn(0.3).play();
+              console.log('Drummer animation playing');
             }
           }
         }
@@ -223,25 +225,25 @@ export default function World2() {
 
         scene.add(model);
 
-        // Setup animation mixer
+        // Setup animation mixer for pianist
         if (gltf.animations && gltf.animations.length > 0) {
-          console.log('Animations found:', gltf.animations.map(a => a.name));
-          
+          console.log('Pianist animations found:', gltf.animations.map(a => a.name));
+
           const mixer = new THREE.AnimationMixer(model);
-          mixerRef.current = mixer;
+          pianistMixerRef.current = mixer;
 
           // Get the first animation clip
           const clip = gltf.animations[0];
           const action = mixer.clipAction(clip);
-          
-          // Configure the action
-          action.setLoop(THREE.LoopRepeat); 
-          action.clampWhenFinished = false;
-          actionRef.current = action;
 
-          console.log('Animation ready - click on the pianist to play!');
+          // Configure the action
+          action.setLoop(THREE.LoopRepeat);
+          action.clampWhenFinished = false;
+          pianistActionRef.current = action;
+
+          console.log('Pianist animation ready - click on the pianist to play!');
         } else {
-          console.log('No animations found in the model');
+          console.log('No animations found in the pianist model');
         }
       },
       (xhr) => {
@@ -268,17 +270,17 @@ export default function World2() {
 
         if (intersects.length > 0) {
           console.log('Pianist clicked!');
-          
+
           // Toggle animation playback
-          if (actionRef.current) {
-            if (actionRef.current.isRunning()) {
+          if (pianistActionRef.current) {
+            if (pianistActionRef.current.isRunning()) {
               // Stop the animation
-              actionRef.current.fadeOut(0.3);
-              console.log('Animation stopped');
+              pianistActionRef.current.fadeOut(0.3);
+              console.log('Pianist animation stopped');
             } else {
               // Play the animation
-              actionRef.current.reset().fadeIn(0.3).play();
-              console.log('Animation playing');
+              pianistActionRef.current.reset().fadeIn(0.3).play();
+              console.log('Pianist animation playing');
             }
           }
         }
@@ -294,10 +296,13 @@ export default function World2() {
     function animate() {
       animationFrameRef.current = requestAnimationFrame(animate);
 
-      // Update animation mixer
+      // Update animation mixers for both characters
       const delta = clockRef.current.getDelta();
-      if (mixerRef.current) {
-        mixerRef.current.update(delta);
+      if (drummerMixerRef.current) {
+        drummerMixerRef.current.update(delta);
+      }
+      if (pianistMixerRef.current) {
+        pianistMixerRef.current.update(delta);
       }
 
       const canvas = renderer.domElement;
@@ -331,8 +336,11 @@ export default function World2() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      if (mixerRef.current) {
-        mixerRef.current.stopAllAction();
+      if (drummerMixerRef.current) {
+        drummerMixerRef.current.stopAllAction();
+      }
+      if (pianistMixerRef.current) {
+        pianistMixerRef.current.stopAllAction();
       }
       if (controlsRef.current) {
         controlsRef.current.dispose();
