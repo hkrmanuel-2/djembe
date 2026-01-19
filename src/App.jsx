@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import DAWLite from './assets/pages/DAW-Lite/DAWLite';
-import Home from './assets/pages/Home';
+import Dashboard from './assets/pages/Dashboard';
 import Login from './assets/pages/Auth/Login';
 import Signup from './assets/pages/Auth/Signup';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -45,7 +45,7 @@ function AppContent() {
 
   // Navigation items for authenticated users
   const navItems = isAuthenticated ? [
-    { name: 'Home', url: '/', icon: HomeIcon },
+    { name: 'Dashboard', url: '/', icon: HomeIcon },
     { name: 'DAW', url: '/daw', icon: Music },
     ...(userType === 'student' ? [{ name: 'Assignments', url: '/assignments', icon: FileText }] : []),
     { name: 'Worlds', url: '/world1', icon: Globe },
@@ -88,7 +88,7 @@ function AppContent() {
         } />
         <Route path="/" element={
           <ProtectedRoute>
-            <Home />
+            <Dashboard />
           </ProtectedRoute>
         } />
         <Route path="/daw" element={

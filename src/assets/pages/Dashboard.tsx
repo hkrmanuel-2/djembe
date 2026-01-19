@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import CloudShader from "@/components/ui/cloud-shader";
 import { Music, FileText, Globe, Sparkles, ArrowRight } from "lucide-react";
 
-export default function HomeNew() {
+export default function Dashboard() {
   const { userProfile, userType } = useAuthStore();
 
   const containerVariants = {
