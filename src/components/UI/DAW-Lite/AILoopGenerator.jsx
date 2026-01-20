@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../../store/useStore.js';
+import { useAuthStore } from '../../../store/useAuthStore.js';
 import { generateMusic, getRemainingCredits } from '../../../lib/sunoApi.js';
 import { supabase } from '../../../lib/supabase.js';
 
@@ -11,6 +12,7 @@ export default function AILoopGenerator({ onLoopGenerated }) {
 
   const projectBpm = useStore((state) => state.project.bpm);
   const loadLoops = useStore((state) => state.loadLoops);
+  const userProfile = useAuthStore((state) => state.userProfile);
 
   // Get API key from .env file
   const apiKey = import.meta.env.VITE_SUNO_API_KEY || '';
@@ -74,16 +76,6 @@ export default function AILoopGenerator({ onLoopGenerated }) {
       // Create a name from the prompt (truncate if too long)
       const loopName = prompt.trim().substring(0, 50) || 'AI Generated Loop';
 
-      // Generate random colors for the loop
-      const colors = [
-        { bg: 'bg-blue-400', hover: 'hover:bg-blue-500', border: 'border-blue-600' },
-        { bg: 'bg-green-400', hover: 'hover:bg-green-500', border: 'border-green-600' },
-        { bg: 'bg-red-400', hover: 'hover:bg-red-500', border: 'border-red-600' },
-        { bg: 'bg-yellow-400', hover: 'hover:bg-yellow-500', border: 'border-yellow-600' },
-        { bg: 'bg-indigo-400', hover: 'hover:bg-indigo-500', border: 'border-indigo-600' },
-      ];
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
       // Save loop to database
       const { data, error: dbError } = await supabase
         .from('loops')
@@ -92,10 +84,9 @@ export default function AILoopGenerator({ onLoopGenerated }) {
             name: loopName,
             url: audioUrl,
             icon: '🤖',
-            color: randomColor.bg,
-            hover_color: randomColor.hover,
-            border: randomColor.border,
+            is_ai_generated: true,
             bpm: projectBpm,
+            created_by: userProfile?.teacher_id || userProfile?.student_id || null,
           },
         ])
         .select()
