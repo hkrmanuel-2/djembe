@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { Info, Maximize2, Minimize2, RotateCcw } from "lucide-react";
+import { Info, Maximize2, Minimize2, RotateCcw, Home } from "lucide-react";
 
 const World2New: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -13,6 +14,7 @@ const World2New: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
+  const navigate = useNavigate();
 
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
@@ -191,6 +193,13 @@ const World2New: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
           >
+            <button
+              onClick={() => navigate('/home')}
+              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+              title="Go to Home"
+            >
+              <Home size={20} style={{ color: '#E6B84D' }} />
+            </button>
             <button
               onClick={() => setShowInfo(!showInfo)}
               className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"

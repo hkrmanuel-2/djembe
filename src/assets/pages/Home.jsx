@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
-import CloudShader from "@/components/ui/cloud-shader";
 import { Music, FileText, Globe, Sparkles, ArrowRight } from "lucide-react";
 
 export default function HomeNew() {
@@ -23,21 +22,15 @@ export default function HomeNew() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5, ease: "easeOut" as const },
+      transition: { duration: 0.5, ease: "easeOut" },
     },
-  } as const;
+  };
 
   return (
-    <div className="flex w-full flex-col min-h-screen bg-black relative overflow-hidden">
-      {/* CloudShader Background */}
+    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#F5F1E8' }}>
+      {/* Background */}
       <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.2}
-          octaves={5}
-          scale={3}
-          className="w-full h-full opacity-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-transparent" />
       </div>
 
       {/* Fun Doodles */}
@@ -60,22 +53,22 @@ export default function HomeNew() {
         >
           {/* Welcome Section */}
           <motion.div variants={itemVariants} className="text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-4">
-              <Sparkles size={16} className="text-white/60" />
-              <span className="text-sm text-white/70 font-medium">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm mb-4" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)', borderColor: 'rgba(26, 43, 74, 0.1)' }}>
+              <Sparkles size={16} style={{ color: '#D97746' }} />
+              <span className="text-sm font-medium" style={{ color: '#1A2B4A' }}>
                 {userType === "teacher" ? "Teacher Portal" : "Student Dashboard"}
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight text-white">
+            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight" style={{ color: '#1A2B4A' }}>
               Welcome back,
               <br />
-              <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+              <span style={{ color: '#D97746' }}>
                 {userProfile?.first_name || "there"}
               </span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-white/60 font-light max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl font-light max-w-2xl mx-auto" style={{ color: '#5A6B7D' }}>
               {userType === "teacher"
                 ? "Ready to inspire your students and create amazing musical experiences"
                 : "Your musical adventure awaits. Let's make some magic"}
@@ -92,23 +85,24 @@ export default function HomeNew() {
               <motion.div
                 whileHover={{ scale: 1.02, y: -4 }}
                 whileTap={{ scale: 0.98 }}
-                className="relative h-full overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-sm p-8 transition-all duration-300 hover:border-white/20"
+                className="relative h-full overflow-hidden rounded-2xl border backdrop-blur-sm p-8 transition-all duration-300"
+                style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, rgba(217, 119, 70, 0.05) 0%, rgba(74, 155, 155, 0.05) 100%)' }} />
 
                 <div className="relative space-y-4">
-                  <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                    <Music size={28} className="text-white" />
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: '#F0EDE4' }}>
+                    <Music size={28} style={{ color: '#D97746' }} />
                   </div>
 
                   <div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Make Music</h3>
-                    <p className="text-white/60 text-sm leading-relaxed">
+                    <h3 className="text-2xl font-bold mb-2" style={{ color: '#1A2B4A' }}>Make Music</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: '#5A6B7D' }}>
                       Create beats, compose melodies, and bring your musical ideas to life with our DAW
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 text-white/80 group-hover:text-white transition-colors pt-2">
+                  <div className="flex items-center gap-2 transition-colors pt-2" style={{ color: '#1A2B4A' }}>
                     <span className="text-sm font-medium">Start creating</span>
                     <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -122,23 +116,24 @@ export default function HomeNew() {
                 <motion.div
                   whileHover={{ scale: 1.02, y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  className="relative h-full overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-sm p-8 transition-all duration-300 hover:border-white/20"
+                  className="relative h-full overflow-hidden rounded-2xl border backdrop-blur-sm p-8 transition-all duration-300"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, rgba(74, 155, 155, 0.05) 0%, rgba(230, 184, 77, 0.05) 100%)' }} />
 
                   <div className="relative space-y-4">
-                    <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                      <FileText size={28} className="text-white" />
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: '#F0EDE4' }}>
+                      <FileText size={28} style={{ color: '#4A9B9B' }} />
                     </div>
 
                     <div>
-                      <h3 className="text-2xl font-bold text-white mb-2">My Assignments</h3>
-                      <p className="text-white/60 text-sm leading-relaxed">
+                      <h3 className="text-2xl font-bold mb-2" style={{ color: '#1A2B4A' }}>My Assignments</h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#5A6B7D' }}>
                         View your tasks, submit your work, and track your progress
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 text-white/80 group-hover:text-white transition-colors pt-2">
+                    <div className="flex items-center gap-2 transition-colors pt-2" style={{ color: '#1A2B4A' }}>
                       <span className="text-sm font-medium">View assignments</span>
                       <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
                     </div>
@@ -153,23 +148,24 @@ export default function HomeNew() {
                 <motion.div
                   whileHover={{ scale: 1.02, y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  className="relative h-full overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-sm p-8 transition-all duration-300 hover:border-white/20"
+                  className="relative h-full overflow-hidden rounded-2xl border backdrop-blur-sm p-8 transition-all duration-300"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, rgba(74, 155, 155, 0.05) 0%, rgba(217, 119, 70, 0.05) 100%)' }} />
 
                   <div className="relative space-y-4">
-                    <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors">
-                      <Globe size={28} className="text-white" />
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: '#F0EDE4' }}>
+                      <Globe size={28} style={{ color: '#4A9B9B' }} />
                     </div>
 
                     <div>
-                      <h3 className="text-2xl font-bold text-white mb-2">Explore Worlds</h3>
-                      <p className="text-white/60 text-sm leading-relaxed">
+                      <h3 className="text-2xl font-bold mb-2" style={{ color: '#1A2B4A' }}>Explore Worlds</h3>
+                      <p className="text-sm leading-relaxed" style={{ color: '#5A6B7D' }}>
                         Discover immersive 3D environments for musical exploration
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 text-white/80 group-hover:text-white transition-colors pt-2">
+                    <div className="flex items-center gap-2 transition-colors pt-2" style={{ color: '#1A2B4A' }}>
                       <span className="text-sm font-medium">Enter worlds</span>
                       <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
                     </div>
@@ -182,10 +178,10 @@ export default function HomeNew() {
           {/* Worlds Section */}
           <motion.div variants={itemVariants} className="text-center space-y-8">
             <div className="space-y-3">
-              <h2 className="text-3xl md:text-4xl font-bold text-white">
+              <h2 className="text-3xl md:text-4xl font-bold" style={{ color: '#1A2B4A' }}>
                 Explore Musical Worlds
               </h2>
-              <p className="text-white/60 text-lg max-w-2xl mx-auto">
+              <p className="text-lg max-w-2xl mx-auto" style={{ color: '#5A6B7D' }}>
                 Step into immersive 3D environments designed for musical creativity and learning
               </p>
             </div>
@@ -196,14 +192,15 @@ export default function HomeNew() {
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-white/10 backdrop-blur-sm p-6 transition-all duration-300 hover:border-orange-500/30"
+                  className="relative overflow-hidden rounded-xl border backdrop-blur-sm p-6 transition-all duration-300"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, rgba(217, 119, 70, 0.08) 0%, transparent 100%)' }} />
 
                   <div className="relative text-center space-y-3">
                     <div className="text-4xl">🔥</div>
-                    <h3 className="text-xl font-bold text-white">Fireside World</h3>
-                    <p className="text-white/60 text-sm">
+                    <h3 className="text-xl font-bold" style={{ color: '#1A2B4A' }}>Fireside World</h3>
+                    <p className="text-sm" style={{ color: '#5A6B7D' }}>
                       Gather around the campfire for storytelling and acoustic sessions
                     </p>
                   </div>
@@ -215,14 +212,15 @@ export default function HomeNew() {
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-white/10 backdrop-blur-sm p-6 transition-all duration-300 hover:border-purple-500/30"
+                  className="relative overflow-hidden rounded-xl border backdrop-blur-sm p-6 transition-all duration-300"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, rgba(74, 155, 155, 0.08) 0%, transparent 100%)' }} />
 
                   <div className="relative text-center space-y-3">
                     <div className="text-4xl">🎭</div>
-                    <h3 className="text-xl font-bold text-white">Auditorium World</h3>
-                    <p className="text-white/60 text-sm">
+                    <h3 className="text-xl font-bold" style={{ color: '#1A2B4A' }}>Auditorium World</h3>
+                    <p className="text-sm" style={{ color: '#5A6B7D' }}>
                       Experience grand performances in a stunning auditorium setting
                     </p>
                   </div>

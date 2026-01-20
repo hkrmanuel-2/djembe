@@ -80,11 +80,13 @@
 
 ### Design Patterns
 
-- **State Management**: Zustand with persistence middleware
+- **State Management**: Zustand with persistence middleware + React Context API
 - **Component Architecture**: Functional components with hooks
 - **Routing**: React Router with protected routes
 - **Audio Processing**: Tone.js for transport, Web Audio API for playback
-- **3D Rendering**: Three.js with React Three Fiber
+- **3D Rendering**: Three.js with native WebGL (not React Three Fiber)
+- **Animations**: Framer Motion for smooth transitions and micro-interactions
+- **UI Design**: Glassmorphism with dark theme and backdrop blur effects
 
 ---
 
@@ -106,6 +108,53 @@
    ```
 
 2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+   This will install all required packages including:
+
+   **Core Framework:**
+   ```bash
+   npm install react@^19.1.1 react-dom@^19.1.1 react-router-dom@^7.9.4
+   ```
+
+   **State Management:**
+   ```bash
+   npm install zustand@^5.0.9
+   ```
+
+   **UI & Styling:**
+   ```bash
+   npm install tailwindcss@^3.4.19 autoprefixer@^10.4.23 postcss@^8.5.6
+   npm install @radix-ui/react-label@^2.1.8 @radix-ui/react-slot@^1.2.4
+   npm install class-variance-authority@^0.7.1 clsx@^2.1.1 tailwind-merge@^3.4.0 tailwindcss-animate@^1.0.7
+   npm install lucide-react@^0.562.0 framer-motion@^12.26.2
+   ```
+
+   **Audio Processing:**
+   ```bash
+   npm install tone@^15.1.22 lamejs@^1.2.1
+   ```
+
+   **3D Graphics:**
+   ```bash
+   npm install three@^0.180.0 @react-three/fiber@^9.5.0 @react-three/drei@^10.7.7
+   ```
+
+   **Backend:**
+   ```bash
+   npm install @supabase/supabase-js@^2.83.0
+   ```
+
+   **Development Dependencies:**
+   ```bash
+   npm install -D vite@^7.1.7 @vitejs/plugin-react@^5.0.4
+   npm install -D eslint@^9.36.0 @eslint/js@^9.36.0 eslint-plugin-react-hooks@^5.2.0 eslint-plugin-react-refresh@^0.4.22
+   npm install -D @types/react@^19.1.16 @types/react-dom@^19.1.9 globals@^16.4.0
+   ```
+
+   **Or install everything at once (recommended):**
    ```bash
    npm install
    ```
@@ -190,11 +239,17 @@ Integration with Suno API to generate custom music loops:
 
 ### 5. 3D Worlds
 
-Interactive 3D educational environments:
-- **World 1**: Low poly forest scene
-- **World 2**: Historical scene (Viola Desmond - Roseland Theatre)
-- Orbit controls for navigation
-- GLTF model loading
+Interactive 3D educational environments built with Three.js:
+- **World 1 - Fireside World**: Cozy campfire forest scene for storytelling and acoustic sessions
+- **World 2 - Auditorium World**: Historic Roseland Theatre (Viola Desmond) for large performances
+- Advanced orbit controls with damping for smooth navigation
+- GLTF model loading with progress tracking
+- Fullscreen mode support
+- Camera reset functionality
+- Interactive info panels with usage instructions
+- Professional lighting setup (ambient + multiple directional lights)
+- Modern glassmorphism UI with backdrop blur effects
+- Responsive controls and animations
 
 ### 6. Audio Export
 
@@ -218,6 +273,8 @@ Export completed projects as audio files:
 | Zustand | 5.0.9 | State management |
 | Tailwind CSS | 3.4.19 | Styling framework |
 | Radix UI | Latest | Accessible UI components |
+| Framer Motion | 12.26.2 | Animation library |
+| Lucide React | 0.562.0 | Icon library |
 
 ### Audio
 
@@ -288,19 +345,24 @@ djembe/
 │   │   │   ├── checkbox.tsx
 │   │   │   ├── field.tsx
 │   │   │   ├── input.tsx
-│   │   │   ├── DAW-Lite/          # DAW-specific components
-│   │   │   │   ├── AILoopGenerator.jsx
-│   │   │   │   ├── Loopbutton.jsx
-│   │   │   │   ├── LoopLibrary.jsx
-│   │   │   │   ├── Projectmenu.jsx
-│   │   │   │   ├── Timeline.jsx
-│   │   │   │   ├── Transportcontrols.jsx
-│   │   │   │   ├── Waveform.jsx
-│   │   │   │   ├── login-form.tsx
-│   │   │   │   └── signup-form.tsx
-│   │   │   └── Worlds/            # 3D world components
-│   │   │       ├── World1.tsx
-│   │   │       └── World2.tsx
+│   │   │   ├── cube-loader-dark.tsx       # 3D cube loading animation
+│   │   │   ├── tubelight-navbar-dark.tsx  # Dark navigation bar
+│   │   │   └── DAW-Lite/                  # DAW-specific components
+│   │   │       ├── AILoopGenerator.jsx
+│   │   │       ├── Loopbutton.jsx
+│   │   │       ├── LoopLibrary.jsx
+│   │   │       ├── Projectmenu.jsx
+│   │   │       ├── Timeline.jsx
+│   │   │       ├── Transportcontrols.jsx
+│   │   │       ├── Waveform.jsx
+│   │   │       ├── login-form.tsx
+│   │   │       └── signup-form.tsx
+│   │   └── Worlds/                        # 3D world components
+│   │       ├── World1.tsx                 # Fireside World
+│   │       └── World2.tsx                 # Auditorium World
+│   │
+│   ├── contexts/                  # React contexts
+│   │   └── LoadingContext.tsx     # Global loading state
 │   │
 │   ├── lib/                       # Utility libraries
 │   │   ├── audioExport.js         # Audio export functionality
@@ -335,6 +397,41 @@ djembe/
 ---
 
 ## 🔄 State Management
+
+### React Context
+
+#### LoadingContext (`src/contexts/LoadingContext.tsx`)
+
+Global loading state management using React Context API.
+
+**Purpose:**
+- Centralized loading state across the application
+- Smooth page transitions with loading overlays
+- Consistent loading UI throughout the app
+
+**Provider:**
+```typescript
+<LoadingProvider>
+  <App />
+</LoadingProvider>
+```
+
+**Hook Usage:**
+```typescript
+const { isLoading, setIsLoading } = useLoading();
+
+// Show loading
+setIsLoading(true);
+
+// Hide loading
+setIsLoading(false);
+```
+
+**Features:**
+- Global loading overlay with 3D cube animation
+- Customizable loading messages
+- Automatic z-index management (z-[9999])
+- Framer Motion animations for smooth transitions
 
 ### Zustand Stores
 
@@ -442,6 +539,77 @@ Component Re-render (via selector)
     ↓
 UI Update
 ```
+
+---
+
+## 🧭 Navigation System
+
+### NavBarDark Component
+
+**File:** [src/components/ui/tubelight-navbar-dark.tsx](src/components/ui/tubelight-navbar-dark.tsx)
+
+Modern navigation bar with glassmorphism design and smooth animations.
+
+**Features:**
+- Dark theme with backdrop blur effects
+- Fixed bottom positioning for easy access
+- Icon-based navigation with labels
+- Active route highlighting
+- Smooth hover animations
+- Responsive design
+
+**Props:**
+```typescript
+interface NavItem {
+  name: string;           // Display name
+  url: string;            // Route path
+  icon: LucideIcon;       // Icon component
+}
+
+interface NavBarDarkProps {
+  items: NavItem[];       // Navigation items array
+}
+```
+
+**Usage in App:**
+```typescript
+const navItems = [
+  { name: 'Home', url: '/', icon: HomeIcon },
+  { name: 'DAW', url: '/daw', icon: Music },
+  { name: 'Assignments', url: '/assignments', icon: FileText },
+  { name: 'Worlds', url: '/world1', icon: Globe },
+];
+
+<NavBarDark items={navItems} />
+```
+
+**Styling:**
+- Background: `bg-black/30` with `backdrop-blur-lg`
+- Border: `border border-white/10`
+- Active state: `bg-white/10` background
+- Hover state: `text-white` with scale transform
+- Rounded corners: `rounded-full`
+
+**Dynamic Items:**
+- Conditionally shows "Assignments" for students only
+- Authentication-based visibility
+- User type-specific navigation
+
+### User Profile Badge
+
+**Location:** Top-right corner of authenticated pages
+
+**Features:**
+- Displays user's first name
+- Logout button with icon
+- Glassmorphism styling matching nav bar
+- Fixed positioning (z-index 50)
+
+**Styling:**
+- Position: `fixed top-6 right-6`
+- Background: `bg-black/40` with `backdrop-blur-md`
+- Border: `border border-white/10`
+- Layout: Horizontal flex with divider
 
 ---
 
@@ -707,6 +875,68 @@ The export system (`src/lib/audioExport.js`) provides:
 
 ---
 
+## 📚 Assignments System
+
+### Overview
+
+Student assignment management system integrated with the DAW-Lite module.
+
+**File:** [src/assets/pages/Assignments.jsx](src/assets/pages/Assignments.jsx)
+
+### Features
+
+- View assigned music projects
+- Submit completed assignments
+- Track submission status
+- View assignment details and requirements
+- Filter assignments by status
+
+### Database Integration
+
+**Recent Update (January 2026):**
+- Migrated from `assignment_submissions` table to `submissions` table
+- Simplified data structure
+- Improved query performance
+- Better relationship mapping
+
+**Submissions Table Structure:**
+```sql
+CREATE TABLE submissions (
+  submission_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  assignment_id UUID REFERENCES assignments(assignment_id),
+  student_id UUID REFERENCES students(student_id),
+  project_id UUID REFERENCES projects(project_id),
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  status VARCHAR(50) DEFAULT 'pending',
+  grade INTEGER,
+  feedback TEXT
+);
+```
+
+### User Experience
+
+**Student View:**
+- Dashboard showing all assignments
+- Due dates and status indicators
+- Direct links to DAW-Lite for completion
+- Submission confirmation
+- Grade and feedback viewing
+
+**Teacher View (Admin):**
+- Assignment creation interface
+- Student submission tracking
+- Grading interface
+- Feedback submission
+
+### Integration with DAW-Lite
+
+- Assignments can specify required loops or BPM
+- Students use DAW-Lite to complete assignments
+- Projects linked to assignment submissions
+- Automatic project saving on submission
+
+---
+
 ## 🗄️ Database Schema
 
 ### Tables
@@ -827,6 +1057,62 @@ CREATE TABLE schools (
 );
 ```
 
+#### 6. Submissions Table
+
+Stores student assignment submissions.
+
+```sql
+CREATE TABLE submissions (
+  submission_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  assignment_id UUID REFERENCES assignments(assignment_id) ON DELETE CASCADE,
+  student_id UUID REFERENCES students(student_id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(project_id) ON DELETE SET NULL,
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  status VARCHAR(50) DEFAULT 'pending',
+  grade INTEGER,
+  feedback TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**Fields:**
+- `submission_id`: Unique identifier
+- `assignment_id`: Reference to assignment
+- `student_id`: Reference to student
+- `project_id`: Reference to submitted project
+- `submitted_at`: Submission timestamp
+- `status`: Submission status (pending, graded, etc.)
+- `grade`: Numerical grade
+- `feedback`: Teacher feedback text
+- `updated_at`: Last update timestamp
+
+#### 7. Assignments Table
+
+Stores teacher-created assignments.
+
+```sql
+CREATE TABLE assignments (
+  assignment_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  teacher_id UUID REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  due_date TIMESTAMP WITH TIME ZONE,
+  requirements JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**Fields:**
+- `assignment_id`: Unique identifier
+- `teacher_id`: Reference to creating teacher
+- `title`: Assignment title
+- `description`: Assignment details
+- `due_date`: Due date
+- `requirements`: JSON requirements (BPM, loops, duration, etc.)
+- `created_at`: Creation timestamp
+- `updated_at`: Last update timestamp
+
 ### Row Level Security (RLS)
 
 All tables have RLS enabled. Current policies allow all operations for authenticated users. Production should implement more restrictive policies.
@@ -849,6 +1135,10 @@ CREATE POLICY "Allow all on loops" ON loops
 CREATE INDEX loops_name_idx ON loops(name);
 CREATE INDEX projects_student_id_idx ON projects(student_id);
 CREATE INDEX projects_updated_at_idx ON projects(updated_at DESC);
+CREATE INDEX submissions_student_id_idx ON submissions(student_id);
+CREATE INDEX submissions_assignment_id_idx ON submissions(assignment_id);
+CREATE INDEX assignments_teacher_id_idx ON assignments(teacher_id);
+CREATE INDEX assignments_due_date_idx ON assignments(due_date);
 ```
 
 ### Triggers
@@ -946,33 +1236,78 @@ export const supabase = createClient(
 
 ### Overview
 
-Interactive 3D educational environments built with Three.js and React Three Fiber.
+Interactive 3D educational environments built with Three.js (not React Three Fiber). Each world provides an immersive educational experience with professional-grade rendering and intuitive controls.
 
-### World 1: Low Poly Forest
+### World 1: Fireside World 🔥
 
-**File:** `src/components/Worlds/World1.tsx`
+**File:** [src/components/Worlds/World1.tsx](src/components/Worlds/World1.tsx)
 
-**Features:**
-- Low poly forest scene
-- Orbit controls for navigation
-- Ambient and directional lighting
-- GLTF model loading
-
-**Components:**
-- Scene setup
-- Camera positioning
-- Lighting configuration
-- Model loading and positioning
-- Orbit controls
-
-### World 2: Viola Desmond - Roseland Theatre
-
-**File:** `src/components/Worlds/World2.tsx`
+**Theme:** Cozy campfire forest environment perfect for storytelling, acoustic sessions, and intimate musical performances.
 
 **Features:**
-- Historical scene recreation
-- Educational content
-- Interactive navigation
+- Low poly forest scene with campfire setting
+- Model source: Supabase Cloud Storage
+  - URL: `https://dtghqnhhsgbvhxlmtwwn.supabase.co/storage/v1/object/public/World%201/scene.gltf`
+- Interactive orbit controls with damping (0.05 factor)
+- Fullscreen mode toggle
+- Camera reset to default position (-8, 1.5, -10)
+- Loading progress bar with fire theme (orange-yellow gradient)
+- Info panel with control instructions
+- Bottom control hints with auto-hide behavior
+
+**UI Components:**
+- Glassmorphism top bar with title and controls
+- Three action buttons:
+  - Info toggle (shows/hides help panel)
+  - Reset camera (returns to default view)
+  - Fullscreen toggle (expands to full screen)
+- Animated loading overlay with progress percentage
+- Bottom hint panel (drag to explore • scroll to zoom)
+
+**Technical Details:**
+- Scene background: Sky blue (`0x87ceeb`)
+- Camera: 75° FOV perspective camera
+- Lighting setup:
+  - Ambient light: White 1.2 intensity
+  - Directional light 1: Position (5, 10, 7.5), intensity 1.0
+  - Directional light 2: Position (-5, 5, -5), intensity 0.5
+- Renderer settings:
+  - SRGB color space
+  - ACES Filmic tone mapping
+  - 1.0 tone mapping exposure
+  - Antialiasing enabled
+- Material processing: Automatic SRGB color space application to textures
+
+### World 2: Auditorium World 🎭
+
+**File:** [src/components/Worlds/World2.tsx](src/components/Worlds/World2.tsx)
+
+**Theme:** Grand auditorium (Viola Desmond - Roseland Theatre) designed for spectacular performances, concerts, recitals, and large ensemble presentations.
+
+**Features:**
+- Historic Roseland Theatre recreation
+- Model source: Local public folder
+  - Path: `/models/viola_desmond_the_roseland_theatre.glb`
+- Identical control scheme to World 1
+- Educational historical context
+- Professional auditorium acoustics aesthetic
+- Theater theme with purple-blue gradient
+- Same advanced UI as World 1
+
+**UI Components:**
+- Same glassmorphism interface as World 1
+- Theater emoji (🎭) branding
+- Purple-blue gradient loading bar
+- Identical control layout for consistency
+
+**Technical Details:**
+- Same scene and camera setup as World 1
+- Same lighting configuration
+- Same renderer settings
+- Model positioning:
+  - Scale: (1, 1, 1)
+  - Position: (0, 0, 1)
+  - Rotation: 45° on Y-axis (π/4)
 
 ### Implementation Details
 
@@ -996,6 +1331,79 @@ loader.load('/models/model.glb', (gltf) => {
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+```
+
+---
+
+## 🏗️ Component Hierarchy
+
+### Application Structure
+
+```
+App (Router + LoadingProvider)
+├── LoadingOverlay (Global loading state)
+├── NavBarDark (Bottom navigation)
+├── User Profile Badge (Top-right)
+└── Routes
+    ├── /login → Login
+    ├── /signup → Signup
+    ├── / → Home (Protected)
+    ├── /daw → DAWLite (Protected)
+    │   ├── Timeline
+    │   ├── LoopLibrary
+    │   ├── TransportControls
+    │   ├── ProjectMenu
+    │   └── AILoopGenerator
+    ├── /assignments → Assignments (Protected, Students only)
+    ├── /world1 → World1 (Protected)
+    └── /world2 → World2 (Protected)
+```
+
+### Component Relationships
+
+**DAWLite Module:**
+```
+DAWLite (Main Container)
+├── Controls Section
+│   ├── TransportControls (Play/Pause/Stop/BPM)
+│   ├── ProjectMenu (Save/Load/Export)
+│   └── AILoopGenerator (AI Music Generation)
+├── Content Section
+│   ├── LoopLibrary (Draggable loops)
+│   └── Timeline (Drop zones, placed loops, playhead)
+└── State Management
+    └── useStore (Zustand)
+```
+
+**3D Worlds:**
+```
+World1/World2
+├── Three.js Scene
+│   ├── Camera (PerspectiveCamera)
+│   ├── Lights (Ambient + Directional)
+│   ├── GLTF Model
+│   └── Renderer (WebGL)
+├── Controls (OrbitControls)
+└── UI Overlay
+    ├── Top Bar (Title + Control Buttons)
+    ├── Loading Overlay (Progress indicator)
+    ├── Info Panel (Instructions)
+    └── Bottom Hints (Control guide)
+```
+
+**State Flow:**
+```
+User Action
+    ↓
+Component Event Handler
+    ↓
+Zustand Store / Context API
+    ↓
+State Update
+    ↓
+Subscribed Components Re-render
+    ↓
+UI Update + Side Effects
 ```
 
 ---
@@ -1217,6 +1625,171 @@ newAction: (param) => {
 
 ---
 
-**Documentation Version:** 1.0  
-**Last Updated:** 2024  
+---
+
+## 🆕 Recent Updates
+
+### January 2026
+
+#### Major UI/UX Enhancements
+
+**Navigation System Overhaul**
+- Implemented new dark tubelight navigation bar ([NavBarDark](src/components/ui/tubelight-navbar-dark.tsx))
+- Added glassmorphism design with backdrop blur effects
+- Integrated Lucide React icons for better visual consistency
+- Dynamic navigation items based on user role and authentication status
+
+**Loading Experience**
+- Added new [LoadingContext](src/contexts/LoadingContext.tsx) for global loading state management
+- Implemented [CubeLoaderDark](src/components/ui/cube-loader-dark.tsx) component with 3D cube animation
+- Full-screen loading overlays with smooth transitions using Framer Motion
+- Contextual loading messages and sub-messages
+
+**User Profile Display**
+- Added fixed top-right user profile badge showing first name
+- Integrated logout functionality directly in the UI
+- Glassmorphism styling consistent with navigation theme
+
+#### 3D Worlds Enhancements
+
+**World 1: Fireside World** ([World1.tsx](src/components/Worlds/World1.tsx))
+- Complete UI redesign with modern glassmorphism interface
+- Added loading progress indicator with branded animations
+- Implemented fullscreen mode toggle
+- Camera reset functionality
+- Interactive info panel with controls guide
+- Updated theming: Fire emoji (🔥) with orange-yellow gradient
+- Model source: Supabase cloud storage for optimized loading
+- Enhanced lighting setup with multiple directional lights
+- Improved material handling with proper SRGB color space
+
+**World 2: Auditorium World** ([World2.tsx](src/components/Worlds/World2.tsx))
+- New historical 3D environment: Viola Desmond - Roseland Theatre
+- Theater emoji (🎭) with purple-blue gradient theme
+- Identical control scheme to World 1 for consistency
+- Local model loading from `/public/models/` directory
+- Professional auditorium scene for educational content
+- Same advanced UI features as World 1
+
+**Shared World Features:**
+- Responsive top bar with title and controls
+- Three control buttons: Info, Reset Camera, Fullscreen
+- Smooth animations using Framer Motion
+- Bottom control hints that auto-hide when info is shown
+- Orbit controls with damping for smooth navigation
+- Optimized Three.js renderer settings:
+  - ACES Filmic tone mapping
+  - SRGB color space for accurate colors
+  - Antialiasing enabled
+  - Responsive canvas sizing
+
+#### DAW-Lite Module Updates
+
+**Project Export Feature**
+- Added project export functionality to [ProjectMenu](src/components/ui/DAW-Lite/Projectmenu.jsx)
+- Export projects as MP3 or WAV audio files
+- Automatic mixing and rendering of all placed loops
+- Beat-accurate timing preservation
+- Download trigger with custom filename
+
+**Loop Library Filtering**
+- Updated [LoopLibrary](src/components/ui/DAW-Lite/LoopLibrary.jsx) to filter loops by project BPM
+- Shows only compatible loops for current project tempo
+- Improved user experience by reducing loop clutter
+- Better performance with filtered rendering
+
+**AI Loop Generation**
+- Enhanced AI loop generation integration
+- Progress tracking and user feedback
+- Automatic addition to loop library after generation
+- BPM matching with project settings
+
+**Timeline Improvements**
+- Added zoom controls for better timeline navigation
+- Dynamic dimension calculations for responsive timeline
+- Timeline extension capability for longer projects
+- Visual beat and bar indicators
+- Improved playhead visualization
+
+**Loading States**
+- Added loading overlays to DAW-Lite main component
+- Better feedback during project loading and saving
+- Smooth transitions using Framer Motion
+
+#### Assignment System Updates
+
+**Submissions Table Integration**
+- Refactored [Assignments](src/assets/pages/Assignments.jsx) component
+- Changed from `assignment_submissions` to `submissions` table
+- Simplified database queries
+- Better data structure for tracking student work
+
+#### Authentication & Routing
+
+**Enhanced App Component** ([App.jsx](src/App.jsx))
+- Integrated LoadingProvider for global loading states
+- Enhanced navigation with user profile display
+- Improved route protection logic
+- Added conditional Worlds navigation (visible to all authenticated users)
+- Student-specific assignment routing
+- Cleaner sign-out flow with navigation
+
+**Removed Legacy Components**
+- Deprecated old Login and Signup components
+- Removed Home page legacy code
+- Cleaner codebase with reduced technical debt
+
+#### Styling & Design System
+
+**Google Fonts Integration**
+- Updated [index.html](index.html) to include Google Fonts
+- Better typography across the application
+- Consistent font loading
+
+**Framer Motion Integration**
+- Added `framer-motion` dependency (v12.26.2)
+- Smooth page transitions
+- Animated loading states
+- Professional micro-interactions throughout the app
+
+**Dark Theme Consistency**
+- Unified dark theme across all components
+- Glassmorphism effects with `backdrop-blur-md`
+- Consistent color palette:
+  - Background: `bg-black/40` for glass panels
+  - Borders: `border-white/10` for subtle separation
+  - Text: `text-white/60` for secondary text
+  - Accents: Gradient colors for branding
+
+#### Performance & Technical Improvements
+
+**Dependency Updates**
+- React upgraded to v19.1.1
+- Three.js updated to v0.180.0
+- Vite updated to v7.1.7
+- All major dependencies on latest stable versions
+
+**Code Quality**
+- Better TypeScript integration for component files
+- Improved component organization
+- Cleaner state management patterns
+- Enhanced error handling
+
+### Migration Notes
+
+**Breaking Changes:**
+- Database: `assignment_submissions` → `submissions` table
+- Components: Old auth components removed, use new Login/Signup
+
+**Upgrade Path:**
+1. Run database migration to rename/create `submissions` table
+2. Update environment variables if needed
+3. Clear browser localStorage for clean state
+4. Reinstall dependencies: `npm install`
+5. Rebuild project: `npm run build`
+
+---
+
+**Documentation Version:** 2.0
+**Last Updated:** January 19, 2026
 **Maintained by:** Development Team

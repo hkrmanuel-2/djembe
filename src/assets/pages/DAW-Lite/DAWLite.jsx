@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../../../store/useStore.js";
 import LoopLibrary from "../../../components/ui/DAW-Lite/LoopLibrary.jsx";
 import Timeline from "../../../components/ui/DAW-Lite/Timeline.jsx";
@@ -6,9 +7,11 @@ import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols
 import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
 import AILoopGenerator from "../../../components/ui/DAW-Lite/AILoopGenerator.jsx";
 import CloudShader from "../../../components/ui/cloud-shader";
+import { Home } from "lucide-react";
 
 export default function DAWLite() {
   const [draggedLoop, setDraggedLoop] = useState(null);
+  const navigate = useNavigate();
 
   // Get state from Zustand store
   const placedLoops = useStore((state) => state.project.placedLoops);
@@ -62,22 +65,22 @@ export default function DAWLite() {
   const handleDrop = async (row, col) => {
     if (draggedLoop) {
       // Calculate span based on audio duration
-      const span = draggedLoop.url 
+      const span = draggedLoop.url
         ? await calculateSpan(draggedLoop.url, 4)
         : 64; // Default: 4 bars (64 grid units)
-      
+
       // Check if loop extends beyond current timeline
       const subdivisionsPerBeat = 4;
       const beatsPerBar = 4;
       const loopEndCol = col + span;
       const currentTotalCols = (projectBars || 10) * beatsPerBar * subdivisionsPerBeat;
       const requiredBars = Math.ceil(loopEndCol / (beatsPerBar * subdivisionsPerBeat));
-      
+
       // Extend timeline if needed
       if (requiredBars > (projectBars || 10)) {
         updateProjectDimensions(requiredBars, 5); // Keep rows at 5 for now, Timeline will calculate if more needed
       }
-      
+
       const newLoop = {
         id: Date.now(),
         loopId: draggedLoop.id,
@@ -85,21 +88,21 @@ export default function DAWLite() {
         color: draggedLoop.color,
         border: draggedLoop.border,
         icon: draggedLoop.icon,
-        url: draggedLoop.url,  
+        url: draggedLoop.url,
         row,
         col,
         span,
       };
-  
+
       // Check for overlaps - remove overlapping loops on same track
-      const overlappingLoops = placedLoops.filter(loop => 
-        loop.row === row && 
+      const overlappingLoops = placedLoops.filter(loop =>
+        loop.row === row &&
         (col < loop.col + loop.span && col + span > loop.col)
       );
-      
+
       // Remove overlapping loops
       overlappingLoops.forEach(loop => removePlacedLoop(loop.id));
-      
+
       addPlacedLoop(newLoop);
 
       // Preview sound
@@ -108,7 +111,7 @@ export default function DAWLite() {
         audio.volume = 0.5;
         audio.play().catch((err) => console.log("Audio play error:", err));
       }
-  
+
       setDraggedLoop(null);
     }
   };
@@ -120,7 +123,7 @@ export default function DAWLite() {
   const handleLoopTrim = (loopId, updates) => {
     updatePlacedLoop(loopId, updates);
   };
-  
+
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -137,37 +140,60 @@ export default function DAWLite() {
   };
 
   return (
-    <div className="h-screen bg-black relative overflow-hidden flex items-center justify-center p-4">
-      {/* CloudShader Background */}
+    <div className="h-screen relative overflow-hidden flex items-center justify-center p-4" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+      `}</style>
+
+      {/* CloudShader Background with warm tint */}
       <div className="absolute inset-0 z-0">
         <CloudShader
-          speed={0.3}
+          speed={0.2}
           octaves={5}
           scale={2.5}
           className="w-full h-full opacity-40"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+        {/* Warm gradient overlay to blend with landing page colors */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
       </div>
 
       {/* Fun Musical Doodles */}
       <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-12 text-3xl opacity-15 animate-bounce" style={{animationDuration: '4s'}}>🎵</div>
-        <div className="absolute top-1/4 right-24 text-2xl opacity-10 animate-bounce" style={{animationDuration: '5s', animationDelay: '1s'}}>🎶</div>
-        <div className="absolute bottom-32 left-1/4 text-4xl opacity-12 animate-bounce" style={{animationDuration: '3.5s', animationDelay: '2s'}}>⭐</div>
-        <div className="absolute top-2/3 right-16 text-3xl opacity-15 animate-bounce" style={{animationDuration: '4.5s', animationDelay: '0.5s'}}>✨</div>
+        <div className="absolute top-20 left-12 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>🎵</div>
+        <div className="absolute top-1/4 right-24 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 1s' }}>🎶</div>
+        <div className="absolute bottom-32 left-1/4 text-4xl opacity-12" style={{ animation: 'float 3.5s ease-in-out infinite 2s' }}>⭐</div>
+        <div className="absolute top-2/3 right-16 text-3xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>✨</div>
       </div>
 
-      <div className="relative z-10 w-full h-full max-w-[1800px] bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative z-10 w-full h-full max-w-[1800px] backdrop-blur-md rounded-2xl border shadow-2xl overflow-hidden flex flex-col" style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}>
 
         {/* HEADER */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-2 border-b flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white tracking-wide drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">DAW-LITE</h1>
+            {/* Home Button */}
+            <button
+              onClick={() => navigate('/home')}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}
+              title="Go to Home"
+            >
+              <Home size={20} style={{ color: '#E6B84D' }} />
+            </button>
+
+            <h1 className="text-2xl font-bold tracking-wide text-white">
+              <span style={{ color: '#D97746' }}>DAW</span>-LITE
+            </h1>
 
             {/* Audio Status Indicator */}
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${audioInitialized ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]'}`} />
-              <span className="text-xs text-white/60">
+              <div className={`w-2 h-2 rounded-full ${audioInitialized ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'shadow-[0_0_8px_rgba(230,184,77,0.6)]'}`} style={{ backgroundColor: audioInitialized ? '#4ADE80' : '#E6B84D' }} />
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 {audioInitialized ? 'Audio Ready' : 'Click Play to start'}
               </span>
             </div>
@@ -178,14 +204,15 @@ export default function DAWLite() {
             type="text"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            className="w-[250px] h-[32px] bg-white/10 border-2 border-white/20 rounded-full px-4 text-center font-semibold text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/40 backdrop-blur-sm"
+            className="w-[250px] h-[32px] border-2 rounded-full px-4 text-center font-semibold text-sm text-white placeholder:text-white/40 focus:outline-none backdrop-blur-sm"
+            style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
             placeholder="Project Name"
           />
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/20 border-l-4 border-red-400 text-red-200 p-2 mx-4 mt-2 backdrop-blur-sm rounded text-sm flex-shrink-0">
+          <div className="border-l-4 p-2 mx-4 mt-2 backdrop-blur-sm rounded text-sm flex-shrink-0" style={{ backgroundColor: 'rgba(220, 38, 38, 0.15)', borderColor: '#DC2626', color: '#FCA5A5' }}>
             <p className="font-bold">Error</p>
             <p>{error}</p>
           </div>

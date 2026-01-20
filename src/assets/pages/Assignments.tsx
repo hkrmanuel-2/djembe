@@ -110,15 +110,15 @@ export default function AssignmentsNew() {
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col min-h-screen bg-black relative overflow-hidden">
+      <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
         <div className="absolute inset-0 z-0">
-          <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-30" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+          <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
         </div>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-white/70 text-lg">Loading assignments...</p>
+            <div className="w-16 h-16 border-4 border-white/20 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#D97746' }}></div>
+            <p className="text-lg" style={{ color: 'rgba(255,255,255,0.7)' }}>Loading assignments...</p>
           </div>
         </div>
       </div>
@@ -146,24 +146,34 @@ export default function AssignmentsNew() {
   } as const;
 
   return (
-    <div className="flex w-full flex-col min-h-screen bg-black relative overflow-hidden">
-      {/* CloudShader Background */}
+    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+      `}</style>
+
+      {/* CloudShader Background with warm tint */}
       <div className="absolute inset-0 z-0">
         <CloudShader
           speed={0.3}
           octaves={5}
           scale={2.5}
-          className="w-full h-full opacity-50"
+          className="w-full h-full opacity-40"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
       </div>
 
-      {/* Fun Doodles */}
+      {/* Fun Floating Doodles */}
       <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
-        <div className="absolute top-28 right-12 text-3xl opacity-15 animate-bounce" style={{animationDuration: '4s'}}>📝</div>
-        <div className="absolute bottom-32 left-20 text-4xl opacity-20 animate-bounce" style={{animationDuration: '3.5s', animationDelay: '1s'}}>✅</div>
-        <div className="absolute top-1/2 right-24 text-2xl opacity-10 animate-bounce" style={{animationDuration: '5s', animationDelay: '2s'}}>⭐</div>
-        <div className="absolute bottom-48 right-1/3 text-3xl opacity-15 animate-bounce" style={{animationDuration: '4.5s', animationDelay: '0.5s'}}>✨</div>
+        <div className="absolute top-28 right-12 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>📝</div>
+        <div className="absolute bottom-32 left-20 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✅</div>
+        <div className="absolute top-1/2 right-24 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>⭐</div>
+        <div className="absolute bottom-48 right-1/3 text-3xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>✨</div>
       </div>
 
       {/* Content Layer */}
@@ -176,17 +186,17 @@ export default function AssignmentsNew() {
         >
           {/* Header */}
           <motion.div variants={itemVariants} className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-4">
-              <Sparkles size={16} className="text-white/60" />
-              <span className="text-sm text-white/70 font-medium">Student Portal</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md border mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}>
+              <Sparkles size={16} style={{ color: '#E6B84D' }} />
+              <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>Student Portal</span>
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight text-white mb-4">
-              My Assignments
+              My <span style={{ color: '#D97746' }}>Assignments</span>
             </h1>
 
             {userProfile && (
-              <p className="text-xl text-white/60 font-light">
+              <p className="text-xl font-light" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 Hey {userProfile.first_name}, here's your work
               </p>
             )}
@@ -198,11 +208,11 @@ export default function AssignmentsNew() {
               variants={itemVariants}
               className="text-center py-20"
             >
-              <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 size={40} className="text-white/40" />
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                <CheckCircle2 size={40} style={{ color: '#4A9B9B' }} />
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">All caught up!</h2>
-              <p className="text-white/60">
+              <p style={{ color: 'rgba(255,255,255,0.6)' }}>
                 No assignments right now. Check back later for new work.
               </p>
             </motion.div>
@@ -220,15 +230,15 @@ export default function AssignmentsNew() {
                     className="group"
                   >
                     <div
-                      className={`relative overflow-hidden rounded-2xl backdrop-blur-sm p-6 transition-all duration-300 cursor-pointer ${
-                        isSubmitted
-                          ? "bg-white/5 border border-green-500/20 hover:border-green-500/30"
-                          : "bg-white/10 border border-white/10 hover:border-white/20"
-                      } ${
+                      className={`relative overflow-hidden rounded-2xl backdrop-blur-md p-6 transition-all duration-300 cursor-pointer border ${
                         selectedAssignment?.id === assignment.id
                           ? "ring-2 ring-white/30"
                           : ""
                       }`}
+                      style={{
+                        backgroundColor: isSubmitted ? 'rgba(74, 155, 155, 0.15)' : 'rgba(255,255,255,0.08)',
+                        borderColor: isSubmitted ? 'rgba(74, 155, 155, 0.3)' : 'rgba(255,255,255,0.15)',
+                      }}
                       onClick={() => !isSubmitted && setSelectedAssignment(assignment)}
                     >
                       <div className="flex items-start justify-between gap-6">
@@ -236,12 +246,12 @@ export default function AssignmentsNew() {
                           {/* Status Icon */}
                           <div className="mt-1 flex-shrink-0">
                             {isSubmitted ? (
-                              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)' }}>
+                                <CheckCircle2 className="w-5 h-5" style={{ color: '#4A9B9B' }} />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-                                <Circle className="w-5 h-5 text-white/40" />
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center border" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                                <Circle className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
                               </div>
                             )}
                           </div>
@@ -251,16 +261,16 @@ export default function AssignmentsNew() {
                             <h3 className="text-xl font-bold text-white mb-2">
                               {assignment.title}
                             </h3>
-                            <p className="text-white/60 mb-3 leading-relaxed">
+                            <p className="mb-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
                               {assignment.description}
                             </p>
                             <div className="flex flex-wrap items-center gap-4 text-sm">
-                              <div className="flex items-center gap-2 text-white/50">
+                              <div className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
                                 <Calendar size={16} />
                                 <span>Due {formatDate(assignment.due_date)}</span>
                               </div>
                               {isSubmitted && (
-                                <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 font-medium text-xs">
+                                <span className="px-3 py-1 rounded-full font-medium text-xs" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>
                                   Submitted
                                 </span>
                               )}
@@ -275,7 +285,11 @@ export default function AssignmentsNew() {
                               e.stopPropagation();
                               setSelectedAssignment(assignment);
                             }}
-                            className="flex-shrink-0 px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-all duration-200 flex items-center gap-2 group-hover:scale-105"
+                            className="flex-shrink-0 px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 group-hover:scale-105"
+                            style={{
+                              background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
+                              color: 'white',
+                            }}
                           >
                             <Upload size={18} />
                             <span>Submit</span>
@@ -298,7 +312,8 @@ export default function AssignmentsNew() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(26, 43, 74, 0.9)', backdropFilter: 'blur(8px)' }}
             onClick={() => !uploading && setSelectedAssignment(null)}
           >
             <motion.div
@@ -306,19 +321,21 @@ export default function AssignmentsNew() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.3 }}
-              className="relative bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              className="relative backdrop-blur-md border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-6 border-b border-white/10">
+              <div className="p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-white">Submit Assignment</h2>
                   <button
                     onClick={() => !uploading && setSelectedAssignment(null)}
-                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                     disabled={uploading}
                   >
-                    <X size={20} className="text-white/60" />
+                    <X size={20} style={{ color: 'rgba(255,255,255,0.6)' }} />
                   </button>
                 </div>
               </div>
@@ -329,10 +346,10 @@ export default function AssignmentsNew() {
                   <h3 className="text-lg font-semibold text-white mb-2">
                     {selectedAssignment.title}
                   </h3>
-                  <p className="text-white/60 text-sm mb-4 leading-relaxed">
+                  <p className="text-sm mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
                     {selectedAssignment.description}
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-white/50">
+                  <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
                     <Calendar size={16} />
                     <span>Due {formatDate(selectedAssignment.due_date)}</span>
                   </div>
@@ -349,13 +366,14 @@ export default function AssignmentsNew() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="block border-2 border-dashed border-white/20 rounded-xl p-10 text-center hover:border-white/30 hover:bg-white/5 transition-all cursor-pointer"
+                    className="block border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer hover:bg-white/5"
+                    style={{ borderColor: 'rgba(255,255,255,0.2)' }}
                   >
-                    <File className="w-12 h-12 text-white/40 mb-4 mx-auto" />
+                    <File className="w-12 h-12 mb-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }} />
                     <p className="text-white font-medium mb-2">
                       Click to upload your file
                     </p>
-                    <p className="text-sm text-white/50">
+                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
                       PDF, Word, Image, or Audio files
                     </p>
                   </label>
@@ -364,8 +382,8 @@ export default function AssignmentsNew() {
                 {/* Uploading State */}
                 {uploading && (
                   <div className="text-center py-4">
-                    <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-3"></div>
-                    <p className="text-white/70">Uploading your work...</p>
+                    <div className="w-12 h-12 border-4 border-white/20 rounded-full animate-spin mx-auto mb-3" style={{ borderTopColor: '#D97746' }}></div>
+                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>Uploading your work...</p>
                   </div>
                 )}
 
@@ -373,7 +391,12 @@ export default function AssignmentsNew() {
                 {!uploading && (
                   <button
                     onClick={() => setSelectedAssignment(null)}
-                    className="w-full py-3 rounded-xl bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-colors font-medium"
+                    className="w-full py-3 rounded-xl border font-medium transition-colors hover:bg-white/10"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderColor: 'rgba(255,255,255,0.15)',
+                      color: 'white',
+                    }}
                   >
                     Cancel
                   </button>
