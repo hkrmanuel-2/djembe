@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import DAWLite from './assets/pages/DAW-Lite/DAWLite';
 import Dashboard from './assets/pages/Dashboard';
+import Landing_page from './assets/pages/Landing_page';
+import Settings from './assets/pages/Settings';
 import Login from './assets/pages/Auth/Login';
 import Signup from './assets/pages/Auth/Signup';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -13,7 +15,7 @@ import Assignments from './assets/pages/Assignments';
 import { LoadingProvider, useLoading } from './contexts/LoadingContext';
 import CubeLoaderDark from './components/ui/cube-loader-dark';
 import { NavBarDark } from './components/ui/tubelight-navbar-dark';
-import { Home as HomeIcon, Music, FileText, Globe, LogOut, User } from 'lucide-react';
+import { Home as HomeIcon, Music, FileText, Globe, LogOut, User, Settings as SettingsIcon } from 'lucide-react';
 
 function LoadingOverlay() {
   const { isLoading } = useLoading();
@@ -33,6 +35,11 @@ function LoadingOverlay() {
 function AppContent() {
   const { initAuth, isAuthenticated, signOut, userProfile, userType } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Routes where navbar should be hidden (immersive experiences)
+  const hideNavbarRoutes = ['/daw', '/world1', '/world2'];
+  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   useEffect(() => {
     initAuth();
@@ -40,37 +47,46 @@ function AppContent() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate('/');
   };
 
   // Navigation items for authenticated users
   const navItems = isAuthenticated ? [
-    { name: 'Dashboard', url: '/', icon: HomeIcon },
+    { name: 'Home', url: '/home', icon: HomeIcon },
     { name: 'DAW', url: '/daw', icon: Music },
     ...(userType === 'student' ? [{ name: 'Assignments', url: '/assignments', icon: FileText }] : []),
     { name: 'Worlds', url: '/world1', icon: Globe },
+    { name: 'Settings', url: '/settings', icon: SettingsIcon },
   ] : [];
 
   return (
     <div className="App">
       <LoadingOverlay />
 
-      {/* Dark Tubelight Navigation */}
-      {isAuthenticated && <NavBarDark items={navItems} />}
+      {/* Dark Tubelight Navigation - Hidden on immersive pages */}
+      {isAuthenticated && !shouldHideNavbar && <NavBarDark items={navItems} />}
 
-      {/* User Profile & Sign Out */}
-      {isAuthenticated && userProfile && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-          <div className="flex items-center gap-2 text-white/80">
+      {/* User Profile & Sign Out - Hidden on immersive pages */}
+      {isAuthenticated && userProfile && !shouldHideNavbar && (
+        <div
+          className="fixed top-6 right-6 z-50 flex items-center gap-2 backdrop-blur-md px-4 py-2 rounded-full border"
+          style={{
+            backgroundColor: 'rgba(26, 43, 74, 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
+          }}
+        >
+          <div className="flex items-center gap-2" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
             <User size={16} strokeWidth={2} />
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium" style={{ fontFamily: "'Outfit', sans-serif" }}>
               {userProfile.first_name}
             </span>
           </div>
-          <div className="w-px h-4 bg-white/20" />
+          <div className="w-px h-4" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
           <button
             onClick={handleSignOut}
-            className="text-white/60 hover:text-white transition-colors"
+            className="transition-colors hover:opacity-80"
+            style={{ color: '#E6B84D' }}
             title="Sign Out"
           >
             <LogOut size={16} strokeWidth={2} />
@@ -80,13 +96,17 @@ function AppContent() {
 
       {/* Routes */}
       <Routes>
+        {/* Landing page - public route */}
+        <Route path="/" element={
+          isAuthenticated ? <Navigate to="/home" replace /> : <Landing_page />
+        } />
         <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" replace /> : <Login />
+          isAuthenticated ? <Navigate to="/home" replace /> : <Login />
         } />
         <Route path="/signup" element={
-          isAuthenticated ? <Navigate to="/" replace /> : <Signup />
+          isAuthenticated ? <Navigate to="/home" replace /> : <Signup />
         } />
-        <Route path="/" element={
+        <Route path="/home" element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
@@ -101,6 +121,13 @@ function AppContent() {
         <Route path="/assignments" element={
           <ProtectedRoute>
             <Assignments />
+          </ProtectedRoute>
+        } />
+
+        {/* Settings Route */}
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         } />
 
