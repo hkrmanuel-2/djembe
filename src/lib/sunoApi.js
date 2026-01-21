@@ -18,7 +18,7 @@ export async function generateMusic(prompt, bpm, apiKey) {
     try {
         // Generate music with prompt and BPM
         // According to Suno API docs: https://docs.sunoapi.org/
-        const response = await fetch(`${SUNO_API_BASE_URL}/generate`, {
+        const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -26,9 +26,10 @@ export async function generateMusic(prompt, bpm, apiKey) {
             },
             body: JSON.stringify({
                 prompt: `${prompt} at ${bpm} BPM`,
-                model: 'v5', // Use latest model
-                make_instrumental: true,
-                wait_audio: false, // We'll poll for completion
+                model: 'V4_5ALL',
+                instrumental: true,
+                customMode: true,
+                callBackUrl: 'https://example.com/callback', // Required by API, we poll instead
             }),
         });
 
@@ -38,10 +39,10 @@ export async function generateMusic(prompt, bpm, apiKey) {
         }
 
         const data = await response.json();
+        console.log('Suno generate response:', data);
 
-        // Handle different response formats
-        // Check for task_id or ids array
-        const taskId = data.task_id || (data.ids && data.ids[0]) || data.id;
+        // Handle response format: { code: 200, data: { taskId: "..." } }
+        const taskId = data.data?.taskId || data.taskId || data.task_id || (data.ids && data.ids[0]) || data.id;
 
         if (taskId) {
             // Poll for completion
@@ -76,7 +77,7 @@ async function pollForCompletion(taskId, apiKey, maxAttempts = 60) {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             // Use GET endpoint to check status
-            const response = await fetch(`${SUNO_API_BASE_URL}/get?ids=${taskId}`, {
+            const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate/record-info?taskId=${taskId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
@@ -88,28 +89,36 @@ async function pollForCompletion(taskId, apiKey, maxAttempts = 60) {
             }
 
             const data = await response.json();
+            console.log('Suno poll response:', data);
 
-            // Check if generation is complete
-            // Response format may vary, check for common patterns
-            let task = null;
-            if (data.data && Array.isArray(data.data) && data.data[0]) {
-                task = data.data[0];
-            } else if (data.id) {
-                task = data;
+            // Response format: { code: 200, data: { status: "SUCCESS", response: { sunoData: [{ audioUrl: "..." }] } } }
+            const taskData = data.data;
+            if (!taskData) {
+                continue; // No data yet, keep polling
             }
 
-            if (task) {
-                // Check various possible status fields
-                const status = task.status || task.state || task.progress;
-                const audioUrl = task.audio_url || task.url || task.audioUrl;
+            const status = taskData.status;
+            console.log('Task status:', status);
 
-                if ((status === 'completed' || status === 'done' || status === 100) && audioUrl) {
-                    return { success: true, data: { ...task, audio_url: audioUrl } };
-                }
-                if (status === 'failed' || status === 'error') {
-                    return { success: false, error: task.error || 'Music generation failed' };
+            // Check for completion - audio URLs are in response.sunoData array
+            if (status === 'SUCCESS' || status === 'FIRST_SUCCESS') {
+                const sunoData = taskData.response?.sunoData;
+                if (Array.isArray(sunoData) && sunoData[0]) {
+                    const audioUrl = sunoData[0].audioUrl || sunoData[0].streamAudioUrl;
+                    console.log('Audio URL found:', audioUrl);
+                    if (audioUrl) {
+                        return { success: true, data: { ...sunoData[0], audio_url: audioUrl } };
+                    }
                 }
             }
+
+            // Check for failures
+            if (status === 'CREATE_TASK_FAILED' || status === 'GENERATE_AUDIO_FAILED' ||
+                status === 'CALLBACK_EXCEPTION' || status === 'SENSITIVE_WORD_ERROR') {
+                return { success: false, error: taskData.errorMessage || `Generation failed: ${status}` };
+            }
+
+            // Still pending (PENDING, TEXT_SUCCESS) - keep polling
 
             // Wait before next poll (exponential backoff, max 5 seconds)
             const waitTime = Math.min(1000 + (attempt * 500), 5000);
@@ -137,7 +146,7 @@ export async function getRemainingCredits(apiKey) {
     }
 
     try {
-        const response = await fetch(`${SUNO_API_BASE_URL}/get_credits`, {
+        const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate/credit`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
