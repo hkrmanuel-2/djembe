@@ -41,7 +41,43 @@ const World1New: React.FC = () => {
 
     // Scene & Camera
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
+    scene.background = new THREE.Color(0x0a0a1a); // Dark night sky
+
+    // Create starfield
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 2000;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      starPositions[i] = (Math.random() - 0.5) * 500;
+      starPositions[i + 1] = Math.random() * 200 + 20;
+      starPositions[i + 2] = (Math.random() - 0.5) * 500;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.5,
+      sizeAttenuation: true,
+    });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // Create moon
+    const moonGeometry = new THREE.SphereGeometry(5, 32, 32);
+    const moonMaterial = new THREE.MeshBasicMaterial({ color: 0xffffee });
+    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+    moon.position.set(50, 80, -100);
+    scene.add(moon);
+
+    // Moon glow
+    const moonGlowGeometry = new THREE.SphereGeometry(7, 32, 32);
+    const moonGlowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffee,
+      transparent: true,
+      opacity: 0.15,
+    });
+    const moonGlow = new THREE.Mesh(moonGlowGeometry, moonGlowMaterial);
+    moonGlow.position.copy(moon.position);
+    scene.add(moonGlow);
 
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -58,19 +94,21 @@ const World1New: React.FC = () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 0.8; // Slightly darker for night
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // Lights - moonlit night atmosphere
+    const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.4); // Dark blue ambient
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    directionalLight.position.set(5, 10, 7.5);
-    scene.add(directionalLight);
+    // Moonlight - soft blue-white light from moon direction
+    const moonLight = new THREE.DirectionalLight(0x8899bb, 0.6);
+    moonLight.position.set(50, 80, -100);
+    scene.add(moonLight);
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-    directionalLight2.position.set(-5, 5, -5);
-    scene.add(directionalLight2);
+    // Subtle fill light
+    const fillLight = new THREE.DirectionalLight(0x2a2a4a, 0.2);
+    fillLight.position.set(-5, 5, -5);
+    scene.add(fillLight);
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -78,10 +116,14 @@ const World1New: React.FC = () => {
     controls.dampingFactor = 0.05;
     controlsRef.current = controls;
 
+    // Animation mixer for GLB animations
+    let mixer: THREE.AnimationMixer | null = null;
+    const clock = new THREE.Clock();
+
     // Load GLTF
     const forestLoader = new GLTFLoader();
     forestLoader.load(
-      "https://dtghqnhhsgbvhxlmtwwn.supabase.co/storage/v1/object/public/World%201/scene.gltf",
+      "/models/camping_buscraft_ambience.glb",
       (gltf) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, 0, 1);
@@ -104,6 +146,16 @@ const World1New: React.FC = () => {
         });
 
         scene.add(gltf.scene);
+
+        // Play all animations if they exist
+        if (gltf.animations && gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(gltf.scene);
+          gltf.animations.forEach((clip) => {
+            const action = mixer!.clipAction(clip);
+            action.play();
+          });
+        }
+
         setLoading(false);
       },
       (xhr) => {
@@ -127,6 +179,8 @@ const World1New: React.FC = () => {
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta);
       controls.update();
       renderer.render(scene, camera);
     };
