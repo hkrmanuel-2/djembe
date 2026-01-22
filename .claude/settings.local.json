@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ren \"src\\\\components\\\\ui\" \"ui_backup\")",
+      "Bash(git fetch:*)",
+      "Bash(git reset:*)",
+      "Bash(npx vercel dev:*)",
+      "Bash(timeout:*)",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}

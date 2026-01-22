@@ -206,10 +206,12 @@ export const useVoicesStore = create((set, get) => ({
         }).connect(masterGain);
 
         players[category][stem.id] = player;
-        loadPromises.push(Tone.loaded());
+        // Use player.loaded - a promise that resolves when THIS player's buffer is ready
+        loadPromises.push(player.loaded);
       });
     });
 
+    // Wait for ALL player buffers to be fully loaded
     await Promise.all(loadPromises);
     console.log("[VoicesStore] All stem players loaded");
   },
@@ -229,9 +231,11 @@ export const useVoicesStore = create((set, get) => ({
       return;
     }
 
-    // Load players if not already
+    // Load players if not already (and wait for them to be ready)
     if (Object.keys(players).length === 0) {
+      console.log("[VoicesStore] Loading stem players before playback...");
       await get().loadStemPlayers();
+      console.log("[VoicesStore] Stem players ready, starting playback");
     }
 
     // Update BPM
@@ -277,11 +281,15 @@ export const useVoicesStore = create((set, get) => ({
       barSchedulerId = null;
     }
 
-    // Stop all players
+    // Stop all players (only if they have loaded buffers and were started)
     Object.values(players).forEach((categoryPlayers) => {
       Object.values(categoryPlayers).forEach((player) => {
-        if (player && player.state === "started") {
-          player.stop();
+        try {
+          if (player && player.buffer?.loaded && player.state === "started") {
+            player.stop();
+          }
+        } catch (e) {
+          // Ignore errors when stopping players
         }
       });
     });
@@ -403,17 +411,19 @@ export const useVoicesStore = create((set, get) => ({
 
     Object.entries(categories).forEach(([category, state]) => {
       if (state.pendingVoice !== null && state.pendingVoice !== state.activeVoice) {
-        // Stop current voice
-        if (state.activeVoice && players[category]?.[state.activeVoice]) {
-          players[category][state.activeVoice].stop(time);
+        // Stop current voice (only if it was actually started)
+        const currentPlayer = players[category]?.[state.activeVoice];
+        if (currentPlayer && currentPlayer.buffer?.loaded && currentPlayer.state === "started") {
+          currentPlayer.stop(time);
         }
 
         // Start new voice at exact bar boundary
-        if (players[category]?.[state.pendingVoice]) {
+        const newPlayer = players[category]?.[state.pendingVoice];
+        if (newPlayer && newPlayer.buffer?.loaded) {
           // Check mute/solo
           const shouldPlay = get()._shouldCategoryPlay(category);
           if (shouldPlay) {
-            players[category][state.pendingVoice].start(time);
+            newPlayer.start(time);
           }
         }
 
