@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import * as Tone from "tone";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "./useAuthStore";
+import { useProgressStore } from "./useProgressStore";
 
 export const useStore = create(
   persist(
@@ -400,6 +401,13 @@ export const useStore = create(
               placedLoops: [...state.project.placedLoops, loop],
             },
           }));
+
+          // Track loop placement for progress
+          const authState = useAuthStore.getState();
+          const studentId = authState.userProfile?.student_id;
+          if (studentId && authState.userType === "student") {
+            useProgressStore.getState().trackLoopPlace(studentId);
+          }
         },
 
         removePlacedLoop: (id) => {
@@ -514,6 +522,8 @@ export const useStore = create(
 
             if (result.error) throw result.error;
 
+            const isNewProject = !(project.id || project.project_id);
+
             set((state) => ({
               project: {
                 ...state.project,
@@ -524,6 +534,15 @@ export const useStore = create(
               isLoading: false,
               error: null,
             }));
+
+            // Track new project creation for progress (students only)
+            if (isNewProject && userType === "student") {
+              useProgressStore.getState().trackProjectCreate(
+                userId,
+                result.data.project_id,
+                result.data.title || project.name
+              );
+            }
 
             return { success: true, message: "Project saved!" };
           } catch (error) {
