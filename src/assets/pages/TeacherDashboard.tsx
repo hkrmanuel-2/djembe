@@ -162,7 +162,7 @@ export default function TeacherDashboard() {
         className="flex w-full flex-col min-h-screen relative overflow-hidden"
         style={{ backgroundColor: "#1A2B4A" }}
       >
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
         </div>
@@ -186,7 +186,7 @@ export default function TeacherDashboard() {
         className="flex w-full flex-col min-h-screen relative overflow-hidden"
         style={{ backgroundColor: "#1A2B4A", fontFamily: "'Outfit', sans-serif" }}
       >
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
         </div>
@@ -374,7 +374,7 @@ export default function TeacherDashboard() {
       className="flex w-full flex-col min-h-screen relative overflow-hidden"
       style={{ backgroundColor: "#1A2B4A", fontFamily: "'Outfit', sans-serif" }}
     >
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
       </div>

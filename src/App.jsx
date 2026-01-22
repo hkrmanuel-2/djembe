@@ -21,6 +21,7 @@ import { Home as HomeIcon, Music, FileText, Globe, LogOut, User, Settings as Set
 import TeacherAssignments from './assets/pages/teacher/TeacherAssignments';
 import StudentDifficulties from './assets/pages/teacher/StudentDifficulties';
 import StudentProjects from './assets/pages/teacher/StudentProjects';
+import WorldsSettings from './assets/pages/teacher/WorldsSettings';
 import { useSessionTracker } from './hooks/useSessionTracker';
 
 function LoadingOverlay() {
@@ -62,11 +63,12 @@ function AppContent() {
   // Navigation items for authenticated users - different for students vs teachers
   const navItems = isAuthenticated ? (
     userType === 'teacher' ? [
-      // Teacher navigation - no Home, DAW, or Worlds
+      // Teacher navigation
       { name: 'Students', url: '/students', icon: Users },
       { name: 'Assignments', url: '/teacher/assignments', icon: FileText },
       { name: 'Analytics', url: '/teacher/analytics', icon: TrendingUp },
       { name: 'Projects', url: '/teacher/projects', icon: FolderOpen },
+      { name: 'Worlds', url: '/teacher/worlds', icon: Globe },
       { name: 'Settings', url: '/settings', icon: SettingsIcon },
     ] : [
       // Student navigation
@@ -176,6 +178,13 @@ function AppContent() {
         <Route path="/teacher/projects" element={
           <ProtectedRoute>
             <StudentProjects />
+          </ProtectedRoute>
+        } />
+
+        {/* Teacher Worlds Settings Route */}
+        <Route path="/teacher/worlds" element={
+          <ProtectedRoute>
+            <WorldsSettings />
           </ProtectedRoute>
         } />
 
