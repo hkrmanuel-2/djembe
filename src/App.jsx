@@ -12,10 +12,16 @@ import { Button } from './components/ui/button';
 import World1 from './components/Worlds/World1';
 import World2 from './components/Worlds/World2';
 import Assignments from './assets/pages/Assignments';
+import StudentProgress from './assets/pages/StudentProgress';
+import TeacherDashboard from './assets/pages/TeacherDashboard';
 import { LoadingProvider, useLoading } from './contexts/LoadingContext';
 import CubeLoaderDark from './components/ui/cube-loader-dark';
 import { NavBarDark } from './components/ui/tubelight-navbar-dark';
-import { Home as HomeIcon, Music, FileText, Globe, LogOut, User, Settings as SettingsIcon } from 'lucide-react';
+import { Home as HomeIcon, Music, FileText, Globe, LogOut, User, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen } from 'lucide-react';
+import TeacherAssignments from './assets/pages/teacher/TeacherAssignments';
+import StudentDifficulties from './assets/pages/teacher/StudentDifficulties';
+import StudentProjects from './assets/pages/teacher/StudentProjects';
+import { useSessionTracker } from './hooks/useSessionTracker';
 
 function LoadingOverlay() {
   const { isLoading } = useLoading();
@@ -37,6 +43,9 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Track active session time for students
+  useSessionTracker();
+
   // Routes where navbar should be hidden (immersive experiences)
   const hideNavbarRoutes = ['/daw', '/world1', '/world2'];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
@@ -50,14 +59,25 @@ function AppContent() {
     navigate('/');
   };
 
-  // Navigation items for authenticated users
-  const navItems = isAuthenticated ? [
-    { name: 'Home', url: '/home', icon: HomeIcon },
-    { name: 'DAW', url: '/daw', icon: Music },
-    ...(userType === 'student' ? [{ name: 'Assignments', url: '/assignments', icon: FileText }] : []),
-    { name: 'Worlds', url: '/world1', icon: Globe },
-    { name: 'Settings', url: '/settings', icon: SettingsIcon },
-  ] : [];
+  // Navigation items for authenticated users - different for students vs teachers
+  const navItems = isAuthenticated ? (
+    userType === 'teacher' ? [
+      // Teacher navigation - no Home, DAW, or Worlds
+      { name: 'Students', url: '/students', icon: Users },
+      { name: 'Assignments', url: '/teacher/assignments', icon: FileText },
+      { name: 'Analytics', url: '/teacher/analytics', icon: TrendingUp },
+      { name: 'Projects', url: '/teacher/projects', icon: FolderOpen },
+      { name: 'Settings', url: '/settings', icon: SettingsIcon },
+    ] : [
+      // Student navigation
+      { name: 'Home', url: '/home', icon: HomeIcon },
+      { name: 'DAW', url: '/daw', icon: Music },
+      { name: 'Assignments', url: '/assignments', icon: FileText },
+      { name: 'Progress', url: '/progress', icon: Trophy },
+      { name: 'Worlds', url: '/world1', icon: Globe },
+      { name: 'Settings', url: '/settings', icon: SettingsIcon },
+    ]
+  ) : [];
 
   return (
     <div className="App">
@@ -98,13 +118,13 @@ function AppContent() {
       <Routes>
         {/* Landing page - public route */}
         <Route path="/" element={
-          isAuthenticated ? <Navigate to="/home" replace /> : <Landing_page />
+          isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Landing_page />
         } />
         <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/home" replace /> : <Login />
+          isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Login />
         } />
         <Route path="/signup" element={
-          isAuthenticated ? <Navigate to="/home" replace /> : <Signup />
+          isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Signup />
         } />
         <Route path="/home" element={
           <ProtectedRoute>
@@ -121,6 +141,41 @@ function AppContent() {
         <Route path="/assignments" element={
           <ProtectedRoute>
             <Assignments />
+          </ProtectedRoute>
+        } />
+
+        {/* Student Progress Route */}
+        <Route path="/progress" element={
+          <ProtectedRoute>
+            <StudentProgress />
+          </ProtectedRoute>
+        } />
+
+        {/* Teacher Dashboard Route */}
+        <Route path="/students" element={
+          <ProtectedRoute>
+            <TeacherDashboard />
+          </ProtectedRoute>
+        } />
+
+        {/* Teacher Assignments Route */}
+        <Route path="/teacher/assignments" element={
+          <ProtectedRoute>
+            <TeacherAssignments />
+          </ProtectedRoute>
+        } />
+
+        {/* Teacher Analytics Route */}
+        <Route path="/teacher/analytics" element={
+          <ProtectedRoute>
+            <StudentDifficulties />
+          </ProtectedRoute>
+        } />
+
+        {/* Teacher Projects Route */}
+        <Route path="/teacher/projects" element={
+          <ProtectedRoute>
+            <StudentProjects />
           </ProtectedRoute>
         } />
 
