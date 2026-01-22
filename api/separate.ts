@@ -48,7 +48,7 @@ export default async function handler(
     formData.append("api_token", apiToken);
     formData.append("audiofile", audioBlob, "track.mp3");
     formData.append("sep_type", "63"); // BS Roformer SW: vocals, bass, drums, guitar, piano, other
-    formData.append("output_format", "0"); // mp3 320kbps
+    formData.append("output_format", "2"); // mp3 128kbps (smaller files for Vercel limit)
 
     // Step 3: Submit to MVSEP
     const createResponse = await fetch(`${MVSEP_API_URL}/create`, {
@@ -109,6 +109,7 @@ async function pollForCompletion(hash: string, maxAttempts = 120): Promise<{
     if (data.status === "done" && data.data?.files) {
       const files = data.data.files;
       console.log("[MVSEP] Files received:", JSON.stringify(files, null, 2));
+      console.log("[MVSEP] Files type:", Array.isArray(files) ? "array" : typeof files);
 
       const stems = {
         drums: "",
@@ -119,34 +120,53 @@ async function pollForCompletion(hash: string, maxAttempts = 120): Promise<{
         other: "",
       };
 
-      for (const file of files) {
-        // Try different possible field names for the file info
-        const name = (file.name || file.filename || file.stem || "").toLowerCase();
-        const url = file.url || file.download_url || file.link || "";
+      // Handle case where files is an object with stem names as keys
+      if (!Array.isArray(files) && typeof files === "object") {
+        console.log("[MVSEP] Files is object, keys:", Object.keys(files));
+        for (const [key, value] of Object.entries(files)) {
+          const keyLower = key.toLowerCase();
+          const url = typeof value === "string" ? value : (value as any)?.url || (value as any)?.download_url || "";
+          console.log("[MVSEP] Object entry:", { key: keyLower, url: url.substring(0, 50) });
 
-        console.log("[MVSEP] Processing file:", { name, url: url.substring(0, 50) + "..." });
+          if (keyLower.includes("drum")) stems.drums = url;
+          else if (keyLower.includes("bass")) stems.bass = url;
+          else if (keyLower.includes("guitar")) stems.guitar = url;
+          else if (keyLower.includes("piano")) stems.piano = url;
+          else if (keyLower.includes("vocal")) stems.vocals = url;
+          else if (keyLower.includes("other")) stems.other = url;
+        }
+      } else if (Array.isArray(files)) {
+        // Handle case where files is an array
+        for (const file of files) {
+          console.log("[MVSEP] File object keys:", Object.keys(file));
+          // Try different possible field names for the file info
+          // MVSEP uses "type" for stem name (e.g., "Bass", "Drums", "Vocals")
+          const name = (file.type || file.name || file.filename || file.stem || file.title || "").toLowerCase();
+          const url = file.url || file.download_url || file.link || file.path || "";
 
-        if (name.includes("drum")) {
-          stems.drums = url;
-        } else if (name.includes("bass")) {
-          stems.bass = url;
-        } else if (name.includes("guitar")) {
-          stems.guitar = url;
-        } else if (name.includes("piano")) {
-          stems.piano = url;
-        } else if (name.includes("vocal")) {
-          stems.vocals = url;
-        } else if (name.includes("other")) {
-          stems.other = url;
+          console.log("[MVSEP] Processing file:", { name, url: url ? url.substring(0, 50) + "..." : "empty" });
+
+          if (name.includes("drum")) stems.drums = url;
+          else if (name.includes("bass")) stems.bass = url;
+          else if (name.includes("guitar")) stems.guitar = url;
+          else if (name.includes("piano")) stems.piano = url;
+          else if (name.includes("vocal")) stems.vocals = url;
+          else if (name.includes("other")) stems.other = url;
         }
       }
 
-      // If no matches, try to extract from file structure directly
-      if (!stems.drums && !stems.bass && !stems.vocals) {
-        console.log("[MVSEP] No matches found, raw files:", files);
-      }
+      // Convert MVSEP URLs to proxied URLs to avoid CORS issues
+      const proxiedStems = {
+        drums: stems.drums ? `/api/proxy-audio?url=${encodeURIComponent(stems.drums)}` : "",
+        bass: stems.bass ? `/api/proxy-audio?url=${encodeURIComponent(stems.bass)}` : "",
+        guitar: stems.guitar ? `/api/proxy-audio?url=${encodeURIComponent(stems.guitar)}` : "",
+        piano: stems.piano ? `/api/proxy-audio?url=${encodeURIComponent(stems.piano)}` : "",
+        vocals: stems.vocals ? `/api/proxy-audio?url=${encodeURIComponent(stems.vocals)}` : "",
+        other: stems.other ? `/api/proxy-audio?url=${encodeURIComponent(stems.other)}` : "",
+      };
 
-      return stems;
+      console.log("[MVSEP] Final stems (proxied):", proxiedStems);
+      return proxiedStems;
     }
 
     if (data.status === "failed") {
