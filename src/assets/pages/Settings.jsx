@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import CloudShader from "@/components/ui/cloud-shader";
 import { User, Palette, Bell, Shield, Sparkles } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function Settings() {
+  const { userType, setUserTypeOverride } = useAuthStore();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -134,22 +137,45 @@ export default function Settings() {
                   <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
                     Switch between student and teacher modes (for testing)
                   </p>
-                  <select
-                    className="w-full backdrop-blur-md border rounded-xl py-3 px-4 focus:outline-none transition-all cursor-pointer"
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      borderColor: 'rgba(255,255,255,0.15)',
-                      color: 'white',
-                    }}
-                    onChange={(e) => {
-                      localStorage.setItem('userRole', e.target.value);
-                      window.location.reload();
-                    }}
-                    defaultValue={localStorage.getItem('userRole') || 'student'}
-                  >
-                    <option value="student" style={{ backgroundColor: '#1A2B4A', color: 'white' }}>Student</option>
-                    <option value="teacher" style={{ backgroundColor: '#1A2B4A', color: 'white' }}>Teacher/Admin</option>
-                  </select>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setUserTypeOverride('student')}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+                        userType === 'student'
+                          ? 'ring-2 ring-offset-2 ring-offset-transparent'
+                          : 'hover:bg-white/10'
+                      }`}
+                      style={{
+                        backgroundColor: userType === 'student' ? 'rgba(217, 119, 70, 0.3)' : 'rgba(255,255,255,0.08)',
+                        borderColor: userType === 'student' ? '#D97746' : 'rgba(255,255,255,0.15)',
+                        color: userType === 'student' ? '#D97746' : 'rgba(255,255,255,0.7)',
+                        border: '1px solid',
+                        ringColor: '#D97746',
+                      }}
+                    >
+                      Student
+                    </button>
+                    <button
+                      onClick={() => setUserTypeOverride('teacher')}
+                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+                        userType === 'teacher'
+                          ? 'ring-2 ring-offset-2 ring-offset-transparent'
+                          : 'hover:bg-white/10'
+                      }`}
+                      style={{
+                        backgroundColor: userType === 'teacher' ? 'rgba(74, 155, 155, 0.3)' : 'rgba(255,255,255,0.08)',
+                        borderColor: userType === 'teacher' ? '#4A9B9B' : 'rgba(255,255,255,0.15)',
+                        color: userType === 'teacher' ? '#4A9B9B' : 'rgba(255,255,255,0.7)',
+                        border: '1px solid',
+                        ringColor: '#4A9B9B',
+                      }}
+                    >
+                      Teacher
+                    </button>
+                  </div>
+                  <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    Current role: <span style={{ color: userType === 'teacher' ? '#4A9B9B' : '#D97746' }}>{userType}</span>
+                  </p>
                 </div>
               </div>
             </motion.div>

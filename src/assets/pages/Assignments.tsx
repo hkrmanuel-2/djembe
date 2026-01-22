@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProgressStore } from "@/store/useProgressStore";
 import { supabase } from "@/lib/supabase";
 import CloudShader from "@/components/ui/cloud-shader";
 import { Upload, File, CheckCircle2, Circle, X, Calendar, Sparkles } from "lucide-react";
@@ -87,6 +88,17 @@ export default function AssignmentsNew() {
         });
 
       if (insertError) throw insertError;
+
+      // Track assignment submission for progress
+      if (userProfile?.student_id) {
+        const isOnTime = new Date() <= new Date(selectedAssignment.due_date);
+        useProgressStore.getState().trackAssignmentSubmit(
+          userProfile.student_id,
+          selectedAssignment.id,
+          selectedAssignment.title,
+          isOnTime
+        );
+      }
 
       await loadSubmissions();
       setSelectedAssignment(null);
