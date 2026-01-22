@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { Info, Maximize2, Minimize2, RotateCcw, Home } from "lucide-react";
+import { Info, Maximize2, Minimize2, RotateCcw, Home, Music } from "lucide-react";
+import VoicesPanel from "../Voices/VoicesPanel";
 
 const World2New: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -12,6 +13,7 @@ const World2New: React.FC = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showVoicesPanel, setShowVoicesPanel] = useState(false);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const navigate = useNavigate();
@@ -201,6 +203,17 @@ const World2New: React.FC = () => {
               <Home size={20} style={{ color: '#E6B84D' }} />
             </button>
             <button
+              onClick={() => setShowVoicesPanel(!showVoicesPanel)}
+              className={`p-3 rounded-full backdrop-blur-md border transition-colors ${
+                showVoicesPanel
+                  ? "bg-purple-500/30 border-purple-400/50"
+                  : "bg-black/40 border-white/10 hover:bg-black/60"
+              }`}
+              title="Voices Panel"
+            >
+              <Music size={20} className={showVoicesPanel ? "text-purple-300" : "text-white"} />
+            </button>
+            <button
               onClick={() => setShowInfo(!showInfo)}
               className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
             >
@@ -261,7 +274,7 @@ const World2New: React.FC = () => {
       </AnimatePresence>
 
       {/* Bottom Controls Hint */}
-      {!showInfo && (
+      {!showInfo && !showVoicesPanel && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -275,6 +288,12 @@ const World2New: React.FC = () => {
           </div>
         </motion.div>
       )}
+
+      {/* Voices Panel */}
+      <VoicesPanel
+        isOpen={showVoicesPanel}
+        onClose={() => setShowVoicesPanel(false)}
+      />
     </div>
   );
 };

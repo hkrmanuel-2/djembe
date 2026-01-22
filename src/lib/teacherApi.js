@@ -683,3 +683,107 @@ export async function getTeacherFeedback(teacherId) {
     return { data: [], error: error.message };
   }
 }
+
+// ============================================
+// VOICE SETTINGS (for 3D Worlds)
+// ============================================
+
+/**
+ * Get voice settings for a school
+ * Used by both teachers (to edit) and students (to fetch for Suno generation)
+ */
+export async function getVoiceSettings(schoolId) {
+  try {
+    const { data: settings, error } = await supabase
+      .from("voice_settings")
+      .select("*")
+      .eq("school_id", schoolId)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 = no rows returned (not an error, just no settings yet)
+      throw error;
+    }
+
+    // Return default settings if none exist
+    if (!settings) {
+      return {
+        data: {
+          bpm: 120,
+          genre: "afrobeat",
+          style: "upbeat",
+          mood: "happy",
+          custom_prompt: null,
+        },
+        error: null,
+      };
+    }
+
+    return { data: settings, error: null };
+  } catch (error) {
+    console.error("Get voice settings error:", error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
+ * Create or update voice settings for a school
+ * Only teachers can call this
+ */
+export async function updateVoiceSettings(schoolId, teacherId, settings) {
+  try {
+    // Check if settings already exist
+    const { data: existing } = await supabase
+      .from("voice_settings")
+      .select("id")
+      .eq("school_id", schoolId)
+      .single();
+
+    let result;
+
+    if (existing) {
+      // Update existing settings
+      const { data, error } = await supabase
+        .from("voice_settings")
+        .update({
+          bpm: settings.bpm,
+          genre: settings.genre,
+          style: settings.style,
+          mood: settings.mood,
+          custom_prompt: settings.custom_prompt || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("school_id", schoolId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    } else {
+      // Create new settings
+      const { data, error } = await supabase
+        .from("voice_settings")
+        .insert([
+          {
+            school_id: schoolId,
+            teacher_id: teacherId,
+            bpm: settings.bpm,
+            genre: settings.genre,
+            style: settings.style,
+            mood: settings.mood,
+            custom_prompt: settings.custom_prompt || null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    }
+
+    return { data: result, error: null };
+  } catch (error) {
+    console.error("Update voice settings error:", error);
+    return { data: null, error: error.message };
+  }
+}
