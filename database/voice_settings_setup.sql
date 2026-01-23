@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS voice_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(school_id) ON DELETE CASCADE,
   teacher_id UUID REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+  world_id VARCHAR(50) NOT NULL DEFAULT 'world1',  -- e.g., "world1", "world2"
 
   -- Music generation settings
   bpm INTEGER DEFAULT 120 CHECK (bpm >= 60 AND bpm <= 200),
@@ -26,13 +27,19 @@ CREATE TABLE IF NOT EXISTS voice_settings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
-  -- Ensure one setting per school
-  UNIQUE(school_id)
+  -- Ensure one setting per school + world combination
+  UNIQUE(school_id, world_id)
 );
 
 -- 2. INDEXES FOR PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_voice_settings_school ON voice_settings(school_id);
 CREATE INDEX IF NOT EXISTS idx_voice_settings_teacher ON voice_settings(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_voice_settings_world ON voice_settings(school_id, world_id);
+
+-- 2b. MIGRATION: Add world_id to existing table (run this if table already exists)
+-- ALTER TABLE voice_settings ADD COLUMN IF NOT EXISTS world_id VARCHAR(50) NOT NULL DEFAULT 'world1';
+-- ALTER TABLE voice_settings DROP CONSTRAINT IF EXISTS voice_settings_school_id_key;
+-- ALTER TABLE voice_settings ADD CONSTRAINT voice_settings_school_world_unique UNIQUE(school_id, world_id);
 
 -- 3. ROW LEVEL SECURITY
 ALTER TABLE voice_settings ENABLE ROW LEVEL SECURITY;

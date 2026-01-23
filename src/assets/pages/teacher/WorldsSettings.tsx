@@ -42,10 +42,16 @@ const MOOD_OPTIONS = [
   "mysterious",
 ];
 
+const WORLD_OPTIONS = [
+  { id: "world1", name: "Fireside World", emoji: "🔥" },
+  { id: "world2", name: "Auditorium World", emoji: "🎭" },
+];
+
 export default function WorldsSettings() {
   const { userProfile } = useAuthStore();
   const navigate = useNavigate();
 
+  const [selectedWorld, setSelectedWorld] = useState("world1");
   const [settings, setSettings] = useState({
     bpm: 120,
     genre: "afrobeat",
@@ -72,13 +78,13 @@ export default function WorldsSettings() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
 
-  // Load settings on mount
+  // Load settings when world changes
   useEffect(() => {
     const loadSettings = async () => {
       if (!userProfile?.school_id) return;
 
       setIsLoading(true);
-      const result = await getVoiceSettings(userProfile.school_id);
+      const result = await getVoiceSettings(userProfile.school_id, selectedWorld);
       if (result.data) {
         setSettings({
           bpm: result.data.bpm || 120,
@@ -92,21 +98,43 @@ export default function WorldsSettings() {
     };
 
     loadSettings();
-  }, [userProfile?.school_id]);
+  }, [userProfile?.school_id, selectedWorld]);
 
   // Handle save
   const handleSave = async () => {
-    if (!userProfile?.school_id || !userProfile?.teacher_id) return;
+    console.log("[WorldsSettings] Save clicked, userProfile:", userProfile);
+
+    if (!userProfile?.school_id) {
+      setError("No school ID found. Please contact support.");
+      return;
+    }
+
+    // Get teacher_id - it might be named teacher_id or just use the user id
+    const teacherId = userProfile.teacher_id || userProfile.id;
+    if (!teacherId) {
+      setError("No teacher ID found. Please contact support.");
+      return;
+    }
 
     setIsSaving(true);
     setError(null);
     setSaveSuccess(false);
 
+    console.log("[WorldsSettings] Saving settings:", {
+      schoolId: userProfile.school_id,
+      teacherId,
+      settings,
+      selectedWorld,
+    });
+
     const result = await updateVoiceSettings(
       userProfile.school_id,
-      userProfile.teacher_id,
-      settings
+      teacherId,
+      settings,
+      selectedWorld
     );
+
+    console.log("[WorldsSettings] Save result:", result);
 
     if (result.error) {
       setError(result.error);
@@ -192,6 +220,34 @@ export default function WorldsSettings() {
             </p>
           </motion.div>
 
+          {/* World Selector */}
+          <motion.div
+            variants={itemVariants}
+            className="mb-6"
+          >
+            <label className="block text-base font-medium text-white mb-3">Select World</label>
+            <div className="flex gap-3">
+              {WORLD_OPTIONS.map((world) => (
+                <button
+                  key={world.id}
+                  onClick={() => setSelectedWorld(world.id)}
+                  className={`
+                    flex-1 px-4 py-4 rounded-xl flex items-center gap-3 transition-all
+                    ${selectedWorld === world.id
+                      ? "bg-purple-500/30 border-2 border-purple-400/70 shadow-lg shadow-purple-500/20"
+                      : "bg-white/5 border border-white/10 hover:bg-white/10"
+                    }
+                  `}
+                >
+                  <span className="text-2xl">{world.emoji}</span>
+                  <span className={`font-medium ${selectedWorld === world.id ? "text-purple-200" : "text-white/70"}`}>
+                    {world.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+
           {/* Settings Card */}
           <motion.div
             variants={itemVariants}
@@ -209,7 +265,7 @@ export default function WorldsSettings() {
               <div>
                 <h3 className="text-xl font-semibold text-white">Music Generation</h3>
                 <p className="text-sm text-white/60">
-                  These settings control the AI-generated background music in 3D Worlds
+                  Settings for {WORLD_OPTIONS.find(w => w.id === selectedWorld)?.name || "this world"}
                 </p>
               </div>
             </div>
@@ -330,10 +386,25 @@ export default function WorldsSettings() {
 
               {/* Preview prompt */}
               <div className="p-4 bg-purple-500/10 rounded-xl border border-purple-400/20">
-                <p className="text-sm text-purple-300 mb-2 font-medium">Generated prompt preview:</p>
-                <p className="text-base text-white/80 italic">
-                  "{settings.genre}, {settings.style}, {settings.mood} mood, at {settings.bpm} BPM
-                  {settings.custom_prompt ? `, ${settings.custom_prompt}` : ""}"
+                <p className="text-sm text-purple-300 mb-2 font-medium">Music generation settings:</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-white/60">Genre:</div>
+                  <div className="text-white/90 capitalize">{settings.genre}</div>
+                  <div className="text-white/60">Tempo:</div>
+                  <div className="text-white/90">{settings.bpm} BPM</div>
+                  <div className="text-white/60">Style:</div>
+                  <div className="text-white/90 capitalize">{settings.style}</div>
+                  <div className="text-white/60">Mood:</div>
+                  <div className="text-white/90 capitalize">{settings.mood}</div>
+                  {settings.custom_prompt && (
+                    <>
+                      <div className="text-white/60">Custom:</div>
+                      <div className="text-white/90">{settings.custom_prompt}</div>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-white/40 mt-3">
+                  Generates kid-friendly, educational rhythms with these settings
                 </p>
               </div>
 
