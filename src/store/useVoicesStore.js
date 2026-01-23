@@ -6,9 +6,9 @@ import * as Tone from "tone";
 import { getVoiceSettings } from "../lib/teacherApi";
 import { generateAndSeparateStems } from "../lib/voicesApi";
 
-// Session storage key for caching stems
-const STEMS_CACHE_KEY = "djembe_voices_stems";
-const SETTINGS_CACHE_KEY = "djembe_voices_settings";
+// Session storage key for caching stems (includes worldId)
+const getStemsCacheKey = (worldId) => `djembe_voices_stems_${worldId}`;
+const getSettingsCacheKey = (worldId) => `djembe_voices_settings_${worldId}`;
 
 // Internal refs (not in state)
 let barSchedulerId = null;
@@ -17,6 +17,9 @@ let masterGain = null;
 
 export const useVoicesStore = create((set, get) => ({
   // =============== STATE ===============
+
+  // Current world ID
+  worldId: "world1",
 
   // Teacher settings (fetched from DB)
   settings: {
@@ -65,22 +68,37 @@ export const useVoicesStore = create((set, get) => ({
   // =============== ACTIONS ===============
 
   /**
+   * Set the current world ID
+   */
+  setWorldId: (worldId) => {
+    set({ worldId });
+  },
+
+  /**
    * Fetch voice settings from database
    */
-  fetchSettings: async (schoolId) => {
+  fetchSettings: async (schoolId, worldId = null) => {
+    const currentWorldId = worldId || get().worldId;
+
     try {
+      // Update worldId in state if provided
+      if (worldId) {
+        set({ worldId });
+      }
+
       // Check session cache first
-      const cached = sessionStorage.getItem(SETTINGS_CACHE_KEY);
+      const cacheKey = getSettingsCacheKey(currentWorldId);
+      const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const parsedSettings = JSON.parse(cached);
         set({ settings: parsedSettings });
         return { success: true, data: parsedSettings };
       }
 
-      const result = await getVoiceSettings(schoolId);
+      const result = await getVoiceSettings(schoolId, currentWorldId);
       if (result.data) {
         set({ settings: result.data });
-        sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(result.data));
+        sessionStorage.setItem(cacheKey, JSON.stringify(result.data));
       }
       return result;
     } catch (error) {
@@ -90,11 +108,13 @@ export const useVoicesStore = create((set, get) => ({
   },
 
   /**
-   * Check if we have cached stems for this session
+   * Check if we have cached stems for this session and world
    */
   checkCachedStems: () => {
+    const { worldId } = get();
     try {
-      const cached = sessionStorage.getItem(STEMS_CACHE_KEY);
+      const cacheKey = getStemsCacheKey(worldId);
+      const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const parsedStems = JSON.parse(cached);
         set({ stems: parsedStems, stemsLoaded: true });
@@ -110,7 +130,7 @@ export const useVoicesStore = create((set, get) => ({
    * Generate stems using Suno API
    */
   generateStems: async () => {
-    const { settings } = get();
+    const { settings, worldId } = get();
 
     set({
       isGenerating: true,
@@ -127,8 +147,9 @@ export const useVoicesStore = create((set, get) => ({
         throw new Error(result.error);
       }
 
-      // Cache stems for session
-      sessionStorage.setItem(STEMS_CACHE_KEY, JSON.stringify(result.stems));
+      // Cache stems for session (per world)
+      const cacheKey = getStemsCacheKey(worldId);
+      sessionStorage.setItem(cacheKey, JSON.stringify(result.stems));
 
       set({
         stems: result.stems,
@@ -218,9 +239,10 @@ export const useVoicesStore = create((set, get) => ({
 
   /**
    * Start playback - begins transport and bar scheduling
+   * All active voices start at exactly the same time for seamless sync
    */
   startPlayback: async () => {
-    const { audioInitialized, stemsLoaded, settings } = get();
+    const { audioInitialized, stemsLoaded, settings, categories } = get();
 
     if (!audioInitialized) {
       await get().initAudio();
@@ -257,14 +279,33 @@ export const useVoicesStore = create((set, get) => ({
       0
     );
 
+    // Reset transport position to ensure clean start
+    Tone.Transport.position = 0;
+
     // Start transport
     Tone.Transport.start();
     set({ isPlaying: true });
 
+    // Start all active voices at the same time (at the beginning of the transport)
+    // This ensures they're all perfectly in sync
+    const startTime = Tone.now() + 0.01; // Small delay to ensure scheduling
+    Object.entries(categories).forEach(([category, state]) => {
+      if (state.activeVoice && players[category]?.[state.activeVoice]) {
+        const player = players[category][state.activeVoice];
+        if (player.buffer?.loaded) {
+          const shouldPlay = get()._shouldCategoryPlay(category);
+          if (shouldPlay) {
+            // Start from the beginning of the audio, synchronized
+            player.start(startTime, 0);
+          }
+        }
+      }
+    });
+
     // Update time display
     get()._startTimeUpdater();
 
-    console.log("[VoicesStore] Playback started");
+    console.log("[VoicesStore] Playback started - all voices synchronized");
   },
 
   /**
@@ -317,7 +358,23 @@ export const useVoicesStore = create((set, get) => ({
   },
 
   /**
-   * Select a voice - queues it for the next bar boundary
+   * Calculate the time to the next beat or bar boundary
+   * @param {number} bpm - Current BPM
+   * @param {boolean} toBar - If true, calculates to next bar; if false, to next beat
+   * @returns {number} Time in seconds to the next boundary
+   */
+  _getTimeToNextBoundary: (bpm, toBar = true) => {
+    const secondsPerBeat = 60 / bpm;
+    const secondsPerBar = secondsPerBeat * 4;
+    const boundary = toBar ? secondsPerBar : secondsPerBeat;
+    const currentPosition = Tone.Transport.seconds;
+    const timeToNext = boundary - (currentPosition % boundary);
+    // If we're very close to the boundary (within 50ms), go to the next one
+    return timeToNext < 0.05 ? boundary : timeToNext;
+  },
+
+  /**
+   * Select a voice - queues it for the next bar boundary for seamless mixing
    */
   selectVoice: (category, voiceId) => {
     const { categories, isPlaying, settings } = get();
@@ -325,11 +382,21 @@ export const useVoicesStore = create((set, get) => ({
 
     if (!categoryState) return;
 
-    // If clicking the same voice that's active, deselect it
+    // If clicking the same voice that's active, deselect it (stop at next bar)
     if (categoryState.activeVoice === voiceId) {
-      // Stop the player
-      if (players[category]?.[voiceId]?.state === "started") {
-        players[category][voiceId].stop();
+      if (isPlaying) {
+        // Schedule stop at next bar boundary for seamless transition
+        const timeToNextBar = get()._getTimeToNextBoundary(settings.bpm, true);
+        const stopTime = Tone.Transport.seconds + timeToNextBar;
+
+        if (players[category]?.[voiceId]?.state === "started") {
+          players[category][voiceId].stop(stopTime);
+        }
+      } else {
+        // Stop immediately if not playing
+        if (players[category]?.[voiceId]?.state === "started") {
+          players[category][voiceId].stop();
+        }
       }
 
       set({
@@ -361,18 +428,8 @@ export const useVoicesStore = create((set, get) => ({
       return;
     }
 
-    // Calculate time to next bar for the loader animation
-    const secondsPerBar = (60 / settings.bpm) * 4;
-    const currentPosition = Tone.Transport.seconds;
-    const timeToNextBar = secondsPerBar - (currentPosition % secondsPerBar);
-
-    // If not playing yet, activate immediately
+    // If not playing yet, just set as active (will start when playback begins)
     if (!isPlaying) {
-      // Start the player immediately
-      if (players[category]?.[voiceId]) {
-        players[category][voiceId].start();
-      }
-
       set({
         categories: {
           ...categories,
@@ -387,7 +444,7 @@ export const useVoicesStore = create((set, get) => ({
       return;
     }
 
-    // Queue for next bar
+    // Queue for next bar (will be processed in _processBarBoundary)
     set({
       categories: {
         ...categories,
@@ -603,8 +660,24 @@ export const useVoicesStore = create((set, get) => ({
    * Clear session cache (for testing/reset)
    */
   clearCache: () => {
-    sessionStorage.removeItem(STEMS_CACHE_KEY);
-    sessionStorage.removeItem(SETTINGS_CACHE_KEY);
+    const { worldId } = get();
+    sessionStorage.removeItem(getStemsCacheKey(worldId));
+    sessionStorage.removeItem(getSettingsCacheKey(worldId));
+    set({
+      stems: { rhythm: [], bass: [], harmony: [], melody: [], extras: [] },
+      stemsLoaded: false,
+    });
+  },
+
+  /**
+   * Clear all world caches
+   */
+  clearAllCaches: () => {
+    // Clear all known world caches
+    ["world1", "world2"].forEach((wId) => {
+      sessionStorage.removeItem(getStemsCacheKey(wId));
+      sessionStorage.removeItem(getSettingsCacheKey(wId));
+    });
     set({
       stems: { rhythm: [], bass: [], harmony: [], melody: [], extras: [] },
       stemsLoaded: false,

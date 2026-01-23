@@ -6,6 +6,10 @@ interface SeparateRequest {
   audioUrl: string;
 }
 
+export const config = {
+  maxDuration: 60, // Increase timeout to 60s (requires Pro plan, otherwise ignored)
+};
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -35,6 +39,7 @@ export default async function handler(
 
   try {
     // Step 1: Download the audio file from URL
+    console.log("[MVSEP] Downloading audio from:", audioUrl);
     const audioResponse = await fetch(audioUrl);
     if (!audioResponse.ok) {
       throw new Error(`Failed to download audio: ${audioResponse.status}`);
@@ -42,6 +47,7 @@ export default async function handler(
 
     const audioBuffer = await audioResponse.arrayBuffer();
     const audioBlob = new Blob([audioBuffer], { type: "audio/mpeg" });
+    console.log("[MVSEP] Audio downloaded, size:", audioBuffer.byteLength);
 
     // Step 2: Create form data for MVSEP
     const formData = new FormData();
@@ -51,6 +57,7 @@ export default async function handler(
     formData.append("output_format", "2"); // mp3 128kbps (smaller files for Vercel limit)
 
     // Step 3: Submit to MVSEP
+    console.log("[MVSEP] Submitting to MVSEP...");
     const createResponse = await fetch(`${MVSEP_API_URL}/create`, {
       method: "POST",
       body: formData,
@@ -62,6 +69,7 @@ export default async function handler(
     }
 
     const createData = await createResponse.json();
+    console.log("[MVSEP] Create response:", JSON.stringify(createData, null, 2));
 
     if (!createData.success) {
       throw new Error(createData.data?.message || "MVSEP job creation failed");
@@ -72,12 +80,12 @@ export default async function handler(
       throw new Error("No job hash received from MVSEP");
     }
 
-    // Step 4: Poll for completion
-    const stems = await pollForCompletion(jobHash);
-
+    // Return the hash immediately - client will poll for status
     return res.status(200).json({
       success: true,
-      stems,
+      status: "processing",
+      hash: jobHash,
+      message: "Job created. Poll /api/separate-status?hash=" + jobHash,
     });
   } catch (error) {
     console.error("[MVSEP API] Error:", error);
@@ -86,95 +94,4 @@ export default async function handler(
       error: error instanceof Error ? error.message : "Separation failed",
     });
   }
-}
-
-async function pollForCompletion(hash: string, maxAttempts = 120): Promise<{
-  drums: string;
-  bass: string;
-  guitar: string;
-  piano: string;
-  vocals: string;
-  other: string;
-}> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(`${MVSEP_API_URL}/get?hash=${hash}`);
-
-    if (!response.ok) {
-      throw new Error(`Status check failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("[MVSEP] Poll response:", JSON.stringify(data, null, 2));
-
-    if (data.status === "done" && data.data?.files) {
-      const files = data.data.files;
-      console.log("[MVSEP] Files received:", JSON.stringify(files, null, 2));
-      console.log("[MVSEP] Files type:", Array.isArray(files) ? "array" : typeof files);
-
-      const stems = {
-        drums: "",
-        bass: "",
-        guitar: "",
-        piano: "",
-        vocals: "",
-        other: "",
-      };
-
-      // Handle case where files is an object with stem names as keys
-      if (!Array.isArray(files) && typeof files === "object") {
-        console.log("[MVSEP] Files is object, keys:", Object.keys(files));
-        for (const [key, value] of Object.entries(files)) {
-          const keyLower = key.toLowerCase();
-          const url = typeof value === "string" ? value : (value as any)?.url || (value as any)?.download_url || "";
-          console.log("[MVSEP] Object entry:", { key: keyLower, url: url.substring(0, 50) });
-
-          if (keyLower.includes("drum")) stems.drums = url;
-          else if (keyLower.includes("bass")) stems.bass = url;
-          else if (keyLower.includes("guitar")) stems.guitar = url;
-          else if (keyLower.includes("piano")) stems.piano = url;
-          else if (keyLower.includes("vocal")) stems.vocals = url;
-          else if (keyLower.includes("other")) stems.other = url;
-        }
-      } else if (Array.isArray(files)) {
-        // Handle case where files is an array
-        for (const file of files) {
-          console.log("[MVSEP] File object keys:", Object.keys(file));
-          // Try different possible field names for the file info
-          // MVSEP uses "type" for stem name (e.g., "Bass", "Drums", "Vocals")
-          const name = (file.type || file.name || file.filename || file.stem || file.title || "").toLowerCase();
-          const url = file.url || file.download_url || file.link || file.path || "";
-
-          console.log("[MVSEP] Processing file:", { name, url: url ? url.substring(0, 50) + "..." : "empty" });
-
-          if (name.includes("drum")) stems.drums = url;
-          else if (name.includes("bass")) stems.bass = url;
-          else if (name.includes("guitar")) stems.guitar = url;
-          else if (name.includes("piano")) stems.piano = url;
-          else if (name.includes("vocal")) stems.vocals = url;
-          else if (name.includes("other")) stems.other = url;
-        }
-      }
-
-      // Convert MVSEP URLs to proxied URLs to avoid CORS issues
-      const proxiedStems = {
-        drums: stems.drums ? `/api/proxy-audio?url=${encodeURIComponent(stems.drums)}` : "",
-        bass: stems.bass ? `/api/proxy-audio?url=${encodeURIComponent(stems.bass)}` : "",
-        guitar: stems.guitar ? `/api/proxy-audio?url=${encodeURIComponent(stems.guitar)}` : "",
-        piano: stems.piano ? `/api/proxy-audio?url=${encodeURIComponent(stems.piano)}` : "",
-        vocals: stems.vocals ? `/api/proxy-audio?url=${encodeURIComponent(stems.vocals)}` : "",
-        other: stems.other ? `/api/proxy-audio?url=${encodeURIComponent(stems.other)}` : "",
-      };
-
-      console.log("[MVSEP] Final stems (proxied):", proxiedStems);
-      return proxiedStems;
-    }
-
-    if (data.status === "failed") {
-      throw new Error(data.data?.message || "Separation failed");
-    }
-
-    await new Promise((r) => setTimeout(r, 3000));
-  }
-
-  throw new Error("Separation timeout");
 }

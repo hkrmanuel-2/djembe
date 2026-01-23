@@ -1,6 +1,6 @@
-// Voices API - Suno generation + Replicate Demucs stem separation
+// Voices API - Suno generation + MVSEP stem separation
 // Suno: https://docs.sunoapi.org/
-// Replicate Demucs: https://replicate.com/cjwbw/demucs
+// MVSEP: https://mvsep.com/ (BS Roformer SW model)
 
 const SUNO_API_BASE_URL = "https://api.sunoapi.org";
 
@@ -12,21 +12,61 @@ function getSunoApiKey() {
 }
 
 /**
- * Build a music generation prompt from teacher settings
+ * Build a kid-friendly music generation prompt from teacher settings
+ * Creates educational rhythm tracks suitable for children aged 5-12
  */
 export function buildPrompt(settings) {
-  const parts = [];
+  const genre = settings.genre || "afrobeat";
+  const bpm = settings.bpm || 120;
+  const style = settings.style || "upbeat";
+  const mood = settings.mood || "happy";
+  const customPrompt = settings.custom_prompt || "";
 
-  if (settings.genre) parts.push(settings.genre);
-  if (settings.style) parts.push(settings.style);
-  if (settings.mood) parts.push(`${settings.mood} mood`);
-  if (settings.bpm) parts.push(`at ${settings.bpm} BPM`);
-  if (settings.custom_prompt) parts.push(settings.custom_prompt);
+  // Build the comprehensive kid-friendly prompt
+  const prompt = `Create a kid-friendly, instrumental music track for children aged 5–12 that teaches rhythm through listening and movement.
 
-  // Add instructions for better stem separation
-  parts.push("instrumental, clear mix, separated instruments, loopable");
+STRICT PARAMETERS (must be followed):
+- Genre: ${genre}
+- Tempo: ${bpm} BPM (maintain this exact tempo throughout)
+- Style: ${style}
+- Mood: ${mood}
 
-  return parts.join(", ");
+Instrumentation:
+- Use instruments typical of the ${genre} genre
+- Supporting instruments: light percussion (e.g. shakers, bells, soft claps)
+- No vocals, no lyrics, no chanting
+
+Musical Direction:
+The track should be fun, playful, and educational.
+Use simple, repetitive rhythmic patterns that are easy for children to follow.
+Focus on groove, clarity, and rhythm consistency.
+Incorporate call-and-response style patterns suitable for beginner learners.
+
+Tone & Safety:
+- Child-safe and positive
+- No aggressive, dark, intense, or scary sounds
+- No distortion or harsh frequencies
+- No sudden drops or dramatic transitions
+
+Structure:
+- Clear rhythmic loop
+- Predictable patterns
+- Easy to clap, dance, or move along to
+- Feels joyful, inviting, and culturally respectful
+
+Production Notes:
+- Clean and warm mix
+- Minimal layers (do not overcrowd)
+- Emphasize downbeats and groove
+- Educational and immersive, not cinematic or complex
+${customPrompt ? `\nAdditional teacher notes: ${customPrompt}` : ""}
+
+IMPORTANT:
+Maintain a steady tempo of exactly ${bpm} BPM.
+Ensure the musical style and rhythm clearly match the selected genre: ${genre}.
+Create loopable, instrumental content with clear stem separation.`;
+
+  return prompt;
 }
 
 /**
@@ -148,13 +188,18 @@ async function pollForTrackCompletion(taskId, apiKey, maxAttempts = 60) {
 }
 
 /**
- * Separate stems using Replicate Demucs via our API route
+ * Separate stems using MVSEP via our API routes
+ * Uses two-step process to avoid Vercel timeout:
+ * 1. POST /api/separate - starts the job, returns hash
+ * 2. GET /api/separate-status?hash=... - polls until done
  */
-export async function separateStems(audioUrl) {
+export async function separateStems(audioUrl, onProgress = () => {}) {
   try {
-    console.log("[VoicesAPI] Separating stems for:", audioUrl);
+    console.log("[VoicesAPI] Starting stem separation for:", audioUrl);
+    onProgress("Starting separation...");
 
-    const response = await fetch("/api/separate", {
+    // Step 1: Start the separation job
+    const startResponse = await fetch("/api/separate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -162,25 +207,61 @@ export async function separateStems(audioUrl) {
       body: JSON.stringify({ audioUrl }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Separation failed: ${response.status}`);
+    if (!startResponse.ok) {
+      const errorData = await startResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to start separation: ${startResponse.status}`);
     }
 
-    const data = await response.json();
+    const startData = await startResponse.json();
+    console.log("[VoicesAPI] Separation started:", startData);
 
-    if (!data.success) {
-      throw new Error(data.error || "Stem separation failed");
+    if (!startData.success) {
+      throw new Error(startData.error || "Failed to start separation");
     }
 
-    // Map 6 stems to our 5 voice categories
-    const mappedStems = mapStemsToCategories(data.stems);
+    const hash = startData.hash;
+    if (!hash) {
+      throw new Error("No job hash received");
+    }
 
-    return {
-      success: true,
-      stems: mappedStems,
-      rawStems: data.stems,
-    };
+    // Step 2: Poll for completion
+    onProgress("Processing audio (this may take 1-3 minutes)...");
+    const maxAttempts = 120; // 120 * 3s = 6 minutes max
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await wait(3000); // Wait 3 seconds between polls
+
+      const statusResponse = await fetch(`/api/separate-status?hash=${hash}`);
+
+      if (!statusResponse.ok) {
+        console.warn("[VoicesAPI] Status check failed, retrying...");
+        continue;
+      }
+
+      const statusData = await statusResponse.json();
+      console.log("[VoicesAPI] Status:", statusData.status);
+
+      if (statusData.status === "done" && statusData.stems) {
+        // Success! Map stems to our categories
+        const mappedStems = mapStemsToCategories(statusData.stems);
+
+        return {
+          success: true,
+          stems: mappedStems,
+          rawStems: statusData.stems,
+        };
+      }
+
+      if (statusData.status === "failed") {
+        throw new Error(statusData.error || "Separation failed");
+      }
+
+      // Still processing - update progress
+      const progress = Math.min(95, Math.round((attempt / maxAttempts) * 100));
+      onProgress(`Processing audio... ${progress}%`);
+    }
+
+    throw new Error("Separation timeout - please try again");
   } catch (error) {
     console.error("[VoicesAPI] Stem separation error:", error);
     return { success: false, error: error.message };
@@ -229,9 +310,11 @@ export async function generateAndSeparateStems(settings, onProgress = () => {}) 
       return { success: false, error: "No audio URL received from generation" };
     }
 
-    // Stage 2: Separate stems with Demucs
+    // Stage 2: Separate stems with MVSEP
     onProgress("separating", "Separating instruments with AI...");
-    const separationResult = await separateStems(trackResult.audioUrl);
+    const separationResult = await separateStems(trackResult.audioUrl, (msg) => {
+      onProgress("separating", msg);
+    });
 
     if (!separationResult.success) {
       return { success: false, error: separationResult.error };

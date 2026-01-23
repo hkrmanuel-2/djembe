@@ -689,15 +689,18 @@ export async function getTeacherFeedback(teacherId) {
 // ============================================
 
 /**
- * Get voice settings for a school
+ * Get voice settings for a school and world
  * Used by both teachers (to edit) and students (to fetch for Suno generation)
+ * @param {string} schoolId - The school ID
+ * @param {string} worldId - The world ID (e.g., "world1", "world2")
  */
-export async function getVoiceSettings(schoolId) {
+export async function getVoiceSettings(schoolId, worldId = "world1") {
   try {
     const { data: settings, error } = await supabase
       .from("voice_settings")
       .select("*")
       .eq("school_id", schoolId)
+      .eq("world_id", worldId)
       .single();
 
     if (error && error.code !== "PGRST116") {
@@ -714,6 +717,7 @@ export async function getVoiceSettings(schoolId) {
           style: "upbeat",
           mood: "happy",
           custom_prompt: null,
+          world_id: worldId,
         },
         error: null,
       };
@@ -727,16 +731,21 @@ export async function getVoiceSettings(schoolId) {
 }
 
 /**
- * Create or update voice settings for a school
+ * Create or update voice settings for a school and world
  * Only teachers can call this
+ * @param {string} schoolId - The school ID
+ * @param {string} teacherId - The teacher ID
+ * @param {object} settings - The voice settings
+ * @param {string} worldId - The world ID (e.g., "world1", "world2")
  */
-export async function updateVoiceSettings(schoolId, teacherId, settings) {
+export async function updateVoiceSettings(schoolId, teacherId, settings, worldId = "world1") {
   try {
-    // Check if settings already exist
+    // Check if settings already exist for this school + world
     const { data: existing } = await supabase
       .from("voice_settings")
       .select("id")
       .eq("school_id", schoolId)
+      .eq("world_id", worldId)
       .single();
 
     let result;
@@ -754,6 +763,7 @@ export async function updateVoiceSettings(schoolId, teacherId, settings) {
           updated_at: new Date().toISOString(),
         })
         .eq("school_id", schoolId)
+        .eq("world_id", worldId)
         .select()
         .single();
 
@@ -767,6 +777,7 @@ export async function updateVoiceSettings(schoolId, teacherId, settings) {
           {
             school_id: schoolId,
             teacher_id: teacherId,
+            world_id: worldId,
             bpm: settings.bpm,
             genre: settings.genre,
             style: settings.style,

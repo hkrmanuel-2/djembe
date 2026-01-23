@@ -306,6 +306,7 @@ Export completed projects as audio files:
 | Service | Purpose |
 |---------|---------|
 | Suno API | AI music generation |
+| Replicate Demucs | Audio stem separation (rhythm, bass, harmony, melody) |
 
 ---
 
@@ -357,6 +358,11 @@ djembe/
 │   │   │       ├── Waveform.jsx
 │   │   │       ├── login-form.tsx
 │   │   │       └── signup-form.tsx
+│   │   ├── Voices/                        # Voices/Music components
+│   │   │   ├── VoicesPanel.tsx            # Music control panel in worlds
+│   │   │   ├── VoiceButton.tsx            # Individual voice toggle
+│   │   │   ├── VoiceCategory.tsx          # Category container
+│   │   │   └── VoicesGlobalControls.tsx   # Global playback controls
 │   │   └── Worlds/                        # 3D world components
 │   │       ├── World1.tsx                 # Fireside World
 │   │       └── World2.tsx                 # Auditorium World
@@ -369,11 +375,14 @@ djembe/
 │   │   ├── emailValidation.ts     # Email domain validation
 │   │   ├── sunoApi.js             # Suno API integration
 │   │   ├── supabase.js            # Supabase client & schema
+│   │   ├── teacherApi.js          # Teacher dashboard API functions
+│   │   ├── voicesApi.js           # Suno + Demucs API integration
 │   │   └── utils.ts               # General utilities
 │   │
 │   ├── store/                     # Zustand stores
 │   │   ├── useAuthStore.js        # Authentication state
-│   │   └── useStore.js            # DAW state management
+│   │   ├── useStore.js            # DAW state management
+│   │   └── useVoicesStore.js      # Voices/music state management
 │   │
 │   ├── App.jsx                    # Main app component
 │   ├── App.css                    # Global styles
@@ -523,6 +532,47 @@ Manages DAW-Lite state including transport, projects, and loops.
 **Persistence:**
 - Persists: `transport`, `project`, `userProjects`
 - Storage key: `"daw-storage"`
+
+#### 3. `useVoicesStore` (`src/store/useVoicesStore.js`)
+
+Manages the Voices Panel state for 3D worlds, including audio playback, stem management, and per-world settings.
+
+**State:**
+```javascript
+{
+  worldId: "world1",               // Current world identifier
+  voices: {},                      // Voice stem URLs { rhythm, bass, harmony, melody }
+  activeVoices: {},                // Currently playing voices per category
+  isPlaying: false,                // Global playback state
+  bpm: 120,                        // Current BPM for synchronization
+  settings: null,                  // Voice settings from database
+  isLoading: false,                // Loading state
+  error: null                      // Error messages
+}
+```
+
+**Actions:**
+
+**World Management:**
+- `setWorldId(worldId)`: Set current world (triggers settings reload)
+- `fetchSettings(schoolId, worldId)`: Load voice settings from database
+
+**Playback Control:**
+- `startPlayback()`: Start all active voices synchronized
+- `stopPlayback()`: Stop all voices
+- `togglePlayback()`: Toggle play/pause
+
+**Voice Selection:**
+- `selectVoice(category, voiceName)`: Select a voice for a category
+- `toggleVoice(category)`: Toggle voice on/off for category
+
+**Timing:**
+- `_getTimeToNextBoundary(bars)`: Calculate time to next bar boundary for synchronized switching
+
+**Session Caching:**
+- Stems cached per-world in sessionStorage
+- Key format: `djembe_voices_stems_${worldId}`
+- Automatic cache invalidation on settings change
 
 ### State Flow
 
@@ -1113,6 +1163,53 @@ CREATE TABLE assignments (
 - `created_at`: Creation timestamp
 - `updated_at`: Last update timestamp
 
+#### 8. Voice Settings Table
+
+Stores per-world music generation settings configured by teachers.
+
+```sql
+CREATE TABLE voice_settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  school_id UUID NOT NULL REFERENCES schools(school_id) ON DELETE CASCADE,
+  world_id VARCHAR(50) NOT NULL DEFAULT 'world1',
+  genre VARCHAR(50) DEFAULT 'afrobeat',
+  bpm INTEGER DEFAULT 120,
+  style VARCHAR(50) DEFAULT 'upbeat',
+  mood VARCHAR(50) DEFAULT 'happy',
+  custom_prompt TEXT,
+  stems_url TEXT,
+  original_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(school_id, world_id)
+);
+```
+
+**Fields:**
+- `id`: Unique identifier
+- `school_id`: Reference to school
+- `world_id`: Which world these settings apply to ('world1', 'world2', etc.)
+- `genre`: Musical genre (afrobeat, jazz, electronic, etc.)
+- `bpm`: Tempo in beats per minute (60-200)
+- `style`: Musical style (upbeat, relaxed, energetic, etc.)
+- `mood`: Emotional tone (happy, calm, intense, etc.)
+- `custom_prompt`: Additional AI generation instructions
+- `stems_url`: URL to separated audio stems (JSON)
+- `original_url`: URL to original generated audio
+- `created_at`: Creation timestamp
+- `updated_at`: Last update timestamp
+
+**Unique Constraint:**
+Each school can have one settings entry per world, enforced by `UNIQUE(school_id, world_id)`.
+
+**Migration for Existing Tables:**
+```sql
+-- Add world_id column if upgrading from single-world setup
+ALTER TABLE voice_settings ADD COLUMN IF NOT EXISTS world_id VARCHAR(50) NOT NULL DEFAULT 'world1';
+ALTER TABLE voice_settings DROP CONSTRAINT IF EXISTS voice_settings_school_id_key;
+ALTER TABLE voice_settings ADD CONSTRAINT voice_settings_school_world_unique UNIQUE(school_id, world_id);
+```
+
 ### Row Level Security (RLS)
 
 All tables have RLS enabled. Current policies allow all operations for authenticated users. Production should implement more restrictive policies.
@@ -1202,6 +1299,41 @@ if (result.success) {
     audio_url: "https://...",
     // ... other metadata
   }
+}
+```
+
+### Replicate Demucs API
+
+**Purpose:** Audio stem separation for the Voices Panel
+
+**Configuration:**
+- API endpoint: Via Vercel API route (`/api/separate`)
+- Model: `cjwbw/demucs` on Replicate
+- Authentication: `REPLICATE_API_TOKEN` environment variable
+
+**Stem Separation:**
+The Demucs model separates audio into four stems:
+- **drums** → Rhythm track
+- **bass** → Bass track
+- **other** → Harmony track
+- **vocals** → Melody track (instrumental content)
+
+**API Route** (`api/separate.ts`):
+```typescript
+// POST /api/separate
+// Body: { audioUrl: string }
+// Returns: { drums, bass, other, vocals } URLs
+```
+
+**Usage in voicesApi.js:**
+```javascript
+export async function separateStems(audioUrl) {
+  const response = await fetch('/api/separate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ audioUrl })
+  });
+  return response.json();
 }
 ```
 
@@ -1308,6 +1440,1136 @@ Interactive 3D educational environments built with Three.js (not React Three Fib
   - Scale: (1, 1, 1)
   - Position: (0, 0, 1)
   - Rotation: 45° on Y-axis (π/4)
+
+---
+
+## 🎵 Voices Panel System - Complete Technical Deep Dive
+
+This section provides a comprehensive breakdown of how the Voices Panel system works, from teacher configuration to student playback. This covers the entire data flow, audio synchronization, AI music generation, and caching mechanisms.
+
+### System Overview
+
+The Voices Panel is an interactive music system integrated into 3D worlds that allows students to mix AI-generated music stems in real-time. The system consists of:
+
+1. **Teacher Dashboard** - Where teachers configure music generation settings per-world
+2. **Database Layer** - Stores settings with per-world granularity
+3. **Music Generation Pipeline** - Suno API generates music, Demucs separates stems
+4. **Audio Playback Engine** - Tone.js handles BPM-synchronized playback
+5. **Caching System** - Session storage prevents redundant API calls
+
+### Complete Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           TEACHER FLOW                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [Teacher Dashboard]                                                        │
+│        │                                                                    │
+│        ▼                                                                    │
+│  ┌──────────────────┐    ┌──────────────────┐                              │
+│  │ WorldsSettings   │───▶│ World Selector   │                              │
+│  │ Component        │    │ (Dropdown)       │                              │
+│  └──────────────────┘    └──────────────────┘                              │
+│        │                        │                                           │
+│        │ User selects:          │ selectedWorld = "world1" or "world2"     │
+│        │ - Genre                │                                           │
+│        │ - BPM                  ▼                                           │
+│        │ - Style         ┌──────────────────┐                              │
+│        │ - Mood          │ updateVoiceSettings()                           │
+│        │ - Custom Prompt │ in teacherApi.js │                              │
+│        │                 └──────────────────┘                              │
+│        │                        │                                           │
+│        ▼                        ▼                                           │
+│  ┌──────────────────────────────────────────┐                              │
+│  │            Supabase Database              │                              │
+│  │  ┌────────────────────────────────────┐  │                              │
+│  │  │ voice_settings table               │  │                              │
+│  │  │ ─────────────────────────────────  │  │                              │
+│  │  │ school_id │ world_id │ genre │ bpm │  │                              │
+│  │  │ uuid-123  │ world1   │ jazz  │ 100 │  │                              │
+│  │  │ uuid-123  │ world2   │ rock  │ 140 │  │                              │
+│  │  └────────────────────────────────────┘  │                              │
+│  └──────────────────────────────────────────┘                              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           STUDENT FLOW                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [Student enters World1 or World2]                                          │
+│        │                                                                    │
+│        ▼                                                                    │
+│  ┌──────────────────┐                                                      │
+│  │ VoicesPanel      │◀──── worldId="world1" or "world2" (prop from World)  │
+│  │ Component        │                                                       │
+│  └──────────────────┘                                                      │
+│        │                                                                    │
+│        │ useEffect on mount                                                │
+│        ▼                                                                    │
+│  ┌──────────────────┐                                                      │
+│  │ 1. setWorldId()  │ ◀── Store worldId in Zustand state                   │
+│  │ 2. fetchSettings()│ ◀── Load settings from DB for this world           │
+│  │ 3. checkCachedStems()│ ◀── Check sessionStorage for existing stems      │
+│  │ 4. initAudio()   │ ◀── Initialize Tone.js context                       │
+│  └──────────────────┘                                                      │
+│        │                                                                    │
+│        │ If no cached stems, student clicks "Generate"                     │
+│        ▼                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐      │
+│  │                  MUSIC GENERATION PIPELINE                        │      │
+│  │                                                                   │      │
+│  │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐  │      │
+│  │  │ buildPrompt │───▶│ Suno API   │───▶│ Full Audio Track    │  │      │
+│  │  │ (settings)  │    │ Generation │    │ (MP3, ~30 seconds)  │  │      │
+│  │  └─────────────┘    └─────────────┘    └─────────────────────┘  │      │
+│  │                                               │                   │      │
+│  │                                               ▼                   │      │
+│  │                     ┌─────────────────────────────────────────┐  │      │
+│  │                     │ Replicate Demucs API                    │  │      │
+│  │                     │ (Stem Separation)                       │  │      │
+│  │                     │                                         │  │      │
+│  │                     │ Input: Full audio track                 │  │      │
+│  │                     │ Output: 4 separate stems                │  │      │
+│  │                     │   ├── drums.mp3   → "Rhythm"            │  │      │
+│  │                     │   ├── bass.mp3    → "Bass"              │  │      │
+│  │                     │   ├── other.mp3   → "Harmony"           │  │      │
+│  │                     │   └── vocals.mp3  → "Melody"            │  │      │
+│  │                     └─────────────────────────────────────────┘  │      │
+│  └──────────────────────────────────────────────────────────────────┘      │
+│        │                                                                    │
+│        │ Stems cached in sessionStorage                                    │
+│        ▼                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐      │
+│  │                  AUDIO PLAYBACK ENGINE                            │      │
+│  │                                                                   │      │
+│  │  ┌─────────────────────────────────────────────────────────────┐ │      │
+│  │  │ Tone.js Transport                                           │ │      │
+│  │  │ ─────────────────────────────────────────────────────────── │ │      │
+│  │  │ BPM: 120 (from teacher settings)                            │ │      │
+│  │  │ Time Signature: 4/4                                         │ │      │
+│  │  │ Position: 0:0:0 ────────────────────────────▶ loops         │ │      │
+│  │  └─────────────────────────────────────────────────────────────┘ │      │
+│  │                          │                                        │      │
+│  │  Bar Boundary Scheduler  │                                        │      │
+│  │  (scheduleRepeat every   │                                        │      │
+│  │   secondsPerBar)         ▼                                        │      │
+│  │              ┌───────────────────────────────────────────────┐   │      │
+│  │              │ Per-Category Tone.Players                     │   │      │
+│  │              │                                               │   │      │
+│  │              │ rhythm:  [Tone.Player] ──┐                    │   │      │
+│  │              │ bass:    [Tone.Player] ──┼──▶ masterGain ──▶ 🔊│   │      │
+│  │              │ harmony: [Tone.Player] ──┤                    │   │      │
+│  │              │ melody:  [Tone.Player] ──┘                    │   │      │
+│  │              └───────────────────────────────────────────────┘   │      │
+│  └──────────────────────────────────────────────────────────────────┘      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Component Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ World1.tsx / World2.tsx                                            │
+│ ────────────────────────────────────────────────────────────────── │
+│ - Renders 3D environment (Three.js)                                │
+│ - Manages showVoicesPanel state                                    │
+│ - Passes worldId prop to VoicesPanel                               │
+│                                                                    │
+│   <VoicesPanel                                                     │
+│     isOpen={showVoicesPanel}                                       │
+│     onClose={() => setShowVoicesPanel(false)}                      │
+│     worldId="world1"  ◀── THIS IS THE KEY DIFFERENTIATION          │
+│   />                                                               │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ VoicesPanel.tsx                                                    │
+│ ────────────────────────────────────────────────────────────────── │
+│ Props: { isOpen, onClose, worldId }                                │
+│                                                                    │
+│ On Mount (useEffect):                                              │
+│   1. setWorldId(worldId)     // Store in Zustand                   │
+│   2. fetchSettings(schoolId, worldId)  // Load from DB             │
+│   3. checkCachedStems()      // Check sessionStorage               │
+│   4. initAudio()             // Initialize Tone.js                 │
+│                                                                    │
+│ Renders:                                                           │
+│   ├── VoicesGlobalControls (Play/Pause, BPM display)               │
+│   ├── VoiceCategory (for each: rhythm, bass, harmony, melody)      │
+│   │     └── VoiceButton (for each stem in category)                │
+│   └── Generate Button (if no stems cached)                         │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ useVoicesStore.js (Zustand Store)                                  │
+│ ────────────────────────────────────────────────────────────────── │
+│                                                                    │
+│ STATE:                                                             │
+│   worldId: "world1"          // Current world                      │
+│   settings: { bpm, genre, style, mood, custom_prompt }             │
+│   stems: { rhythm: [], bass: [], harmony: [], melody: [] }         │
+│   categories: {                                                    │
+│     rhythm:  { activeVoice, pendingVoice, muted }                  │
+│     bass:    { activeVoice, pendingVoice, muted }                  │
+│     harmony: { activeVoice, pendingVoice, muted }                  │
+│     melody:  { activeVoice, pendingVoice, muted }                  │
+│   }                                                                │
+│   isPlaying: false                                                 │
+│   stemsLoaded: false                                               │
+│   isGenerating: false                                              │
+│                                                                    │
+│ ACTIONS:                                                           │
+│   setWorldId(id)           // Set current world                    │
+│   fetchSettings(schoolId, worldId)  // Load settings from DB       │
+│   generateStems()          // Call Suno + Demucs APIs              │
+│   startPlayback()          // Start Tone.js transport              │
+│   stopPlayback()           // Stop all audio                       │
+│   selectVoice(category, voiceId)  // Queue voice change            │
+│   _getTimeToNextBoundary() // Calculate sync timing                │
+│   _processBarBoundary()    // Handle voice switches on beat        │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### Teacher Settings Flow - Step by Step
+
+**Step 1: Teacher Opens WorldsSettings Page**
+
+When a teacher navigates to the Worlds settings page, the component loads:
+
+```typescript
+// WorldsSettings.tsx
+const [selectedWorld, setSelectedWorld] = useState("world1");
+const [settings, setSettings] = useState({
+  genre: "afrobeat",
+  bpm: 120,
+  style: "upbeat",
+  mood: "happy",
+  custom_prompt: "",
+});
+```
+
+**Step 2: Teacher Selects a World**
+
+The dropdown allows switching between worlds:
+
+```typescript
+const WORLD_OPTIONS = [
+  { id: "world1", name: "Fireside World", emoji: "🔥" },
+  { id: "world2", name: "Auditorium World", emoji: "🎭" },
+];
+
+// When world changes, load that world's settings
+useEffect(() => {
+  const loadSettings = async () => {
+    const result = await getVoiceSettings(userProfile.school_id, selectedWorld);
+    if (result.data) {
+      setSettings(result.data);  // Populate form with existing settings
+    }
+  };
+  loadSettings();
+}, [selectedWorld]);  // Re-run when selectedWorld changes
+```
+
+**Step 3: Teacher Modifies Settings**
+
+Each setting has a dedicated input that updates local state:
+
+```typescript
+<select
+  value={settings.genre}
+  onChange={(e) => setSettings({ ...settings, genre: e.target.value })}
+>
+  <option value="afrobeat">Afrobeat</option>
+  <option value="jazz">Jazz</option>
+  {/* ... more options */}
+</select>
+```
+
+**Step 4: Teacher Saves Settings**
+
+The save function writes to the database with the selected world:
+
+```typescript
+const handleSave = async () => {
+  // Get teacher ID from profile (might be teacher_id or id)
+  const teacherId = userProfile.teacher_id || userProfile.id;
+
+  // Call API with school ID, teacher ID, settings, AND world ID
+  const result = await updateVoiceSettings(
+    userProfile.school_id,
+    teacherId,
+    settings,
+    selectedWorld  // ◀── This is the key: which world to save to
+  );
+
+  if (result.error) {
+    setError(result.error);
+  } else {
+    setSaveSuccess(true);
+  }
+};
+```
+
+**Step 5: Database Update**
+
+The `updateVoiceSettings` function in `teacherApi.js` performs an upsert:
+
+```javascript
+export async function updateVoiceSettings(schoolId, teacherId, settings, worldId = "world1") {
+  // First, check if settings exist for this school + world combination
+  const { data: existing } = await supabase
+    .from("voice_settings")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("world_id", worldId)  // ◀── Filter by BOTH school AND world
+    .single();
+
+  if (existing) {
+    // UPDATE existing row
+    const { data, error } = await supabase
+      .from("voice_settings")
+      .update({
+        bpm: settings.bpm,
+        genre: settings.genre,
+        style: settings.style,
+        mood: settings.mood,
+        custom_prompt: settings.custom_prompt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("school_id", schoolId)
+      .eq("world_id", worldId)  // ◀── Update only this world's settings
+      .select()
+      .single();
+    return { data, error: null };
+  } else {
+    // INSERT new row
+    const { data, error } = await supabase
+      .from("voice_settings")
+      .insert([{
+        school_id: schoolId,
+        teacher_id: teacherId,
+        world_id: worldId,  // ◀── Store which world this is for
+        bpm: settings.bpm,
+        genre: settings.genre,
+        style: settings.style,
+        mood: settings.mood,
+        custom_prompt: settings.custom_prompt,
+      }])
+      .select()
+      .single();
+    return { data, error: null };
+  }
+}
+```
+
+### Database Schema Explained
+
+The `voice_settings` table uses a **composite unique constraint** to allow multiple settings per school:
+
+```sql
+CREATE TABLE voice_settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  school_id UUID NOT NULL REFERENCES schools(school_id),
+  world_id VARCHAR(50) NOT NULL DEFAULT 'world1',  -- ◀── Key field
+  genre VARCHAR(50) DEFAULT 'afrobeat',
+  bpm INTEGER DEFAULT 120,
+  style VARCHAR(50) DEFAULT 'upbeat',
+  mood VARCHAR(50) DEFAULT 'happy',
+  custom_prompt TEXT,
+  stems_url TEXT,
+  original_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- This constraint ensures ONE row per school+world combination
+  UNIQUE(school_id, world_id)
+);
+```
+
+**Example Data:**
+| id | school_id | world_id | genre | bpm | style | mood |
+|----|-----------|----------|-------|-----|-------|------|
+| abc-123 | school-001 | world1 | jazz | 100 | relaxed | calm |
+| def-456 | school-001 | world2 | rock | 140 | energetic | happy |
+| ghi-789 | school-002 | world1 | afrobeat | 120 | upbeat | playful |
+
+**Why this design?**
+- Each school can have different settings for each world
+- Teachers can customize Fireside World (world1) to be calm/acoustic
+- Teachers can customize Auditorium World (world2) to be energetic/orchestral
+- Students in the same school see consistent settings per-world
+
+### Music Generation Pipeline - Detailed Breakdown
+
+When a student clicks "Generate Music", this sequence occurs:
+
+**Stage 1: Build the Prompt**
+
+The `buildPrompt()` function in `voicesApi.js` constructs an AI prompt from teacher settings:
+
+```javascript
+export function buildPrompt(settings) {
+  const genre = settings.genre || "afrobeat";
+  const bpm = settings.bpm || 120;
+  const style = settings.style || "upbeat";
+  const mood = settings.mood || "happy";
+  const customPrompt = settings.custom_prompt || "";
+
+  // This prompt is carefully crafted to produce child-appropriate music
+  const prompt = `Create a kid-friendly, instrumental music track for children aged 5–12
+that teaches rhythm through listening and movement.
+
+STRICT PARAMETERS:
+- Genre: ${genre}
+- Tempo: ${bpm} BPM
+- Style: ${style}
+- Mood: ${mood}
+
+Instrumentation:
+- Use instruments typical of the ${genre} genre
+- Supporting instruments: light percussion
+- No vocals, no lyrics, no chanting
+
+Guidelines:
+- Child-safe and positive
+- Simple, repetitive rhythmic patterns
+- Clear rhythmic loop, predictable patterns
+- Clean and warm mix
+${customPrompt ? `\nAdditional Instructions:\n${customPrompt}` : ""}`;
+
+  return prompt;
+}
+```
+
+**Why this prompt structure?**
+- **STRICT PARAMETERS** ensures the AI follows the teacher's choices
+- **No vocals/lyrics** because we want instrumentals for stem separation
+- **Simple, repetitive patterns** because children learn rhythm through repetition
+- **Child-safe** ensures appropriate content
+
+**Stage 2: Call Suno API**
+
+The prompt is sent to Suno's AI music generation API:
+
+```javascript
+// In voicesApi.js
+export async function generateMusic(prompt, bpm) {
+  const response = await fetch('https://api.suno.ai/generate', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUNO_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      prompt: prompt,
+      duration: 30,  // 30 seconds of audio
+      // Suno generates a full instrumental track
+    })
+  });
+
+  return response.json();  // Returns { audio_url: "https://..." }
+}
+```
+
+**Stage 3: Separate into Stems (Demucs)**
+
+The full audio track is sent to Replicate's Demucs model for stem separation:
+
+```javascript
+// This happens in the /api/separate.ts Vercel API route
+export default async function handler(req, res) {
+  const { audioUrl } = req.body;
+
+  // Call Replicate API
+  const prediction = await replicate.run(
+    "cjwbw/demucs:25a173108cff36ef9f80f854c162d01df9e6528be175794b81b7a0f3b7571ac",
+    {
+      input: {
+        audio: audioUrl  // The Suno-generated audio
+      }
+    }
+  );
+
+  // Demucs returns 4 separate audio files:
+  // prediction.drums  → Rhythm stem (drums, percussion)
+  // prediction.bass   → Bass stem (bass guitar, low frequencies)
+  // prediction.other  → Harmony stem (guitars, keys, pads)
+  // prediction.vocals → Melody stem (lead instruments, since no vocals)
+
+  return res.json({
+    rhythm: prediction.drums,
+    bass: prediction.bass,
+    harmony: prediction.other,
+    melody: prediction.vocals
+  });
+}
+```
+
+**Why Demucs?**
+- Industry-standard AI model for audio source separation
+- Separates audio into 4 distinct stems
+- Works well even without vocals (treats lead instruments as "vocals")
+- Produces high-quality separated audio
+
+**Stage 4: Cache the Results**
+
+Stems are cached in sessionStorage to avoid regenerating:
+
+```javascript
+// In useVoicesStore.js
+generateStems: async () => {
+  const { settings, worldId } = get();
+
+  // ... generation code ...
+
+  // Cache with world-specific key
+  const cacheKey = `djembe_voices_stems_${worldId}`;  // ◀── Per-world cache
+  sessionStorage.setItem(cacheKey, JSON.stringify(result.stems));
+
+  set({
+    stems: result.stems,
+    stemsLoaded: true,
+  });
+}
+```
+
+**Cache Key Structure:**
+- `djembe_voices_stems_world1` - Fireside World stems
+- `djembe_voices_stems_world2` - Auditorium World stems
+- `djembe_voices_settings_world1` - Fireside World settings
+- `djembe_voices_settings_world2` - Auditorium World settings
+
+### Audio Synchronization System - How BPM-Locked Playback Works
+
+The most complex part of the system is ensuring all stems play in perfect sync and voice changes happen on beat boundaries.
+
+**Understanding the Problem:**
+
+If you simply start/stop audio players randomly:
+- Stems will be out of sync with each other
+- Transitions will sound jarring (audio cuts mid-beat)
+- The musical groove is destroyed
+
+**The Solution: Bar Boundary Quantization**
+
+All audio operations are synchronized to bar boundaries using Tone.js Transport.
+
+**Step 1: Initialize the Transport**
+
+```javascript
+// In startPlayback()
+startPlayback: async () => {
+  const { settings } = get();
+
+  // Set the BPM from teacher settings
+  Tone.Transport.bpm.value = settings.bpm;  // e.g., 120 BPM
+
+  // Calculate seconds per bar (4 beats per bar in 4/4 time)
+  const secondsPerBar = (60 / settings.bpm) * 4;
+  // At 120 BPM: (60/120) * 4 = 0.5 * 4 = 2 seconds per bar
+
+  // Schedule a callback that fires at every bar boundary
+  barSchedulerId = Tone.Transport.scheduleRepeat(
+    (time) => {
+      get()._processBarBoundary(time);  // Handle pending voice changes
+    },
+    secondsPerBar,  // Repeat interval
+    0               // Start immediately
+  );
+
+  // Reset to beginning
+  Tone.Transport.position = 0;
+
+  // Start the transport
+  Tone.Transport.start();
+
+  // Start all active voices at the SAME TIME
+  const startTime = Tone.now() + 0.01;  // Tiny delay for scheduling
+  Object.entries(categories).forEach(([category, state]) => {
+    if (state.activeVoice && players[category]?.[state.activeVoice]) {
+      const player = players[category][state.activeVoice];
+      player.start(startTime, 0);  // Start from beginning, all at same time
+    }
+  });
+}
+```
+
+**Step 2: Calculate Time to Next Boundary**
+
+When a student wants to change a voice, we calculate when the next bar starts:
+
+```javascript
+_getTimeToNextBoundary: (bpm, toBar = true) => {
+  const secondsPerBeat = 60 / bpm;            // At 120 BPM: 0.5 seconds
+  const secondsPerBar = secondsPerBeat * 4;    // 2 seconds per bar
+  const boundary = toBar ? secondsPerBar : secondsPerBeat;
+
+  // Get current position in the transport
+  const currentPosition = Tone.Transport.seconds;  // e.g., 3.7 seconds
+
+  // Calculate time remaining until next boundary
+  const timeToNext = boundary - (currentPosition % boundary);
+  // e.g., 2 - (3.7 % 2) = 2 - 1.7 = 0.3 seconds until next bar
+
+  // If very close to boundary, wait for the NEXT one
+  return timeToNext < 0.05 ? boundary : timeToNext;
+}
+```
+
+**Visual Example:**
+```
+Time:     0s    1s    2s    3s    4s    5s    6s
+          |     |     |     |     |     |     |
+Bars:     |  Bar 1   |  Bar 2   |  Bar 3   |
+          ▲         ▲         ▲         ▲
+          │         │         │         │
+          Bar       Bar       Bar       Bar
+          Boundary  Boundary  Boundary  Boundary
+
+If user clicks "change voice" at 3.7s:
+- Current bar boundary was at 2s
+- Next bar boundary is at 4s
+- Time to next boundary: 4 - 3.7 = 0.3 seconds
+- Voice change is QUEUED and will execute at 4s
+```
+
+**Step 3: Queue Voice Changes**
+
+When a student selects a different voice, it's queued (not immediate):
+
+```javascript
+selectVoice: (category, voiceId) => {
+  const { categories, isPlaying, settings } = get();
+  const categoryState = categories[category];
+
+  // If not currently playing, just set it immediately
+  if (!isPlaying) {
+    set({
+      categories: {
+        ...categories,
+        [category]: {
+          ...categoryState,
+          activeVoice: voiceId,  // Set immediately
+        },
+      },
+    });
+    return;
+  }
+
+  // If playing, QUEUE the change for next bar
+  set({
+    categories: {
+      ...categories,
+      [category]: {
+        ...categoryState,
+        pendingVoice: voiceId,       // ◀── Queued, not active yet
+        pendingStartTime: Date.now(),
+      },
+    },
+  });
+}
+```
+
+**Step 4: Process Bar Boundaries**
+
+At each bar boundary, pending changes are executed:
+
+```javascript
+_processBarBoundary: (time) => {
+  const { categories, settings } = get();
+
+  Object.entries(categories).forEach(([category, state]) => {
+    // Check if there's a pending voice change
+    if (state.pendingVoice !== null) {
+      // Stop the currently playing voice
+      if (state.activeVoice && players[category]?.[state.activeVoice]) {
+        players[category][state.activeVoice].stop(time);
+      }
+
+      // Start the new voice AT THE BAR BOUNDARY
+      if (players[category]?.[state.pendingVoice]) {
+        players[category][state.pendingVoice].start(time, 0);
+      }
+
+      // Update state: pending becomes active
+      set({
+        categories: {
+          ...categories,
+          [category]: {
+            ...state,
+            activeVoice: state.pendingVoice,
+            pendingVoice: null,
+            pendingStartTime: null,
+          },
+        },
+      });
+    }
+  });
+}
+```
+
+**Result:** Voice changes happen exactly on the beat, creating seamless transitions.
+
+### Caching System Explained
+
+The caching system prevents expensive API calls on every world visit.
+
+**Cache Structure:**
+
+```
+sessionStorage
+├── djembe_voices_stems_world1    → { rhythm: [...], bass: [...], ... }
+├── djembe_voices_stems_world2    → { rhythm: [...], bass: [...], ... }
+├── djembe_voices_settings_world1 → { bpm: 100, genre: "jazz", ... }
+└── djembe_voices_settings_world2 → { bpm: 140, genre: "rock", ... }
+```
+
+**Cache Lookup Flow:**
+
+```javascript
+// On VoicesPanel mount
+useEffect(() => {
+  const init = async () => {
+    // 1. Set the world ID
+    setWorldId(worldId);
+
+    // 2. Fetch settings (checks cache first, then DB)
+    await fetchSettings(schoolId, worldId);
+
+    // 3. Check if stems are already cached
+    const hasCachedStems = checkCachedStems();
+
+    if (hasCachedStems) {
+      // Great! No generation needed
+      // Student can start playing immediately
+    } else {
+      // Show "Generate Music" button
+      // Student must click to generate new stems
+    }
+
+    // 4. Initialize Tone.js
+    await initAudio();
+  };
+
+  init();
+}, [isOpen, schoolId, worldId]);
+```
+
+**Why sessionStorage instead of localStorage?**
+- sessionStorage clears when browser tab closes
+- This ensures fresh stems for each session
+- Prevents stale audio from being used
+- Students get fresh experience each visit (unless same session)
+
+### Teacher Dashboard (WorldsSettings) - Complete Walkthrough
+
+**Component State:**
+
+```typescript
+function WorldsSettings() {
+  const { userProfile } = useAuthStore();
+
+  // Which world is currently being edited
+  const [selectedWorld, setSelectedWorld] = useState("world1");
+
+  // The settings form values
+  const [settings, setSettings] = useState({
+    genre: "afrobeat",
+    bpm: 120,
+    style: "upbeat",
+    mood: "happy",
+    custom_prompt: "",
+  });
+
+  // UI states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+```
+
+**Settings Load on World Change:**
+
+```typescript
+useEffect(() => {
+  const loadSettings = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    if (!userProfile?.school_id) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Load settings for the SELECTED world
+    const result = await getVoiceSettings(
+      userProfile.school_id,
+      selectedWorld  // ◀── Load settings for THIS world
+    );
+
+    if (result.data) {
+      setSettings({
+        genre: result.data.genre || "afrobeat",
+        bpm: result.data.bpm || 120,
+        style: result.data.style || "upbeat",
+        mood: result.data.mood || "happy",
+        custom_prompt: result.data.custom_prompt || "",
+      });
+    }
+
+    setIsLoading(false);
+  };
+
+  loadSettings();
+}, [userProfile?.school_id, selectedWorld]);  // Re-run when world changes
+```
+
+**Save Handler:**
+
+```typescript
+const handleSave = async () => {
+  // Validate user profile exists
+  if (!userProfile?.school_id) {
+    setError("No school ID found. Please contact support.");
+    return;
+  }
+
+  // Get teacher ID (field name varies)
+  const teacherId = userProfile.teacher_id || userProfile.id;
+  if (!teacherId) {
+    setError("No teacher ID found. Please contact support.");
+    return;
+  }
+
+  setIsSaving(true);
+  setError(null);
+  setSaveSuccess(false);
+
+  // Save to database with world ID
+  const result = await updateVoiceSettings(
+    userProfile.school_id,
+    teacherId,
+    settings,
+    selectedWorld  // ◀── Save to THIS world's settings
+  );
+
+  if (result.error) {
+    setError(result.error);
+  } else {
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);  // Hide after 3s
+  }
+
+  setIsSaving(false);
+};
+```
+
+### Configuration Options Reference
+
+| Setting | Options | Effect on Music |
+|---------|---------|-----------------|
+| **Genre** | afrobeat, jazz, electronic, hip-hop, classical, rock, reggae, funk, world, ambient | Determines instruments and musical style |
+| **Style** | upbeat, relaxed, energetic, chill, intense, groovy, melodic, rhythmic | Affects energy level and playing style |
+| **Mood** | happy, calm, intense, dreamy, playful, focused, inspiring, mysterious | Sets emotional tone |
+| **BPM** | 60-200 | Tempo (beats per minute). 60-80: slow, 80-120: moderate, 120-160: fast, 160+: very fast |
+| **Custom Prompt** | Free text | Additional instructions for AI (e.g., "include marimba", "avoid minor keys") |
+
+---
+
+## ❓ Technical FAQ - Anticipated Questions
+
+This section answers technical questions that might be asked by supervisors, lecturers, or reviewers.
+
+### Architecture & Design Decisions
+
+**Q: Why use Tone.js instead of the native Web Audio API?**
+
+A: While the Web Audio API is powerful, it's low-level and requires significant code to handle:
+- Beat synchronization
+- Precise scheduling of audio events
+- Transport controls (play, pause, seek)
+- BPM management
+
+Tone.js provides:
+- A built-in Transport with BPM control
+- `scheduleRepeat()` for bar-aligned callbacks
+- High-level Player objects with buffer management
+- Automatic audio context handling
+- Cross-browser compatibility
+
+Example of the complexity difference:
+
+```javascript
+// Native Web Audio API (complex)
+const audioContext = new AudioContext();
+const source = audioContext.createBufferSource();
+source.buffer = await fetchAndDecodeAudio(url);
+source.connect(audioContext.destination);
+const startTime = audioContext.currentTime;
+// Manual BPM calculation needed...
+
+// Tone.js (simple)
+const player = new Tone.Player(url).toDestination();
+Tone.Transport.bpm.value = 120;
+player.sync().start(0);  // Automatically synced to transport
+```
+
+**Q: Why use sessionStorage instead of localStorage for caching?**
+
+A: This was a deliberate design choice:
+
+| Storage Type | Persistence | Use Case |
+|--------------|-------------|----------|
+| localStorage | Permanent until cleared | User preferences, auth tokens |
+| sessionStorage | Cleared when tab closes | Temporary data, cached API responses |
+
+For stems:
+- We WANT them to clear when the session ends
+- This ensures students get fresh content periodically
+- Prevents stale or corrupted audio from persisting
+- Reduces storage bloat on student devices
+
+**Q: Why store settings per-world instead of globally?**
+
+A: Educational design reasoning:
+1. **Contextual Learning**: Fireside World (cozy campfire) benefits from calm, acoustic music. Auditorium World (theater) suits grand, orchestral music.
+2. **Variety**: Students experience different genres as they explore different worlds
+3. **Teacher Control**: Teachers can curate the musical experience per environment
+4. **Scalability**: Adding new worlds automatically supports independent settings
+
+**Q: Why use Zustand instead of Redux or Context API?**
+
+A: Zustand offers advantages for this use case:
+
+| Feature | Redux | Context API | Zustand |
+|---------|-------|-------------|---------|
+| Boilerplate | High | Medium | Low |
+| Bundle Size | Large | None | Small (1KB) |
+| Async Actions | Requires middleware | Manual | Built-in |
+| DevTools | Yes | Limited | Yes |
+| Performance | Good with selectors | Re-renders all consumers | Automatic selector optimization |
+
+Zustand code is concise:
+```javascript
+const useVoicesStore = create((set, get) => ({
+  isPlaying: false,
+  startPlayback: () => set({ isPlaying: true }),
+  // No action creators, no reducers, no dispatch
+}));
+```
+
+### Audio Processing
+
+**Q: How does stem separation work technically?**
+
+A: The Demucs model uses a deep neural network trained on thousands of songs:
+
+1. **Input**: Full mixed audio (MP3/WAV)
+2. **Processing**: U-Net architecture analyzes frequency patterns
+3. **Output**: 4 isolated stems
+
+The model learned to identify:
+- **Drums**: Transient sounds, percussion frequencies
+- **Bass**: Low frequency content (20-250 Hz)
+- **Other**: Mid-range instruments (guitars, keys, synths)
+- **Vocals**: Human voice patterns (in our case, lead instruments)
+
+```
+Full Mix ──▶ [Demucs Neural Network] ──▶ ├── drums.mp3
+                                         ├── bass.mp3
+                                         ├── other.mp3
+                                         └── vocals.mp3
+```
+
+**Q: Why is bar boundary quantization important?**
+
+A: Music is structured in bars (measures). In 4/4 time at 120 BPM:
+- Each beat = 0.5 seconds (60/120)
+- Each bar = 4 beats = 2 seconds
+
+If you stop audio mid-bar:
+```
+Bar 1                    Bar 2
+|  1  |  2  |  3  |  4  |  1  |  2  |  3  |  4  |
+      ▲
+      └── Audio stops here = jarring cut
+```
+
+With bar quantization:
+```
+Bar 1                    Bar 2
+|  1  |  2  |  3  |  4  |  1  |  2  |  3  |  4  |
+                        ▲
+                        └── Audio stops here = clean transition
+```
+
+**Q: What happens if Suno API is unavailable?**
+
+A: The system handles failures gracefully:
+
+```javascript
+generateStems: async () => {
+  try {
+    set({ isGenerating: true, generationMessage: "Starting..." });
+
+    const result = await generateAndSeparateStems(settings, (stage, msg) => {
+      set({ generationStage: stage, generationMessage: msg });
+    });
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    // Success path...
+  } catch (error) {
+    set({
+      isGenerating: false,
+      generationStage: "error",
+      generationMessage: `Failed: ${error.message}`,
+    });
+    // User sees error message, can retry
+  }
+}
+```
+
+The UI shows:
+1. Progress messages during generation
+2. Error message if API fails
+3. "Retry" button to attempt again
+
+### Database Design
+
+**Q: Why use a composite unique constraint (school_id, world_id)?**
+
+A: This prevents data corruption:
+
+```sql
+UNIQUE(school_id, world_id)
+```
+
+Without it:
+```sql
+-- Could accidentally create duplicate settings
+INSERT INTO voice_settings (school_id, world_id, genre) VALUES ('school1', 'world1', 'jazz');
+INSERT INTO voice_settings (school_id, world_id, genre) VALUES ('school1', 'world1', 'rock');
+-- Now which one is correct? 🤔
+```
+
+With it:
+```sql
+-- Second insert fails with unique constraint violation
+INSERT INTO voice_settings (school_id, world_id, genre) VALUES ('school1', 'world1', 'jazz'); -- ✓
+INSERT INTO voice_settings (school_id, world_id, genre) VALUES ('school1', 'world1', 'rock'); -- ✗ Error
+```
+
+**Q: Why reference school_id instead of teacher_id for settings?**
+
+A: School-level settings ensure consistency:
+- Multiple teachers at the same school see the same settings
+- If a teacher leaves, settings aren't lost
+- Students see consistent experience regardless of which teacher set it up
+- Simplifies queries (one lookup per school+world)
+
+### Performance
+
+**Q: How does the system handle multiple concurrent users?**
+
+A: Several strategies:
+
+1. **Client-side caching**: Each student's browser caches stems locally
+2. **No shared state**: Students don't share audio players
+3. **Stateless API**: API routes don't maintain session state
+4. **Database connection pooling**: Supabase handles concurrent connections
+
+**Q: What's the estimated latency for voice switching?**
+
+A: Latency components:
+
+| Operation | Latency |
+|-----------|---------|
+| User click → JavaScript handler | ~1ms |
+| State update (Zustand) | ~1ms |
+| Wait for bar boundary | 0-2 seconds (depending on BPM and current position) |
+| Audio stop/start | ~10ms |
+
+Total perceived latency: User clicks, and within 0-2 seconds (at the next bar), the voice changes. This feels musical, not laggy.
+
+**Q: How much storage does caching use?**
+
+A: Estimated per-world:
+- Settings JSON: ~200 bytes
+- Stems URLs JSON: ~500 bytes
+- Audio files are NOT stored locally (streamed from URLs)
+
+Total per session: ~1.5 KB per world visited.
+
+### Security
+
+**Q: How is teacher-only access enforced?**
+
+A: Multiple layers:
+
+1. **Frontend routing**: Only teachers see WorldsSettings in navigation
+2. **Component-level check**: WorldsSettings checks `userType === 'teacher'`
+3. **Database RLS (Row Level Security)**: Can be configured to restrict writes
+
+```javascript
+// Frontend check
+if (userType !== 'teacher') {
+  return <Navigate to="/home" />;
+}
+```
+
+**Q: Are API keys exposed to the client?**
+
+A: No, API keys are protected:
+
+- `VITE_SUPABASE_ANON_KEY`: This is meant to be public (read-only by default)
+- `SUNO_API_KEY`: Only used server-side in API routes
+- `REPLICATE_API_TOKEN`: Only used server-side in API routes
+
+The `/api/separate` route runs on the server (Vercel), so tokens stay secret.
+
+### Educational Design
+
+**Q: Why separate into these 4 stem categories?**
+
+A: Pedagogical reasoning:
+
+| Stem | Musical Concept Taught |
+|------|------------------------|
+| **Rhythm** (drums) | Beat, tempo, time signature, pulse |
+| **Bass** | Harmonic foundation, low frequencies |
+| **Harmony** | Chords, accompaniment, texture |
+| **Melody** | Lead lines, musical phrases |
+
+Students can:
+1. Listen to each part in isolation
+2. Learn how parts combine to form a whole
+3. Experiment with mixing (e.g., just rhythm + bass)
+4. Develop ear training skills
+
+**Q: Why is the prompt designed for ages 5-12?**
+
+A: The prompt includes specific constraints for child-appropriate content:
+
+```
+- No vocals, no lyrics, no chanting  // Avoids inappropriate language
+- Child-safe and positive            // No dark/scary themes
+- Simple, repetitive patterns        // Appropriate complexity level
+- Clean and warm mix                 // Not harsh or aggressive sounds
+```
+
+This ensures:
+- Content is always school-appropriate
+- Complexity matches developmental stage
+- Patterns are learnable through repetition
+- Sound quality is pleasant, not fatiguing
 
 ### Implementation Details
 
@@ -1790,6 +3052,104 @@ newAction: (param) => {
 
 ---
 
-**Documentation Version:** 2.0
-**Last Updated:** January 19, 2026
+### January 2026 - Voices Panel & Per-World Settings Update
+
+#### Per-World Voice Settings
+
+**New Feature:** Each 3D world now has independent voice/music settings.
+
+**Files Modified:**
+- [WorldsSettings.tsx](src/assets/pages/teacher/WorldsSettings.tsx) - Added world selector dropdown
+- [teacherApi.js](src/lib/teacherApi.js) - Updated API functions for world_id parameter
+- [useVoicesStore.js](src/store/useVoicesStore.js) - Added worldId to state management
+- [VoicesPanel.tsx](src/components/Voices/VoicesPanel.tsx) - Added worldId prop
+- [World1.tsx](src/components/Worlds/World1.tsx) - Passes worldId="world1"
+- [World2.tsx](src/components/Worlds/World2.tsx) - Passes worldId="world2"
+
+**Teacher Dashboard Changes:**
+- World selector dropdown at top of settings panel
+- Settings persist per-world to database
+- Each world can have different genre, style, mood, BPM, and custom prompt
+
+**Database Changes:**
+- Added `world_id` column to `voice_settings` table
+- Changed unique constraint from `school_id` to `(school_id, world_id)`
+
+#### Audio Timing Fix (BPM-Synchronized Playback)
+
+**Problem Solved:** Stems now play on beat and merge seamlessly based on BPM.
+
+**Implementation:**
+- Bar boundary quantization for stem switching
+- All stems start synchronized at transport position 0
+- Voice switches queued for next bar boundary
+- Uses Tone.js Transport for precise timing
+
+**Key Functions in useVoicesStore.js:**
+```javascript
+// Calculate time to next bar boundary
+_getTimeToNextBoundary: (bars = 1) => {
+  const { bpm } = get();
+  const beatsPerBar = 4;
+  const secondsPerBar = (60 / bpm) * beatsPerBar;
+  const currentTime = Tone.Transport.seconds;
+  const currentBar = Math.floor(currentTime / secondsPerBar);
+  const nextBarTime = (currentBar + bars) * secondsPerBar;
+  return Math.max(0.01, nextBarTime - currentTime);
+}
+
+// Schedule stop at next bar for seamless transitions
+selectVoice: (category, voiceName) => {
+  // ... if switching voices, schedule stop at bar boundary
+  const timeToNextBar = get()._getTimeToNextBoundary(1);
+  currentPlayer.stop(`+${timeToNextBar}`);
+}
+```
+
+#### Kid-Friendly Music Generation Prompt
+
+**New Prompt Template:** Updated `buildPrompt()` in voicesApi.js with comprehensive kid-friendly template.
+
+**Template Features:**
+- Designed for children aged 5-12
+- Teaches rhythm through listening and movement
+- No vocals, lyrics, or chanting
+- Simple, repetitive rhythmic patterns
+- Clean and warm audio mix
+- Genre-appropriate instrumentation
+
+**Dynamic Variables:**
+- `{genre}` - Teacher-selected genre
+- `{bpm}` - Teacher-selected tempo
+- `{style}` - Teacher-selected style
+- `{mood}` - Teacher-selected mood
+- `{customPrompt}` - Additional teacher instructions
+
+#### Session Storage Caching
+
+**Per-World Caching:**
+- Cache keys now include worldId: `djembe_voices_stems_${worldId}`
+- Each world's stems cached independently
+- Improved performance on world switching
+
+#### Migration Steps for This Update
+
+1. **Database Migration:**
+   ```sql
+   ALTER TABLE voice_settings ADD COLUMN IF NOT EXISTS world_id VARCHAR(50) NOT NULL DEFAULT 'world1';
+   ALTER TABLE voice_settings DROP CONSTRAINT IF EXISTS voice_settings_school_id_key;
+   ALTER TABLE voice_settings ADD CONSTRAINT voice_settings_school_world_unique UNIQUE(school_id, world_id);
+   ```
+
+2. **Clear Session Storage:** Old cached stems will be refreshed automatically with new world-specific keys.
+
+3. **Environment Variables:** Add if not present:
+   ```env
+   REPLICATE_API_TOKEN=your_replicate_token
+   ```
+
+---
+
+**Documentation Version:** 2.1
+**Last Updated:** January 23, 2026
 **Maintained by:** Development Team

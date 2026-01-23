@@ -293,6 +293,7 @@ const World2New: React.FC = () => {
       <VoicesPanel
         isOpen={showVoicesPanel}
         onClose={() => setShowVoicesPanel(false)}
+        worldId="world2"
       />
     </div>
   );
