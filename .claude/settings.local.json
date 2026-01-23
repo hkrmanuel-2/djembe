@@ -8,7 +8,9 @@
       "Bash(timeout:*)",
       "Bash(powershell -Command:*)",
       "Bash(ls:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(git rebase:*)"
     ]
   }
 }

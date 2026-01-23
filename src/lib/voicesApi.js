@@ -1,6 +1,6 @@
-// Voices API - Suno generation + Replicate Demucs stem separation
+// Voices API - Suno generation + MVSEP stem separation
 // Suno: https://docs.sunoapi.org/
-// Replicate Demucs: https://replicate.com/cjwbw/demucs
+// MVSEP: https://mvsep.com/ (BS Roformer SW model)
 
 const SUNO_API_BASE_URL = "https://api.sunoapi.org";
 
@@ -188,13 +188,18 @@ async function pollForTrackCompletion(taskId, apiKey, maxAttempts = 60) {
 }
 
 /**
- * Separate stems using Replicate Demucs via our API route
+ * Separate stems using MVSEP via our API routes
+ * Uses two-step process to avoid Vercel timeout:
+ * 1. POST /api/separate - starts the job, returns hash
+ * 2. GET /api/separate-status?hash=... - polls until done
  */
-export async function separateStems(audioUrl) {
+export async function separateStems(audioUrl, onProgress = () => {}) {
   try {
-    console.log("[VoicesAPI] Separating stems for:", audioUrl);
+    console.log("[VoicesAPI] Starting stem separation for:", audioUrl);
+    onProgress("Starting separation...");
 
-    const response = await fetch("/api/separate", {
+    // Step 1: Start the separation job
+    const startResponse = await fetch("/api/separate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -202,25 +207,61 @@ export async function separateStems(audioUrl) {
       body: JSON.stringify({ audioUrl }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Separation failed: ${response.status}`);
+    if (!startResponse.ok) {
+      const errorData = await startResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to start separation: ${startResponse.status}`);
     }
 
-    const data = await response.json();
+    const startData = await startResponse.json();
+    console.log("[VoicesAPI] Separation started:", startData);
 
-    if (!data.success) {
-      throw new Error(data.error || "Stem separation failed");
+    if (!startData.success) {
+      throw new Error(startData.error || "Failed to start separation");
     }
 
-    // Map 6 stems to our 5 voice categories
-    const mappedStems = mapStemsToCategories(data.stems);
+    const hash = startData.hash;
+    if (!hash) {
+      throw new Error("No job hash received");
+    }
 
-    return {
-      success: true,
-      stems: mappedStems,
-      rawStems: data.stems,
-    };
+    // Step 2: Poll for completion
+    onProgress("Processing audio (this may take 1-3 minutes)...");
+    const maxAttempts = 120; // 120 * 3s = 6 minutes max
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await wait(3000); // Wait 3 seconds between polls
+
+      const statusResponse = await fetch(`/api/separate-status?hash=${hash}`);
+
+      if (!statusResponse.ok) {
+        console.warn("[VoicesAPI] Status check failed, retrying...");
+        continue;
+      }
+
+      const statusData = await statusResponse.json();
+      console.log("[VoicesAPI] Status:", statusData.status);
+
+      if (statusData.status === "done" && statusData.stems) {
+        // Success! Map stems to our categories
+        const mappedStems = mapStemsToCategories(statusData.stems);
+
+        return {
+          success: true,
+          stems: mappedStems,
+          rawStems: statusData.stems,
+        };
+      }
+
+      if (statusData.status === "failed") {
+        throw new Error(statusData.error || "Separation failed");
+      }
+
+      // Still processing - update progress
+      const progress = Math.min(95, Math.round((attempt / maxAttempts) * 100));
+      onProgress(`Processing audio... ${progress}%`);
+    }
+
+    throw new Error("Separation timeout - please try again");
   } catch (error) {
     console.error("[VoicesAPI] Stem separation error:", error);
     return { success: false, error: error.message };
@@ -269,9 +310,11 @@ export async function generateAndSeparateStems(settings, onProgress = () => {}) 
       return { success: false, error: "No audio URL received from generation" };
     }
 
-    // Stage 2: Separate stems with Demucs
+    // Stage 2: Separate stems with MVSEP
     onProgress("separating", "Separating instruments with AI...");
-    const separationResult = await separateStems(trackResult.audioUrl);
+    const separationResult = await separateStems(trackResult.audioUrl, (msg) => {
+      onProgress("separating", msg);
+    });
 
     if (!separationResult.success) {
       return { success: false, error: separationResult.error };
