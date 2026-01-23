@@ -9,6 +9,7 @@ import VoicesGlobalControls from "./VoicesGlobalControls";
 interface VoicesPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  worldId?: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -19,7 +20,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   extras: "Extras",
 };
 
-export default function VoicesPanel({ isOpen, onClose }: VoicesPanelProps) {
+export default function VoicesPanel({ isOpen, onClose, worldId = "world1" }: VoicesPanelProps) {
   const userProfile = useAuthStore((state) => state.userProfile);
   const schoolId = userProfile?.school_id;
 
@@ -34,6 +35,7 @@ export default function VoicesPanel({ isOpen, onClose }: VoicesPanelProps) {
     categories,
     globalMuted,
     timeToNextBar,
+    setWorldId,
     fetchSettings,
     checkCachedStems,
     generateStems,
@@ -57,8 +59,11 @@ export default function VoicesPanel({ isOpen, onClose }: VoicesPanelProps) {
     if (!isOpen || !schoolId) return;
 
     const init = async () => {
-      // Fetch settings
-      await fetchSettings(schoolId);
+      // Set world ID first
+      setWorldId(worldId);
+
+      // Fetch settings for this world
+      await fetchSettings(schoolId, worldId);
 
       // Check for cached stems (if any exist from previous generation)
       checkCachedStems();
@@ -73,7 +78,7 @@ export default function VoicesPanel({ isOpen, onClose }: VoicesPanelProps) {
     return () => {
       cleanup();
     };
-  }, [isOpen, schoolId]);
+  }, [isOpen, schoolId, worldId]);
 
   // Handle play/pause toggle
   const handlePlayToggle = async () => {

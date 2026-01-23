@@ -347,6 +347,7 @@ const World1New: React.FC = () => {
       <VoicesPanel
         isOpen={showVoicesPanel}
         onClose={() => setShowVoicesPanel(false)}
+        worldId="world1"
       />
     </div>
   );

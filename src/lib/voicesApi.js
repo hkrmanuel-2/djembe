@@ -12,21 +12,61 @@ function getSunoApiKey() {
 }
 
 /**
- * Build a music generation prompt from teacher settings
+ * Build a kid-friendly music generation prompt from teacher settings
+ * Creates educational rhythm tracks suitable for children aged 5-12
  */
 export function buildPrompt(settings) {
-  const parts = [];
+  const genre = settings.genre || "afrobeat";
+  const bpm = settings.bpm || 120;
+  const style = settings.style || "upbeat";
+  const mood = settings.mood || "happy";
+  const customPrompt = settings.custom_prompt || "";
 
-  if (settings.genre) parts.push(settings.genre);
-  if (settings.style) parts.push(settings.style);
-  if (settings.mood) parts.push(`${settings.mood} mood`);
-  if (settings.bpm) parts.push(`at ${settings.bpm} BPM`);
-  if (settings.custom_prompt) parts.push(settings.custom_prompt);
+  // Build the comprehensive kid-friendly prompt
+  const prompt = `Create a kid-friendly, instrumental music track for children aged 5–12 that teaches rhythm through listening and movement.
 
-  // Add instructions for better stem separation
-  parts.push("instrumental, clear mix, separated instruments, loopable");
+STRICT PARAMETERS (must be followed):
+- Genre: ${genre}
+- Tempo: ${bpm} BPM (maintain this exact tempo throughout)
+- Style: ${style}
+- Mood: ${mood}
 
-  return parts.join(", ");
+Instrumentation:
+- Use instruments typical of the ${genre} genre
+- Supporting instruments: light percussion (e.g. shakers, bells, soft claps)
+- No vocals, no lyrics, no chanting
+
+Musical Direction:
+The track should be fun, playful, and educational.
+Use simple, repetitive rhythmic patterns that are easy for children to follow.
+Focus on groove, clarity, and rhythm consistency.
+Incorporate call-and-response style patterns suitable for beginner learners.
+
+Tone & Safety:
+- Child-safe and positive
+- No aggressive, dark, intense, or scary sounds
+- No distortion or harsh frequencies
+- No sudden drops or dramatic transitions
+
+Structure:
+- Clear rhythmic loop
+- Predictable patterns
+- Easy to clap, dance, or move along to
+- Feels joyful, inviting, and culturally respectful
+
+Production Notes:
+- Clean and warm mix
+- Minimal layers (do not overcrowd)
+- Emphasize downbeats and groove
+- Educational and immersive, not cinematic or complex
+${customPrompt ? `\nAdditional teacher notes: ${customPrompt}` : ""}
+
+IMPORTANT:
+Maintain a steady tempo of exactly ${bpm} BPM.
+Ensure the musical style and rhythm clearly match the selected genre: ${genre}.
+Create loopable, instrumental content with clear stem separation.`;
+
+  return prompt;
 }
 
 /**
