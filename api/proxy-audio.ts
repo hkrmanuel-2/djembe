@@ -27,9 +27,21 @@ export default async function handler(
     return res.status(400).json({ error: "url parameter is required" });
   }
 
-  // Only allow proxying from mvsep.com for security
-  if (!url.startsWith("https://mvsep.com/")) {
-    return res.status(403).json({ error: "Only mvsep.com URLs are allowed" });
+  // Allow proxying from trusted audio sources
+  const allowedDomains = [
+    "https://mvsep.com/",
+    "https://musicfile.api.box/",
+    "https://cdn.suno.ai/",
+    "https://cdn1.suno.ai/",
+    "https://cdn2.suno.ai/",
+  ];
+
+  const isAllowed = allowedDomains.some(domain => url.startsWith(domain));
+  if (!isAllowed) {
+    return res.status(403).json({
+      error: "URL domain not allowed",
+      allowedDomains
+    });
   }
 
   try {
