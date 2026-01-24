@@ -1854,67 +1854,141 @@ ${customPrompt ? `\nAdditional Instructions:\n${customPrompt}` : ""}`;
 
 **Stage 2: Call Suno API**
 
-The prompt is sent to Suno's AI music generation API:
+The prompt and style tags are sent to Suno's AI music generation API. **Important:** Suno uses `style` tags more heavily than long prompts, so we send both:
 
 ```javascript
-// In voicesApi.js
-export async function generateMusic(prompt, bpm) {
-  const response = await fetch('https://api.suno.ai/generate', {
+// In voicesApi.js - generateTrack()
+export async function generateTrack(settings) {
+  const prompt = buildPrompt(settings);  // Full detailed prompt
+  const genre = settings.genre || "afrobeat";
+  const style = settings.style || "upbeat";
+  const mood = settings.mood || "happy";
+  const bpm = settings.bpm || 120;
+
+  // Build style tags - Suno weights these heavily for genre direction
+  const styleTags = `${genre}, ${style}, ${mood}, ${bpm} bpm, instrumental, kid-friendly, educational, rhythmic, loopable`;
+
+  const response = await fetch('https://api.sunoapi.org/api/v1/generate', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${SUNO_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      prompt: prompt,
-      duration: 30,  // 30 seconds of audio
-      // Suno generates a full instrumental track
+      gpt_description_prompt: prompt,  // Full description for AI context
+      style: styleTags,                 // Style TAGS - Suno uses this for genre!
+      title: `${genre} ${mood} rhythm - ${bpm}bpm`,
+      model: "V4_5ALL",
+      instrumental: true,
+      customMode: true,
+      callBackUrl: "https://example.com/callback"
     })
   });
 
-  return response.json();  // Returns { audio_url: "https://..." }
+  // Returns { taskId: "..." } - must poll for completion
 }
 ```
 
-**Stage 3: Separate into Stems (Demucs)**
+**Why both `gpt_description_prompt` AND `style`?**
+- `style`: Comma-separated tags that Suno uses for genre/mood direction (most important!)
+- `gpt_description_prompt`: Full detailed prompt for additional context
+- Without `style` tags, Suno often defaults to generic music regardless of prompt
 
-The full audio track is sent to Replicate's Demucs model for stem separation:
+**Stage 3: Separate into Stems (MVSEP)**
+
+The full audio track is sent to MVSEP (mvsep.com) for stem separation using their BS Roformer SW model.
+
+**Why two endpoints?** Vercel has a 10-second timeout on the free tier. MVSEP processing takes 1-3 minutes. So we split into:
+1. `POST /api/separate` - Starts the job, returns immediately with a hash
+2. `GET /api/separate-status?hash=...` - Client polls this until done
 
 ```javascript
-// This happens in the /api/separate.ts Vercel API route
+// STEP 1: Start the job (api/separate.ts)
 export default async function handler(req, res) {
   const { audioUrl } = req.body;
 
-  // Call Replicate API
-  const prediction = await replicate.run(
-    "cjwbw/demucs:25a173108cff36ef9f80f854c162d01df9e6528be175794b81b7a0f3b7571ac",
-    {
-      input: {
-        audio: audioUrl  // The Suno-generated audio
-      }
-    }
-  );
+  // Download audio and send to MVSEP
+  const audioBlob = await downloadAudio(audioUrl);
 
-  // Demucs returns 4 separate audio files:
-  // prediction.drums  → Rhythm stem (drums, percussion)
-  // prediction.bass   → Bass stem (bass guitar, low frequencies)
-  // prediction.other  → Harmony stem (guitars, keys, pads)
-  // prediction.vocals → Melody stem (lead instruments, since no vocals)
+  const formData = new FormData();
+  formData.append("api_token", MVSEP_API_KEY);
+  formData.append("audiofile", audioBlob, "track.mp3");
+  formData.append("sep_type", "63");  // BS Roformer SW model
+  formData.append("output_format", "2");  // MP3 128kbps
 
-  return res.json({
-    rhythm: prediction.drums,
-    bass: prediction.bass,
-    harmony: prediction.other,
-    melody: prediction.vocals
+  const response = await fetch("https://mvsep.com/api/separation/create", {
+    method: "POST",
+    body: formData
   });
+
+  const { data } = await response.json();
+
+  // Return hash immediately - client will poll for completion
+  return res.json({
+    success: true,
+    status: "processing",
+    hash: data.hash  // Client uses this to check status
+  });
+}
+
+// STEP 2: Check status (api/separate-status.ts)
+export default async function handler(req, res) {
+  const { hash } = req.query;
+
+  const response = await fetch(`https://mvsep.com/api/separation/get?hash=${hash}`);
+  const data = await response.json();
+
+  if (data.status === "done") {
+    // Extract stem URLs from response
+    const stems = extractStems(data.data.files);
+
+    // Proxy URLs to avoid CORS issues
+    return res.json({
+      success: true,
+      status: "done",
+      stems: {
+        drums: `/api/proxy-audio?url=${encodeURIComponent(stems.drums)}`,
+        bass: `/api/proxy-audio?url=${encodeURIComponent(stems.bass)}`,
+        // ... other stems
+      }
+    });
+  }
+
+  return res.json({ success: true, status: "processing" });
 }
 ```
 
-**Why Demucs?**
-- Industry-standard AI model for audio source separation
-- Separates audio into 4 distinct stems
-- Works well even without vocals (treats lead instruments as "vocals")
-- Produces high-quality separated audio
+**Client-side polling (voicesApi.js):**
+```javascript
+export async function separateStems(audioUrl, onProgress) {
+  // Step 1: Start the job
+  const startResponse = await fetch("/api/separate", {
+    method: "POST",
+    body: JSON.stringify({ audioUrl })
+  });
+  const { hash } = await startResponse.json();
+
+  // Step 2: Poll every 3 seconds until done
+  for (let attempt = 0; attempt < 120; attempt++) {
+    await wait(3000);
+
+    const statusResponse = await fetch(`/api/separate-status?hash=${hash}`);
+    const statusData = await statusResponse.json();
+
+    if (statusData.status === "done") {
+      return { success: true, stems: statusData.stems };
+    }
+
+    onProgress(`Processing audio... ${Math.round((attempt / 120) * 100)}%`);
+  }
+}
+```
+
+**Why MVSEP instead of Demucs?**
+- MVSEP's BS Roformer SW model separates into 6 stems (drums, bass, guitar, piano, vocals, other)
+- Better separation quality for educational content
+- No need to manage Replicate API
+- More stem options for richer mixing
 
 **Stage 4: Cache the Results**
 
@@ -3132,6 +3206,134 @@ selectVoice: (category, voiceName) => {
 - Each world's stems cached independently
 - Improved performance on world switching
 
+---
+
+### January 24, 2026 - Critical Fixes
+
+#### 504 Timeout Fix for Stem Separation
+
+**Problem:** Vercel serverless functions have a 10-second timeout (free tier) or 60-second timeout (Pro). MVSEP stem separation takes 1-3 minutes, causing 504 Gateway Timeout errors.
+
+**Solution:** Split into two endpoints with client-side polling:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    OLD (Broken) Approach                            │
+├─────────────────────────────────────────────────────────────────────┤
+│  Client ──POST /api/separate──▶ Server waits 2 mins ──▶ 504 TIMEOUT │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    NEW (Working) Approach                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  Client ──POST /api/separate──▶ Server returns hash (fast!)         │
+│  Client ──GET /api/separate-status?hash=xxx──▶ "processing"         │
+│  Client ──GET /api/separate-status?hash=xxx──▶ "processing"         │
+│  ... (polls every 3 seconds) ...                                    │
+│  Client ──GET /api/separate-status?hash=xxx──▶ "done" + stems       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Files Changed:**
+- `api/separate.ts` - Now only starts the job and returns hash
+- `api/separate-status.ts` - New endpoint for checking job status
+- `src/lib/voicesApi.js` - Client polls for completion
+
+#### Suno API Genre Fix
+
+**Problem:** Music was always generating as "boom bap" regardless of teacher's genre selection.
+
+**Cause:** Suno API ignores long prompts when using `customMode: true`. It prioritizes the `style` field for genre direction.
+
+**Solution:** Now sending both `style` (tags) and `gpt_description_prompt` (detailed instructions):
+
+```javascript
+// OLD (Broken)
+body: JSON.stringify({
+  prompt: longDetailedPrompt,  // ← Suno ignores this!
+  customMode: true,
+  instrumental: true,
+})
+
+// NEW (Working)
+body: JSON.stringify({
+  style: "jazz, relaxed, calm, 100 bpm, instrumental, kid-friendly",  // ← Suno uses this!
+  gpt_description_prompt: longDetailedPrompt,  // ← Additional context
+  title: "jazz calm rhythm - 100bpm",
+  customMode: true,
+  instrumental: true,
+})
+```
+
+**Result:** Music now correctly matches teacher's genre selection (jazz, rock, afrobeat, etc.)
+
+#### CORS Audio Proxy Fix
+
+**Problem:** DAW loops from external sources (Suno CDN, musicfile.api.box) were blocked by CORS policy, causing "Failed to initialize audio" errors.
+
+**Solution:**
+1. Updated `api/proxy-audio.ts` to allow more domains
+2. Updated `useStore.js` to automatically proxy external URLs
+
+**Allowed Domains:**
+```javascript
+const allowedDomains = [
+  "https://mvsep.com/",
+  "https://musicfile.api.box/",
+  "https://cdn.suno.ai/",
+  "https://cdn1.suno.ai/",
+  "https://cdn2.suno.ai/",
+];
+```
+
+**How It Works:**
+```javascript
+// In useStore.js - loadLoops()
+const proxyUrlIfNeeded = (url) => {
+  const needsProxy = ["musicfile.api.box", "cdn.suno.ai", "mvsep.com"];
+  const urlNeedsProxy = needsProxy.some(domain => url.includes(domain));
+
+  if (urlNeedsProxy) {
+    return `/api/proxy-audio?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+};
+
+// External URL → Proxied through our server → No CORS issues
+```
+
+#### Environment Variables Update
+
+**Required for Production:**
+```env
+# Supabase (required)
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Suno API (required for music generation)
+VITE_SUNO_API_KEY=your_suno_api_key
+
+# MVSEP (required for stem separation - server-side only)
+MVSEP_API_KEY=your_mvsep_api_key
+```
+
+**Important:** Never commit `.env` to git! Add to `.gitignore`:
+```
+.env
+.env.*
+!.env.example
+```
+
+#### Supabase URL Configuration
+
+**Problem:** Email confirmation links were redirecting to `localhost:3000` instead of deployed URL.
+
+**Solution:** Update Supabase Dashboard → Authentication → URL Configuration:
+- **Site URL:** `https://your-app.vercel.app`
+- **Redirect URLs:** Add `https://your-app.vercel.app/**`
+
+---
+
 #### Migration Steps for This Update
 
 1. **Database Migration:**
@@ -3145,11 +3347,13 @@ selectVoice: (category, voiceName) => {
 
 3. **Environment Variables:** Add if not present:
    ```env
-   REPLICATE_API_TOKEN=your_replicate_token
+   MVSEP_API_KEY=your_mvsep_api_key
    ```
+
+4. **Supabase URL Configuration:** Update redirect URLs in Supabase Dashboard.
 
 ---
 
-**Documentation Version:** 2.1
-**Last Updated:** January 23, 2026
+**Documentation Version:** 2.2
+**Last Updated:** January 24, 2026
 **Maintained by:** Development Team
