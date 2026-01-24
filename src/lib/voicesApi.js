@@ -80,7 +80,16 @@ export async function generateTrack(settings) {
 
   try {
     const prompt = buildPrompt(settings);
-    console.log("[VoicesAPI] Generating track with prompt:", prompt);
+    const genre = settings.genre || "afrobeat";
+    const style = settings.style || "upbeat";
+    const mood = settings.mood || "happy";
+    const bpm = settings.bpm || 120;
+
+    // Build style tags for Suno (more effective than long prompts)
+    const styleTags = `${genre}, ${style}, ${mood}, ${bpm} bpm, instrumental, kid-friendly, educational, rhythmic, loopable`;
+
+    console.log("[VoicesAPI] Generating track with style:", styleTags);
+    console.log("[VoicesAPI] Full prompt:", prompt);
 
     const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate`, {
       method: "POST",
@@ -89,7 +98,11 @@ export async function generateTrack(settings) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        prompt: prompt,
+        // Use gpt_description_prompt for the full description
+        gpt_description_prompt: prompt,
+        // Use style/tags for genre direction (Suno weights this heavily)
+        style: styleTags,
+        title: `${genre} ${mood} rhythm - ${bpm}bpm`,
         model: "V4_5ALL",
         instrumental: true,
         customMode: true,
