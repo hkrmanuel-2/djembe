@@ -180,8 +180,8 @@ export default function SignupNew() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
       </div>
 
-      {/* Fun Floating Doodles */}
-      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
+      {/* Fun Floating Doodles - Hidden on small screens */}
+      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden hidden sm:block">
         <div className="absolute top-32 left-20 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite 0.5s' }}>🎶</div>
         <div className="absolute bottom-48 right-24 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1.5s' }}>⭐</div>
         <div className="absolute top-2/3 right-16 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite' }}>✨</div>
@@ -191,29 +191,29 @@ export default function SignupNew() {
       {/* Content Layer */}
       <div className="relative z-10 flex flex-col flex-1">
         {/* Navigation - Matching NavBarDark style */}
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 pt-6">
-          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md py-2 px-3 rounded-full border border-white/10">
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 pt-4 sm:pt-6 px-4 w-full sm:w-auto">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 bg-black/40 backdrop-blur-md py-2 px-2 sm:px-3 rounded-full border border-white/10 max-w-full">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 px-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>🪘</div>
-              <span className="text-lg font-bold text-white">Djembe</span>
+            <Link to="/" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-base sm:text-lg" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>🪘</div>
+              <span className="text-base sm:text-lg font-bold text-white">Djembe</span>
             </Link>
 
-            <div className="w-px h-6 bg-white/20" />
+            <div className="w-px h-5 sm:h-6 bg-white/20" />
 
-            {/* Nav Links */}
+            {/* Nav Links - Hidden on very small screens */}
             <Link
               to="/"
-              className="px-4 py-2 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all"
+              className="hidden xs:block px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all"
             >
               Home
             </Link>
 
-            <div className="w-px h-6 bg-white/20" />
+            <div className="hidden xs:block w-px h-5 sm:h-6 bg-white/20" />
 
             {/* Auth Buttons */}
             <Link to="/login">
-              <button className="px-5 py-2 rounded-full text-sm font-semibold text-black bg-white hover:bg-white/90 transition-all">
+              <button className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-black bg-white hover:bg-white/90 transition-all">
                 Log In
               </button>
             </Link>
@@ -221,8 +221,8 @@ export default function SignupNew() {
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-1 flex-col justify-center items-center px-6 py-24">
-          <div className="w-full mt-[60px] max-w-lg">
+        <div className="flex flex-1 flex-col justify-center items-center px-4 sm:px-6 py-16 sm:py-24">
+          <div className="w-full mt-[60px] sm:mt-[60px] max-w-lg">
             <AnimatePresence mode="wait">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -233,10 +233,10 @@ export default function SignupNew() {
               >
                 {/* Header */}
                 <div className="space-y-2">
-                  <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight text-white">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight text-white">
                     Join <span style={{ color: '#D97746' }}>Djembe</span>
                   </h1>
-                  <p className="text-lg font-light" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <p className="text-base sm:text-lg font-light" style={{ color: 'rgba(255,255,255,0.7)' }}>
                     Create your account and start making music
                   </p>
                 </div>

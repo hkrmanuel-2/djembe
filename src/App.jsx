@@ -17,7 +17,7 @@ import TeacherDashboard from './assets/pages/TeacherDashboard';
 import { LoadingProvider, useLoading } from './contexts/LoadingContext';
 import CubeLoaderDark from './components/ui/cube-loader-dark';
 import { NavBarDark } from './components/ui/tubelight-navbar-dark';
-import { Home as HomeIcon, Music, FileText, Globe, LogOut, User, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen } from 'lucide-react';
+import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen } from 'lucide-react';
 import TeacherAssignments from './assets/pages/teacher/TeacherAssignments';
 import StudentDifficulties from './assets/pages/teacher/StudentDifficulties';
 import StudentProjects from './assets/pages/teacher/StudentProjects';
@@ -85,35 +85,13 @@ function AppContent() {
     <div className="App">
       <LoadingOverlay />
 
-      {/* Dark Tubelight Navigation - Hidden on immersive pages */}
-      {isAuthenticated && !shouldHideNavbar && <NavBarDark items={navItems} />}
-
-      {/* User Profile & Sign Out - Hidden on immersive pages */}
-      {isAuthenticated && userProfile && !shouldHideNavbar && (
-        <div
-          className="fixed top-6 right-6 z-50 flex items-center gap-2 backdrop-blur-md px-4 py-2 rounded-full border"
-          style={{
-            backgroundColor: 'rgba(26, 43, 74, 0.6)',
-            borderColor: 'rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-          }}
-        >
-          <div className="flex items-center gap-2" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-            <User size={16} strokeWidth={2} />
-            <span className="text-sm font-medium" style={{ fontFamily: "'Outfit', sans-serif" }}>
-              {userProfile.first_name}
-            </span>
-          </div>
-          <div className="w-px h-4" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
-          <button
-            onClick={handleSignOut}
-            className="transition-colors hover:opacity-80"
-            style={{ color: '#E6B84D' }}
-            title="Sign Out"
-          >
-            <LogOut size={16} strokeWidth={2} />
-          </button>
-        </div>
+      {/* Dark Tubelight Navigation with integrated profile - Hidden on immersive pages */}
+      {isAuthenticated && !shouldHideNavbar && (
+        <NavBarDark
+          items={navItems}
+          userProfile={userProfile}
+          onSignOut={handleSignOut}
+        />
       )}
 
       {/* Routes */}

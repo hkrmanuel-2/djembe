@@ -180,8 +180,8 @@ export default function AssignmentsNew() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
       </div>
 
-      {/* Fun Floating Doodles */}
-      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
+      {/* Fun Floating Doodles - Hidden on small screens */}
+      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden hidden sm:block">
         <div className="absolute top-28 right-12 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>📝</div>
         <div className="absolute bottom-32 left-20 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✅</div>
         <div className="absolute top-1/2 right-24 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>⭐</div>
@@ -189,7 +189,7 @@ export default function AssignmentsNew() {
       </div>
 
       {/* Content Layer */}
-      <div className="relative z-10 min-h-screen px-6 py-24">
+      <div className="relative z-10 min-h-screen px-4 sm:px-6 pt-24 pb-16 sm:pt-28 sm:pb-24">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -197,18 +197,18 @@ export default function AssignmentsNew() {
           className="max-w-4xl mx-auto"
         >
           {/* Header */}
-          <motion.div variants={itemVariants} className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md border mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}>
-              <Sparkles size={16} style={{ color: '#E6B84D' }} />
-              <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>Student Portal</span>
+          <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-md border mb-3 sm:mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}>
+              <Sparkles size={14} className="sm:w-4 sm:h-4" style={{ color: '#E6B84D' }} />
+              <span className="text-xs sm:text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>Student Portal</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight text-white mb-4">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight text-white mb-3 sm:mb-4">
               My <span style={{ color: '#D97746' }}>Assignments</span>
             </h1>
 
             {userProfile && (
-              <p className="text-xl font-light" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <p className="text-base sm:text-xl font-light" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 Hey {userProfile.first_name}, here's your work
               </p>
             )}
@@ -242,7 +242,7 @@ export default function AssignmentsNew() {
                     className="group"
                   >
                     <div
-                      className={`relative overflow-hidden rounded-2xl backdrop-blur-md p-6 transition-all duration-300 cursor-pointer border ${
+                      className={`relative overflow-hidden rounded-xl sm:rounded-2xl backdrop-blur-md p-4 sm:p-6 transition-all duration-300 cursor-pointer border ${
                         selectedAssignment?.id === assignment.id
                           ? "ring-2 ring-white/30"
                           : ""
@@ -253,36 +253,36 @@ export default function AssignmentsNew() {
                       }}
                       onClick={() => !isSubmitted && setSelectedAssignment(assignment)}
                     >
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex items-start gap-4 flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6">
+                        <div className="flex items-start gap-3 sm:gap-4 flex-1">
                           {/* Status Icon */}
-                          <div className="mt-1 flex-shrink-0">
+                          <div className="mt-0.5 sm:mt-1 flex-shrink-0">
                             {isSubmitted ? (
-                              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)' }}>
-                                <CheckCircle2 className="w-5 h-5" style={{ color: '#4A9B9B' }} />
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)' }}>
+                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#4A9B9B' }} />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-full flex items-center justify-center border" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}>
-                                <Circle className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                                <Circle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
                               </div>
                             )}
                           </div>
 
                           {/* Assignment Details */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold text-white mb-2">
+                            <h3 className="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2">
                               {assignment.title}
                             </h3>
-                            <p className="mb-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                            <p className="text-sm sm:text-base mb-2 sm:mb-3 leading-relaxed line-clamp-2 sm:line-clamp-none" style={{ color: 'rgba(255,255,255,0.6)' }}>
                               {assignment.description}
                             </p>
-                            <div className="flex flex-wrap items-center gap-4 text-sm">
-                              <div className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                                <Calendar size={16} />
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                              <div className="flex items-center gap-1.5 sm:gap-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                <Calendar size={14} className="sm:w-4 sm:h-4" />
                                 <span>Due {formatDate(assignment.due_date)}</span>
                               </div>
                               {isSubmitted && (
-                                <span className="px-3 py-1 rounded-full font-medium text-xs" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>
+                                <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium text-[10px] sm:text-xs" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>
                                   Submitted
                                 </span>
                               )}
@@ -297,14 +297,14 @@ export default function AssignmentsNew() {
                               e.stopPropagation();
                               setSelectedAssignment(assignment);
                             }}
-                            className="flex-shrink-0 px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 group-hover:scale-105"
+                            className="flex-shrink-0 w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 group-hover:scale-105"
                             style={{
                               background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
                               color: 'white',
                             }}
                           >
-                            <Upload size={18} />
-                            <span>Submit</span>
+                            <Upload size={16} className="sm:w-[18px] sm:h-[18px]" />
+                            <span className="text-sm sm:text-base">Submit</span>
                           </button>
                         )}
                       </div>
@@ -333,14 +333,14 @@ export default function AssignmentsNew() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.3 }}
-              className="relative backdrop-blur-md border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              className="relative backdrop-blur-md border rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full overflow-hidden mx-4 sm:mx-0"
               style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              <div className="p-4 sm:p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white">Submit Assignment</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">Submit Assignment</h2>
                   <button
                     onClick={() => !uploading && setSelectedAssignment(null)}
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
@@ -353,16 +353,16 @@ export default function AssignmentsNew() {
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">
                     {selectedAssignment.title}
                   </h3>
-                  <p className="text-sm mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <p className="text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
                     {selectedAssignment.description}
                   </p>
-                  <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    <Calendar size={16} />
+                  <div className="flex items-center gap-2 text-xs sm:text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <Calendar size={14} className="sm:w-4 sm:h-4" />
                     <span>Due {formatDate(selectedAssignment.due_date)}</span>
                   </div>
                 </div>
@@ -378,14 +378,14 @@ export default function AssignmentsNew() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="block border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer hover:bg-white/5"
+                    className="block border-2 border-dashed rounded-lg sm:rounded-xl p-6 sm:p-10 text-center transition-all cursor-pointer hover:bg-white/5"
                     style={{ borderColor: 'rgba(255,255,255,0.2)' }}
                   >
-                    <File className="w-12 h-12 mb-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }} />
-                    <p className="text-white font-medium mb-2">
+                    <File className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    <p className="text-sm sm:text-base text-white font-medium mb-1 sm:mb-2">
                       Click to upload your file
                     </p>
-                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <p className="text-xs sm:text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
                       PDF, Word, Image, or Audio files
                     </p>
                   </label>
