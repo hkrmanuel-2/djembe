@@ -3,10 +3,10 @@ import { supabase } from "./supabase";
 /**
  * Get all students for a teacher with their progress summaries
  * @param {string} schoolId - The school ID to filter students
- * @param {string} [classId] - Optional class ID to filter students
+ * @param {string|string[]|null} classFilter - Single class ID, array of class IDs, or null
  * @returns {Promise<{data: Array, error: string|null}>}
  */
-export async function getStudentsWithProgress(schoolId, classId = null) {
+export async function getStudentsWithProgress(schoolId, classFilter = null) {
   let query = supabase
     .from("students")
     .select(`
@@ -30,9 +30,15 @@ export async function getStudentsWithProgress(schoolId, classId = null) {
     `)
     .eq("school_id", schoolId);
 
-  // Filter by class if provided
-  if (classId) {
-    query = query.eq("class_id", classId);
+  // Filter by class(es) if provided
+  if (classFilter) {
+    if (Array.isArray(classFilter)) {
+      // Filter by multiple class IDs
+      query = query.in("class_id", classFilter);
+    } else {
+      // Filter by single class ID
+      query = query.eq("class_id", classFilter);
+    }
   }
 
   const { data, error } = await query.order("last_name", { ascending: true });
@@ -127,10 +133,10 @@ export async function getStudentDetailedProgress(studentId) {
 /**
  * Get class aggregate statistics
  * @param {string} schoolId - The school ID
- * @param {string} [classId] - Optional class ID to filter
+ * @param {string|string[]|null} classFilter - Single class ID, array of class IDs, or null
  * @returns {Promise<{data: Object|null, error: string|null}>}
  */
-export async function getClassStatistics(schoolId, classId = null) {
+export async function getClassStatistics(schoolId, classFilter = null) {
   let query = supabase
     .from("students")
     .select(`
@@ -146,9 +152,13 @@ export async function getClassStatistics(schoolId, classId = null) {
     `)
     .eq("school_id", schoolId);
 
-  // Filter by class if provided
-  if (classId) {
-    query = query.eq("class_id", classId);
+  // Filter by class(es) if provided
+  if (classFilter) {
+    if (Array.isArray(classFilter)) {
+      query = query.in("class_id", classFilter);
+    } else {
+      query = query.eq("class_id", classFilter);
+    }
   }
 
   const { data: students, error } = await query;

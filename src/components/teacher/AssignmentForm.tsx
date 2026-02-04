@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
-import { createAssignment, updateAssignment } from "@/lib/teacherApi";
-import { X, FileText, Music, Upload, Calendar } from "lucide-react";
+import { createAssignment, updateAssignment, getTeacherClasses } from "@/lib/teacherApi";
+import { X, FileText, Music, Upload, Calendar, Users } from "lucide-react";
 
 type Assignment = {
   id: string;
@@ -10,6 +10,13 @@ type Assignment = {
   description: string;
   due_date: string;
   assignment_type: "upload" | "project";
+  class_id?: string;
+};
+
+type Class = {
+  class_id?: string;
+  id?: string;
+  name: string;
 };
 
 type AssignmentFormProps = {
@@ -21,6 +28,8 @@ type AssignmentFormProps = {
 export default function AssignmentForm({ assignment, onClose, onSuccess }: AssignmentFormProps) {
   const { userProfile } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [formData, setFormData] = useState({
     title: assignment?.title || "",
     description: assignment?.description || "",
@@ -28,7 +37,25 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
       ? new Date(assignment.due_date).toISOString().split("T")[0]
       : "",
     assignment_type: assignment?.assignment_type || "upload",
+    class_id: assignment?.class_id || "",
   });
+
+  // Load teacher's assigned classes
+  useEffect(() => {
+    const loadClasses = async () => {
+      if (!userProfile?.teacher_id) return;
+      setLoadingClasses(true);
+      const { data } = await getTeacherClasses(userProfile.teacher_id);
+      setClasses(data || []);
+      // Auto-select first class if creating new assignment
+      if (!assignment && data?.length > 0 && !formData.class_id) {
+        const firstClassId = data[0].class_id || data[0].id;
+        setFormData(prev => ({ ...prev, class_id: firstClassId }));
+      }
+      setLoadingClasses(false);
+    };
+    loadClasses();
+  }, [userProfile?.teacher_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +152,41 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
               rows={4}
               className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white placeholder-white/40 focus:outline-none focus:border-[#D97746] transition-colors resize-none"
             />
+          </div>
+
+          {/* Class Selection */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-2">
+              <Users size={14} className="inline mr-1" />
+              Class
+            </label>
+            {loadingClasses ? (
+              <div className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white/50">
+                Loading classes...
+              </div>
+            ) : classes.length === 0 ? (
+              <div className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white/50 text-sm">
+                No classes found. Please create a class first.
+              </div>
+            ) : (
+              <select
+                value={formData.class_id}
+                onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                required
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white focus:outline-none focus:border-[#D97746] transition-colors"
+                style={{ colorScheme: "dark" }}
+              >
+                <option value="" disabled>Select a class</option>
+                {classes.map((cls) => {
+                  const classId = cls.class_id || cls.id;
+                  return (
+                    <option key={classId} value={classId}>
+                      {cls.name}
+                    </option>
+                  );
+                })}
+              </select>
+            )}
           </div>
 
           {/* Due Date */}

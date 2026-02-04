@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProgressStore } from "@/store/useProgressStore";
 import { supabase } from "@/lib/supabase";
+import { notifyTeacherSubmission } from "@/lib/notificationApi";
 import CloudShader from "@/components/ui/cloud-shader";
 import { Upload, File, CheckCircle2, Circle, X, Calendar, Sparkles } from "lucide-react";
 
 export default function AssignmentsNew() {
-  const { userProfile, user } = useAuthStore();
+  const { userProfile } = useAuthStore();
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
@@ -15,16 +16,26 @@ export default function AssignmentsNew() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAssignments();
-    loadSubmissions();
-  }, []);
+    if (userProfile?.school_id) {
+      loadAssignments();
+    }
+  }, [userProfile?.school_id]);
+
+  useEffect(() => {
+    if (userProfile?.student_id) {
+      loadSubmissions();
+    }
+  }, [userProfile?.student_id]);
 
   const loadAssignments = async () => {
+    if (!userProfile?.school_id) return;
+
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("assignments")
         .select("*")
+        .eq("school_id", userProfile.school_id)
         .order("due_date", { ascending: true });
 
       if (error) throw error;
@@ -37,13 +48,13 @@ export default function AssignmentsNew() {
   };
 
   const loadSubmissions = async () => {
-    if (!user?.id) return;
+    if (!userProfile?.student_id) return;
 
     try {
       const { data, error } = await supabase
         .from("submissions")
         .select("*")
-        .eq("student_id", user.id);
+        .eq("student_id", userProfile.student_id);
 
       if (error) throw error;
       setSubmissions(data || []);
@@ -65,7 +76,7 @@ export default function AssignmentsNew() {
       setUploading(true);
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${selectedAssignment.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${userProfile?.student_id}/${selectedAssignment.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("assignments")
@@ -78,10 +89,10 @@ export default function AssignmentsNew() {
         .getPublicUrl(fileName);
 
       const { error: insertError } = await supabase
-        .from("assignment_submissions")
+        .from("submissions")
         .upsert({
           assignment_id: selectedAssignment.id,
-          student_id: user.id,
+          student_id: userProfile?.student_id,
           file_url: urlData.publicUrl,
           file_name: file.name,
           submitted_at: new Date().toISOString(),
@@ -90,14 +101,26 @@ export default function AssignmentsNew() {
       if (insertError) throw insertError;
 
       // Track assignment submission for progress
+      const isOnTime = new Date() <= new Date(selectedAssignment.due_date);
       if (userProfile?.student_id) {
-        const isOnTime = new Date() <= new Date(selectedAssignment.due_date);
         useProgressStore.getState().trackAssignmentSubmit(
           userProfile.student_id,
           selectedAssignment.id,
           selectedAssignment.title,
           isOnTime
         );
+      }
+
+      // Notify the teacher about the submission
+      if (selectedAssignment.teacher_id && userProfile) {
+        notifyTeacherSubmission({
+          teacherId: selectedAssignment.teacher_id,
+          studentId: userProfile.student_id,
+          studentName: `${userProfile.first_name} ${userProfile.last_name || ""}`.trim(),
+          assignmentId: selectedAssignment.id,
+          assignmentTitle: selectedAssignment.title,
+          isLate: !isOnTime,
+        }).catch((err) => console.error("Failed to send submission notification:", err));
       }
 
       await loadSubmissions();

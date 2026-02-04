@@ -92,12 +92,12 @@ export default function TeacherDashboard() {
     }
   }, [userProfile?.teacher_id]);
 
-  // Load dashboard data when school or class changes
+  // Load dashboard data when school, class selection, or teacher's classes change
   useEffect(() => {
-    if (userProfile?.school_id) {
+    if (userProfile?.school_id && classes !== undefined) {
       loadDashboardData();
     }
-  }, [userProfile?.school_id, selectedClass]);
+  }, [userProfile?.school_id, selectedClass, classes]);
 
   const loadClasses = async () => {
     if (!userProfile?.teacher_id) return;
@@ -112,7 +112,16 @@ export default function TeacherDashboard() {
 
     setIsLoading(true);
     try {
-      const classFilter = selectedClass || null;
+      // If a specific class is selected, use that
+      // Otherwise, use all of the teacher's assigned class IDs
+      let classFilter: string | string[] | null = null;
+      if (selectedClass) {
+        classFilter = selectedClass;
+      } else if (classes.length > 0) {
+        // Filter by all teacher's assigned classes
+        classFilter = classes.map((c) => c.class_id);
+      }
+
       const [studentsResult, statsResult] = await Promise.all([
         getStudentsWithProgress(userProfile.school_id, classFilter),
         getClassStatistics(userProfile.school_id, classFilter),
@@ -420,9 +429,9 @@ export default function TeacherDashboard() {
                   }}
                 >
                   <option value="" style={{ backgroundColor: "#1A2B4A", color: "white" }}>
-                    All Classes
+                    {classes.length > 1 ? "All My Classes" : "My Class"}
                   </option>
-                  {classes.map((cls) => (
+                  {classes.length > 1 && classes.map((cls) => (
                     <option
                       key={cls.class_id}
                       value={cls.class_id}
@@ -501,9 +510,15 @@ export default function TeacherDashboard() {
 
           {/* Students List */}
           <motion.div variants={itemVariants}>
-            <h2 className="text-2xl font-bold text-white mb-6">All Students</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">
+              {selectedClass
+                ? classes.find((c) => c.class_id === selectedClass)?.name || "Students"
+                : classes.length > 0
+                ? "My Students"
+                : "Students"}
+            </h2>
 
-            {students.length === 0 ? (
+            {classes.length === 0 ? (
               <div
                 className="text-center py-12 rounded-2xl backdrop-blur-md border"
                 style={{
@@ -512,7 +527,19 @@ export default function TeacherDashboard() {
                 }}
               >
                 <Users size={48} className="mx-auto mb-4 text-white/40" />
-                <p className="text-white/60">No students found in your school</p>
+                <p className="text-white/60 mb-2">No classes assigned to you</p>
+                <p className="text-white/40 text-sm">Contact your school administrator to be assigned to a class</p>
+              </div>
+            ) : students.length === 0 ? (
+              <div
+                className="text-center py-12 rounded-2xl backdrop-blur-md border"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  borderColor: "rgba(255,255,255,0.15)",
+                }}
+              >
+                <Users size={48} className="mx-auto mb-4 text-white/40" />
+                <p className="text-white/60">No students found in your class</p>
               </div>
             ) : (
               <div
