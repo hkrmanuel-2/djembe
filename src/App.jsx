@@ -14,35 +14,26 @@ import World2 from './components/Worlds/World2';
 import Assignments from './assets/pages/Assignments';
 import StudentProgress from './assets/pages/StudentProgress';
 import TeacherDashboard from './assets/pages/TeacherDashboard';
-import { LoadingProvider, useLoading } from './contexts/LoadingContext';
-import CubeLoaderDark from './components/ui/cube-loader-dark';
-import { NavBarDark } from './components/ui/tubelight-navbar-dark';
-import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen } from 'lucide-react';
+import { LoadingProvider } from './contexts/LoadingContext';
+import { Sidebar } from './components/ui/Sidebar';
+import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen, FileCheck, GraduationCap } from 'lucide-react';
 import TeacherAssignments from './assets/pages/teacher/TeacherAssignments';
+import TeacherSubmissions from './assets/pages/TeacherSubmissions';
+import Tutorials from './assets/pages/Tutorials';
 import StudentDifficulties from './assets/pages/teacher/StudentDifficulties';
 import StudentProjects from './assets/pages/teacher/StudentProjects';
 import WorldsSettings from './assets/pages/teacher/WorldsSettings';
 import { useSessionTracker } from './hooks/useSessionTracker';
+import OnboardingTour from './components/onboarding/OnboardingTour';
+import { useOnboarding } from './hooks/useOnboarding';
 
-function LoadingOverlay() {
-  const { isLoading } = useLoading();
-
-  if (!isLoading) return null;
-
-  return (
-    <div className="fixed inset-0 z-[9999]">
-      <CubeLoaderDark
-        message="Loading"
-        subMessage="Taking you somewhere awesome!"
-      />
-    </div>
-  );
-}
 
 function AppContent() {
   const { initAuth, isAuthenticated, signOut, userProfile, userType } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasSeenOnboarding, markComplete } = useOnboarding();
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
 
   // Track active session time for students
   useSessionTracker();
@@ -55,6 +46,17 @@ function AppContent() {
     initAuth();
   }, [initAuth]);
 
+  // Check if user should see onboarding
+  useEffect(() => {
+    if (isAuthenticated && userType && !hasSeenOnboarding()) {
+      // Delay to ensure page is fully loaded
+      const timer = setTimeout(() => {
+        setShowOnboarding(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, userType, hasSeenOnboarding]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
@@ -66,8 +68,10 @@ function AppContent() {
       // Teacher navigation
       { name: 'Students', url: '/students', icon: Users },
       { name: 'Assignments', url: '/teacher/assignments', icon: FileText },
+      { name: 'Submissions', url: '/teacher/submissions', icon: FileCheck },
       { name: 'Analytics', url: '/teacher/analytics', icon: TrendingUp },
       { name: 'Projects', url: '/teacher/projects', icon: FolderOpen },
+      { name: 'Tutorials', url: '/tutorials', icon: GraduationCap },
       { name: 'Worlds', url: '/teacher/worlds', icon: Globe },
       { name: 'Settings', url: '/settings', icon: SettingsIcon },
     ] : [
@@ -76,26 +80,42 @@ function AppContent() {
       { name: 'DAW', url: '/daw', icon: Music },
       { name: 'Assignments', url: '/assignments', icon: FileText },
       { name: 'Progress', url: '/progress', icon: Trophy },
+      { name: 'Tutorials', url: '/tutorials', icon: GraduationCap },
       { name: 'Worlds', url: '/world1', icon: Globe },
       { name: 'Settings', url: '/settings', icon: SettingsIcon },
     ]
   ) : [];
 
+  const handleOnboardingComplete = () => {
+    markComplete();
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="App">
-      <LoadingOverlay />
-
-      {/* Dark Tubelight Navigation with integrated profile - Hidden on immersive pages */}
-      {isAuthenticated && !shouldHideNavbar && (
-        <NavBarDark
-          items={navItems}
-          userProfile={userProfile}
-          onSignOut={handleSignOut}
+      {/* Onboarding Tour */}
+      {showOnboarding && userType && (
+        <OnboardingTour
+          userType={userType}
+          onComplete={handleOnboardingComplete}
         />
       )}
 
-      {/* Routes */}
-      <Routes>
+      <div className="flex min-h-screen">
+        {/* Sidebar Navigation - Hidden on immersive pages */}
+        {isAuthenticated && !shouldHideNavbar && (
+          <Sidebar
+            items={navItems}
+            userProfile={userProfile}
+            onSignOut={handleSignOut}
+          />
+        )}
+
+        {/* Main Content */}
+        <main
+          className={`flex-1 min-w-0 ${isAuthenticated && !shouldHideNavbar ? 'ml-[60px] md:ml-[220px]' : ''}`}
+        >
+          <Routes>
         {/* Landing page - public route */}
         <Route path="/" element={
           isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Landing_page />
@@ -145,6 +165,13 @@ function AppContent() {
           </ProtectedRoute>
         } />
 
+        {/* Teacher Submissions Route */}
+        <Route path="/teacher/submissions" element={
+          <ProtectedRoute>
+            <TeacherSubmissions />
+          </ProtectedRoute>
+        } />
+
         {/* Teacher Analytics Route */}
         <Route path="/teacher/analytics" element={
           <ProtectedRoute>
@@ -166,6 +193,13 @@ function AppContent() {
           </ProtectedRoute>
         } />
 
+        {/* Tutorials Route - for both students and teachers */}
+        <Route path="/tutorials" element={
+          <ProtectedRoute>
+            <Tutorials />
+          </ProtectedRoute>
+        } />
+
         {/* Settings Route */}
         <Route path="/settings" element={
           <ProtectedRoute>
@@ -184,7 +218,9 @@ function AppContent() {
             <World2 />
           </ProtectedRoute>
         } />
-      </Routes>
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }

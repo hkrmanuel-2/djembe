@@ -1,10 +1,16 @@
 import { motion } from "framer-motion";
-import CloudShader from "@/components/ui/cloud-shader";
-import { User, Palette, Bell, Shield, Sparkles } from "lucide-react";
+import { User, Palette, Bell, Shield, Sparkles, GraduationCap } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 export default function Settings() {
   const { userType, setUserTypeOverride } = useAuthStore();
+  const { reset: resetOnboarding } = useOnboarding();
+
+  const handleRestartTutorial = () => {
+    resetOnboarding();
+    alert('Tutorial reset! The onboarding tour will show again when you reload the page.');
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -27,38 +33,24 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)', fontFamily: "'Outfit', sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
         }
       `}</style>
 
-      {/* CloudShader Background with warm tint */}
-      <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.2}
-          octaves={5}
-          scale={3}
-          className="w-full h-full opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
-      </div>
-
       {/* Fun Floating Doodles */}
       <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
-        <div className="absolute top-24 right-20 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>⚙️</div>
-        <div className="absolute bottom-40 left-16 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✨</div>
-        <div className="absolute top-1/2 left-12 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>🎵</div>
-        <div className="absolute bottom-32 right-24 text-3xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>🪘</div>
+        <div className="absolute top-24 right-20 text-3xl opacity-10" style={{ animation: 'float 4s ease-in-out infinite' }}>⚙️</div>
+        <div className="absolute bottom-40 left-16 text-4xl opacity-15" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✨</div>
+        <div className="absolute top-1/2 left-12 text-2xl opacity-8" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>🎵</div>
+        <div className="absolute bottom-32 right-24 text-3xl opacity-10" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>🪘</div>
       </div>
 
       {/* Content Layer */}
-      <div className="relative z-10 min-h-screen px-6 py-24">
+      <div className="relative z-10 min-h-screen px-6 py-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -67,16 +59,16 @@ export default function Settings() {
         >
           {/* Header */}
           <motion.div variants={itemVariants} className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md border mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}>
-              <Sparkles size={16} style={{ color: '#E6B84D' }} />
-              <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>Preferences</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-4" style={{ backgroundColor: 'rgba(123, 91, 168, 0.1)', borderColor: '#E8DFFF' }}>
+              <Sparkles size={16} style={{ color: '#D97746' }} />
+              <span className="text-sm font-medium" style={{ color: '#7B5BA8' }}>Preferences</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight text-white mb-4">
-              <span style={{ color: '#D97746' }}>Settings</span>
+            <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight mb-4" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>
+              Settings
             </h1>
 
-            <p className="text-xl font-light" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <p className="text-xl font-light text-gray-500">
               Customize your Djembe experience
             </p>
           </motion.div>
@@ -86,33 +78,30 @@ export default function Settings() {
             {/* Account Settings */}
             <motion.div
               variants={itemVariants}
-              className="rounded-2xl backdrop-blur-md p-6 border transition-all duration-300 hover:bg-white/10"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                borderColor: 'rgba(255,255,255,0.15)',
-              }}
+              className="rounded-2xl p-6 border-2 transition-all duration-300 hover:shadow-lg bg-white shadow-md"
+              style={{ borderColor: '#E8DFFF' }}
             >
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>
                   <User size={24} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-1">Account</h3>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <h3 className="text-xl font-bold mb-1" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Account</h3>
+                  <p className="text-sm mb-4 text-gray-500">
                     Manage your profile and account settings
                   </p>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Display Name</span>
-                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>Edit →</span>
+                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: '#F3EEFF' }}>
+                      <span style={{ color: '#3E2468' }}>Display Name</span>
+                      <span style={{ color: '#9B7DC8' }}>Edit →</span>
                     </div>
-                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Email</span>
-                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>Edit →</span>
+                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: '#F3EEFF' }}>
+                      <span style={{ color: '#3E2468' }}>Email</span>
+                      <span style={{ color: '#9B7DC8' }}>Edit →</span>
                     </div>
                     <div className="flex items-center justify-between py-2">
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Password</span>
-                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>Change →</span>
+                      <span style={{ color: '#3E2468' }}>Password</span>
+                      <span style={{ color: '#9B7DC8' }}>Change →</span>
                     </div>
                   </div>
                 </div>
@@ -122,59 +111,46 @@ export default function Settings() {
             {/* User Role (for testing) */}
             <motion.div
               variants={itemVariants}
-              className="rounded-2xl backdrop-blur-md p-6 border transition-all duration-300"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                borderColor: 'rgba(255,255,255,0.15)',
-              }}
+              className="rounded-2xl p-6 border-2 transition-all duration-300 bg-white shadow-md"
+              style={{ borderColor: '#E8DFFF' }}
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4A9B9B 0%, #1A2B4A 100%)' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #42C9C9 0%, #7B5BA8 100%)' }}>
                   <Shield size={24} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-1">User Role</h3>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <h3 className="text-xl font-bold mb-1" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>User Role</h3>
+                  <p className="text-sm mb-4 text-gray-500">
                     Switch between student and teacher modes (for testing)
                   </p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setUserTypeOverride('student')}
-                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
-                        userType === 'student'
-                          ? 'ring-2 ring-offset-2 ring-offset-transparent'
-                          : 'hover:bg-white/10'
-                      }`}
+                      className="flex-1 py-3 px-4 rounded-xl font-medium transition-all border-2"
                       style={{
-                        backgroundColor: userType === 'student' ? 'rgba(217, 119, 70, 0.3)' : 'rgba(255,255,255,0.08)',
-                        borderColor: userType === 'student' ? '#D97746' : 'rgba(255,255,255,0.15)',
-                        color: userType === 'student' ? '#D97746' : 'rgba(255,255,255,0.7)',
-                        border: '1px solid',
-                        ringColor: '#D97746',
+                        backgroundColor: userType === 'student' ? 'rgba(66, 201, 201, 0.1)' : 'white',
+                        borderColor: userType === 'student' ? '#42C9C9' : '#E8DFFF',
+                        color: userType === 'student' ? '#42C9C9' : '#9B7DC8',
+                        fontFamily: "'Fredoka', sans-serif",
                       }}
                     >
                       Student
                     </button>
                     <button
                       onClick={() => setUserTypeOverride('teacher')}
-                      className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
-                        userType === 'teacher'
-                          ? 'ring-2 ring-offset-2 ring-offset-transparent'
-                          : 'hover:bg-white/10'
-                      }`}
+                      className="flex-1 py-3 px-4 rounded-xl font-medium transition-all border-2"
                       style={{
-                        backgroundColor: userType === 'teacher' ? 'rgba(74, 155, 155, 0.3)' : 'rgba(255,255,255,0.08)',
-                        borderColor: userType === 'teacher' ? '#4A9B9B' : 'rgba(255,255,255,0.15)',
-                        color: userType === 'teacher' ? '#4A9B9B' : 'rgba(255,255,255,0.7)',
-                        border: '1px solid',
-                        ringColor: '#4A9B9B',
+                        backgroundColor: userType === 'teacher' ? 'rgba(217, 119, 70, 0.1)' : 'white',
+                        borderColor: userType === 'teacher' ? '#D97746' : '#E8DFFF',
+                        color: userType === 'teacher' ? '#D97746' : '#9B7DC8',
+                        fontFamily: "'Fredoka', sans-serif",
                       }}
                     >
                       Teacher
                     </button>
                   </div>
-                  <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    Current role: <span style={{ color: userType === 'teacher' ? '#4A9B9B' : '#D97746' }}>{userType}</span>
+                  <p className="text-xs mt-3 text-gray-400">
+                    Current role: <span style={{ color: userType === 'teacher' ? '#D97746' : '#42C9C9' }}>{userType}</span>
                   </p>
                 </div>
               </div>
@@ -183,29 +159,26 @@ export default function Settings() {
             {/* Appearance */}
             <motion.div
               variants={itemVariants}
-              className="rounded-2xl backdrop-blur-md p-6 border transition-all duration-300 hover:bg-white/10"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                borderColor: 'rgba(255,255,255,0.15)',
-              }}
+              className="rounded-2xl p-6 border-2 transition-all duration-300 hover:shadow-lg bg-white shadow-md"
+              style={{ borderColor: '#E8DFFF' }}
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #E6B84D 0%, #D97746 100%)' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F2C94C 0%, #D97746 100%)' }}>
                   <Palette size={24} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-1">Appearance</h3>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <h3 className="text-xl font-bold mb-1" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Appearance</h3>
+                  <p className="text-sm mb-4 text-gray-500">
                     Customize how Djembe looks
                   </p>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Theme</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>Coming Soon</span>
+                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: '#F3EEFF' }}>
+                      <span style={{ color: '#3E2468' }}>Theme</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(66, 201, 201, 0.1)', color: '#42C9C9' }}>Coming Soon</span>
                     </div>
                     <div className="flex items-center justify-between py-2">
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Animations</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>Coming Soon</span>
+                      <span style={{ color: '#3E2468' }}>Animations</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(66, 201, 201, 0.1)', color: '#42C9C9' }}>Coming Soon</span>
                     </div>
                   </div>
                 </div>
@@ -215,31 +188,59 @@ export default function Settings() {
             {/* Notifications */}
             <motion.div
               variants={itemVariants}
-              className="rounded-2xl backdrop-blur-md p-6 border transition-all duration-300 hover:bg-white/10"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                borderColor: 'rgba(255,255,255,0.15)',
-              }}
+              className="rounded-2xl p-6 border-2 transition-all duration-300 hover:shadow-lg bg-white shadow-md"
+              style={{ borderColor: '#E8DFFF' }}
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4A9B9B 0%, #E6B84D 100%)' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #42C9C9 0%, #F2C94C 100%)' }}>
                   <Bell size={24} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-1">Notifications</h3>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <h3 className="text-xl font-bold mb-1" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Notifications</h3>
+                  <p className="text-sm mb-4 text-gray-500">
                     Control how you receive updates
                   </p>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Push Notifications</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>Coming Soon</span>
+                    <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: '#F3EEFF' }}>
+                      <span style={{ color: '#3E2468' }}>Push Notifications</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(66, 201, 201, 0.1)', color: '#42C9C9' }}>Coming Soon</span>
                     </div>
                     <div className="flex items-center justify-between py-2">
-                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Email Updates</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>Coming Soon</span>
+                      <span style={{ color: '#3E2468' }}>Email Updates</span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(66, 201, 201, 0.1)', color: '#42C9C9' }}>Coming Soon</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Tutorial */}
+            <motion.div
+              variants={itemVariants}
+              className="rounded-2xl p-6 border-2 transition-all duration-300 hover:shadow-lg bg-white shadow-md"
+              style={{ borderColor: '#E8DFFF' }}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #E8627A 0%, #D97746 100%)' }}>
+                  <GraduationCap size={24} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-1" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Tutorial</h3>
+                  <p className="text-sm mb-4 text-gray-500">
+                    Restart the onboarding tour to learn about Djembe features
+                  </p>
+                  <button
+                    onClick={handleRestartTutorial}
+                    className="w-full py-3 px-4 rounded-xl font-medium transition-all hover:scale-105 active:scale-95 border-2"
+                    style={{
+                      backgroundColor: 'rgba(217, 119, 70, 0.1)',
+                      borderColor: '#D97746',
+                      color: '#D97746',
+                      fontFamily: "'Fredoka', sans-serif",
+                    }}
+                  >
+                    Restart Tutorial
+                  </button>
                 </div>
               </div>
             </motion.div>

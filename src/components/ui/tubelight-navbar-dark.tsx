@@ -25,7 +25,6 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
 
-  // Determine active tab based on current location
   const activeItem = items.find(item => {
     if (item.url === '/') {
       return location.pathname === '/'
@@ -48,7 +47,6 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  // Close menu when route changes
   useEffect(() => {
     setShowMobileMenu(false)
   }, [location.pathname])
@@ -62,8 +60,14 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
         )}
       >
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between bg-black/40 backdrop-blur-md py-2 px-3 sm:px-4 rounded-full border border-white/10">
-            {/* Logo */}
+          <div
+            className="flex items-center justify-between py-2 px-3 sm:px-4 rounded-full border shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #3E2468 0%, #5B3D8F 100%)',
+              borderColor: 'rgba(155, 125, 200, 0.3)',
+            }}
+          >
+            {/* Colorful Logo */}
             <RouterLink to="/home" className="flex items-center gap-2 flex-shrink-0">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-base"
@@ -71,10 +75,17 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
               >
                 🪘
               </div>
-              <span className="text-base font-bold text-white hidden lg:block">Djembe</span>
+              <span className="text-base font-bold hidden lg:block" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+                <span style={{ color: "#D97746" }}>D</span>
+                <span style={{ color: "#42C9C9" }}>J</span>
+                <span style={{ color: "#F2C94C" }}>E</span>
+                <span style={{ color: "#E8627A" }}>M</span>
+                <span style={{ color: "#9B7DC8" }}>B</span>
+                <span style={{ color: "#4ABA6E" }}>E</span>
+              </span>
             </RouterLink>
 
-            {/* Desktop Navigation - All items as icons, active shows name */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-1">
               {items.map((item) => {
                 const Icon = item.icon
@@ -87,9 +98,14 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
                     className={cn(
                       "relative cursor-pointer text-sm font-medium px-3 py-2 rounded-full transition-all duration-200 flex items-center gap-2",
                       isActive
-                        ? "text-black bg-white shadow-sm"
+                        ? "shadow-sm"
                         : "text-white/70 hover:text-white hover:bg-white/10",
                     )}
+                    style={isActive ? {
+                      background: 'linear-gradient(135deg, #F2C94C 0%, #D97746 100%)',
+                      color: '#3E2468',
+                      fontFamily: "'Fredoka', sans-serif",
+                    } : { fontFamily: "'Outfit', sans-serif" }}
                     title={item.name}
                   >
                     <Icon size={18} strokeWidth={2} />
@@ -99,7 +115,7 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
               })}
             </div>
 
-            {/* Mobile Navigation Icons - Show first 4 */}
+            {/* Mobile Navigation Icons */}
             <div className="flex md:hidden items-center gap-1">
               {items.slice(0, 4).map((item) => {
                 const Icon = item.icon
@@ -111,10 +127,12 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
                     to={item.url}
                     className={cn(
                       "relative cursor-pointer p-2 rounded-full transition-all duration-200",
-                      isActive
-                        ? "text-black bg-white shadow-sm"
-                        : "text-white/70 hover:text-white hover:bg-white/10",
+                      !isActive && "text-white/70 hover:text-white hover:bg-white/10",
                     )}
+                    style={isActive ? {
+                      background: 'linear-gradient(135deg, #F2C94C 0%, #D97746 100%)',
+                      color: '#3E2468',
+                    } : undefined}
                     title={item.name}
                   >
                     <Icon size={18} strokeWidth={2} />
@@ -123,12 +141,11 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
               })}
             </div>
 
-            {/* Right Section: Bell + User Avatar + Menu */}
+            {/* Right Section */}
             {userProfile && (
               <div className="flex items-center gap-2">
                 <NotificationBell />
 
-                {/* User Avatar (desktop) */}
                 <button
                   onClick={onSignOut}
                   className="hidden sm:flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-colors hover:bg-white/10"
@@ -136,14 +153,13 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
                 >
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #E8627A 0%, #D97746 100%)' }}
                   >
                     {userProfile.first_name.charAt(0)}
                   </div>
                   <LogOut size={16} className="text-white/60" />
                 </button>
 
-                {/* Mobile Menu Toggle */}
                 <button
                   onClick={() => setShowMobileMenu(!showMobileMenu)}
                   className="sm:hidden p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -164,24 +180,28 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="fixed top-20 left-4 right-4 z-50 bg-black/90 backdrop-blur-md rounded-2xl border border-white/10 p-4 shadow-2xl"
+              className="fixed top-20 left-4 right-4 z-50 rounded-2xl p-4 shadow-2xl border"
+              style={{
+                background: 'linear-gradient(135deg, #3E2468 0%, #5B3D8F 100%)',
+                borderColor: 'rgba(155, 125, 200, 0.3)',
+              }}
             >
               {/* Profile Info */}
               {userProfile && (
-                <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+                <div className="flex items-center justify-between pb-4 mb-4" style={{ borderBottom: '1px solid rgba(155, 125, 200, 0.2)' }}>
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold text-white"
-                      style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}
+                      style={{ background: 'linear-gradient(135deg, #E8627A 0%, #D97746 100%)' }}
                     >
                       {userProfile.first_name.charAt(0)}
                     </div>
-                    <p className="text-white font-medium">{userProfile.first_name}</p>
+                    <p className="text-white font-medium" style={{ fontFamily: "'Fredoka', sans-serif" }}>{userProfile.first_name}</p>
                   </div>
                   <button
                     onClick={onSignOut}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors hover:bg-white/10"
-                    style={{ color: '#E6B84D' }}
+                    style={{ color: '#F2C94C' }}
                   >
                     <LogOut size={16} />
                     <span>Sign Out</span>
@@ -202,10 +222,13 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
                       onClick={() => setShowMobileMenu(false)}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                        isActive
-                          ? "text-black bg-white"
-                          : "text-white/70 hover:text-white hover:bg-white/10",
+                        !isActive && "text-white/70 hover:text-white hover:bg-white/10",
                       )}
+                      style={isActive ? {
+                        background: 'linear-gradient(135deg, #F2C94C 0%, #D97746 100%)',
+                        color: '#3E2468',
+                        fontFamily: "'Fredoka', sans-serif",
+                      } : undefined}
                     >
                       <Icon size={20} strokeWidth={2} />
                       <span className="font-medium">{item.name}</span>
@@ -220,7 +243,8 @@ export function NavBarDark({ items, className, userProfile, onSignOut }: NavBarP
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/50"
+              className="fixed inset-0 z-40"
+              style={{ backgroundColor: 'rgba(62, 36, 104, 0.5)' }}
               onClick={() => setShowMobileMenu(false)}
             />
           </>

@@ -4,7 +4,6 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useProgressStore } from "@/store/useProgressStore";
 import { supabase } from "@/lib/supabase";
 import { notifyTeacherSubmission } from "@/lib/notificationApi";
-import CloudShader from "@/components/ui/cloud-shader";
 import { Upload, File, CheckCircle2, Circle, X, Calendar, Sparkles } from "lucide-react";
 
 export default function AssignmentsNew() {
@@ -75,25 +74,38 @@ export default function AssignmentsNew() {
     try {
       setUploading(true);
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userProfile?.student_id}/${selectedAssignment.id}/${Date.now()}.${fileExt}`;
+      // Validate file before upload
+      const { validateFile } = await import("@/lib/cloudinaryApi");
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        alert(`Invalid file:\n${validation.errors.join("\n")}`);
+        setUploading(false);
+        return;
+      }
 
-      const { error: uploadError } = await supabase.storage
-        .from("assignments")
-        .upload(fileName, file);
+      // Upload to Cloudinary with progress tracking
+      const { uploadAssignmentSubmission } = await import("@/lib/cloudinaryApi");
+      const uploadResult = await uploadAssignmentSubmission(
+        file,
+        userProfile?.student_id,
+        selectedAssignment.id,
+        (progress) => {
+          console.log(`Upload progress: ${progress}%`);
+          // Could set upload progress state here for UI feedback
+        }
+      );
 
-      if (uploadError) throw uploadError;
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || "Upload failed");
+      }
 
-      const { data: urlData } = supabase.storage
-        .from("assignments")
-        .getPublicUrl(fileName);
-
+      // Save submission to database with Cloudinary URL
       const { error: insertError } = await supabase
         .from("submissions")
         .upsert({
           assignment_id: selectedAssignment.id,
           student_id: userProfile?.student_id,
-          file_url: urlData.publicUrl,
+          file_url: uploadResult.data.secure_url,
           file_name: file.name,
           submitted_at: new Date().toISOString(),
         });
@@ -125,9 +137,10 @@ export default function AssignmentsNew() {
 
       await loadSubmissions();
       setSelectedAssignment(null);
+      alert("Assignment submitted successfully!");
     } catch (error) {
       console.error("Error submitting assignment:", error);
-      alert("Failed to submit assignment. Please try again.");
+      alert(`Failed to submit assignment: ${error.message || "Please try again."}`);
     } finally {
       setUploading(false);
     }
@@ -145,15 +158,20 @@ export default function AssignmentsNew() {
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-        <div className="absolute inset-0 z-0">
-          <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        </div>
-        <div className="relative z-10 flex items-center justify-center min-h-screen">
+      <div
+        className="flex w-full flex-col h-screen relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)',
+          fontFamily: "'Outfit', sans-serif",
+        }}
+      >
+        <div className="relative z-10 flex items-center justify-center h-screen">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-white/20 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#D97746' }}></div>
-            <p className="text-lg" style={{ color: 'rgba(255,255,255,0.7)' }}>Loading assignments...</p>
+            <div
+              className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4"
+              style={{ borderColor: '#E8DFFF', borderTopColor: '#D97746' }}
+            ></div>
+            <p className="text-lg text-gray-500">Loading assignments...</p>
           </div>
         </div>
       </div>
@@ -181,162 +199,304 @@ export default function AssignmentsNew() {
   } as const;
 
   return (
-    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div
+      className="flex w-full flex-col min-h-screen relative overflow-x-hidden"
+      style={{
+        background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)',
+        fontFamily: "'Outfit', sans-serif",
+      }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
+          50% { transform: translateY(-15px); }
+        }
+        @keyframes floatSlow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(5deg); }
         }
       `}</style>
 
-      {/* CloudShader Background with warm tint */}
-      <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.3}
-          octaves={5}
-          scale={2.5}
-          className="w-full h-full opacity-40"
+      {/* Gradient blobs */}
+      <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
+        <div
+          className="absolute -top-20 -left-20 w-[400px] h-[400px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(123, 91, 168, 0.12) 0%, transparent 70%)", animation: "float 8s ease-in-out infinite" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
+        <div
+          className="absolute top-[20%] -right-16 w-[350px] h-[350px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(217, 119, 70, 0.1) 0%, transparent 70%)", animation: "floatSlow 10s ease-in-out infinite 2s" }}
+        />
+        <div
+          className="absolute -bottom-10 left-[30%] w-[450px] h-[450px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(66, 201, 201, 0.08) 0%, transparent 70%)", animation: "float 9s ease-in-out infinite 1s" }}
+        />
       </div>
 
-      {/* Fun Floating Doodles - Hidden on small screens */}
+      {/* Floating SVG Musical Elements */}
       <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden hidden sm:block">
-        <div className="absolute top-28 right-12 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>📝</div>
-        <div className="absolute bottom-32 left-20 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✅</div>
-        <div className="absolute top-1/2 right-24 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>⭐</div>
-        <div className="absolute bottom-48 right-1/3 text-3xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>✨</div>
+        {/* Eighth note - top left */}
+        <div className="absolute top-24 left-4 md:left-12" style={{ animation: "float 4s ease-in-out infinite", opacity: 0.2 }}>
+          <svg width="44" height="52" viewBox="0 0 24 30" fill="#E8627A">
+            <path d="M9 3v20a5 5 0 1 1-2-4V3h2z" />
+            <path d="M9 3c0 0 4-1 7 2s4 6 4 6" stroke="#E8627A" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </svg>
+        </div>
+
+        {/* Double beamed notes - lower left */}
+        <div className="absolute top-[60%] left-6 md:left-10" style={{ animation: "floatSlow 5s ease-in-out infinite 1s", opacity: 0.15 }}>
+          <svg width="48" height="48" viewBox="0 0 32 32" fill="#E8627A">
+            <rect x="6" y="2" width="2.5" height="22" rx="1" />
+            <rect x="22" y="6" width="2.5" height="18" rx="1" />
+            <ellipse cx="5" cy="25" rx="4.5" ry="3.5" />
+            <ellipse cx="21" cy="25" rx="4.5" ry="3.5" />
+            <rect x="8" y="2" width="16.5" height="2.5" rx="1" />
+            <rect x="8" y="7" width="16.5" height="2.5" rx="1" />
+          </svg>
+        </div>
+
+        {/* Star - top right */}
+        <div className="absolute top-20 right-8 md:right-16" style={{ animation: "floatSlow 4.5s ease-in-out infinite 0.5s", opacity: 0.2 }}>
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="#F2C94C">
+            <path d="M12 2l2.09 6.26L20.18 9l-5.09 3.74L16.18 19 12 15.27 7.82 19l1.09-6.26L3.82 9l6.09-.74z" />
+          </svg>
+        </div>
+
+        {/* Quarter note - mid right */}
+        <div className="absolute top-[48%] right-4 md:right-10" style={{ animation: "float 5s ease-in-out infinite 2s", opacity: 0.15 }}>
+          <svg width="26" height="42" viewBox="0 0 16 32" fill="#E8627A">
+            <rect x="10" y="0" width="2.5" height="24" rx="1" />
+            <ellipse cx="7" cy="26" rx="5.5" ry="4" />
+          </svg>
+        </div>
+
+        {/* 4-point sparkle */}
+        <div className="absolute top-36 left-[25%]" style={{ animation: "floatSlow 6s ease-in-out infinite 1.5s", opacity: 0.12 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#D97746">
+            <path d="M12 0l1.8 8.2L22 12l-8.2 1.8L12 22l-1.8-8.2L2 12l8.2-1.8z" />
+          </svg>
+        </div>
+
+        {/* Small note - bottom right */}
+        <div className="absolute bottom-28 right-[22%]" style={{ animation: "float 4s ease-in-out infinite 3s", opacity: 0.12 }}>
+          <svg width="32" height="38" viewBox="0 0 24 30" fill="#42C9C9">
+            <path d="M9 3v20a5 5 0 1 1-2-4V3h2z" />
+            <path d="M9 3c0 0 4-1 7 2s4 6 4 6" stroke="#42C9C9" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Decorative gray swirl lines */}
+      <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden hidden md:block">
+        <svg className="absolute left-[8%] top-[45%] w-[200px] opacity-[0.08]" viewBox="0 0 200 120" fill="none">
+          <path d="M10 60 C50 10, 100 10, 140 60 S190 110, 190 60" stroke="#7B5BA8" strokeWidth="3" strokeLinecap="round" />
+          <path d="M10 80 C50 30, 100 30, 140 80 S190 130, 190 80" stroke="#7B5BA8" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+        <svg className="absolute right-[6%] top-[50%] w-[180px] opacity-[0.08]" viewBox="0 0 200 120" fill="none">
+          <path d="M190 60 C150 10, 100 10, 60 60 S10 110, 10 60" stroke="#E8627A" strokeWidth="3" strokeLinecap="round" />
+          <path d="M190 80 C150 30, 100 30, 60 80 S10 130, 10 80" stroke="#E8627A" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* Green checkmark - bottom left */}
+      <div className="absolute bottom-8 left-8 z-[6] hidden md:block">
+        <div
+          className="w-14 h-14 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: '#E8F5E9', boxShadow: '0 4px 16px rgba(76, 175, 80, 0.15)' }}
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="#4CAF50" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
       </div>
 
       {/* Content Layer */}
-      <div className="relative z-10 min-h-screen px-4 sm:px-6 pt-24 pb-16 sm:pt-28 sm:pb-24">
+      <div className="relative z-10 flex flex-col px-4 sm:px-6 pt-6 pb-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="max-w-4xl mx-auto"
+          className="max-w-4xl mx-auto w-full"
         >
           {/* Header */}
-          <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-md border mb-3 sm:mb-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}>
+          <motion.div variants={itemVariants} className="text-center mb-6 sm:mb-8">
+            <div
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 mb-3"
+              style={{ backgroundColor: 'white', borderColor: '#E8DFFF' }}
+            >
               <Sparkles size={14} className="sm:w-4 sm:h-4" style={{ color: '#E6B84D' }} />
-              <span className="text-xs sm:text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>Student Portal</span>
+              <span className="text-xs sm:text-sm font-medium" style={{ color: '#3E2468' }}>Student Portal</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight text-white mb-3 sm:mb-4">
+            <h1
+              className="text-3xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight mb-2"
+              style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+            >
               My <span style={{ color: '#D97746' }}>Assignments</span>
             </h1>
 
             {userProfile && (
-              <p className="text-base sm:text-xl font-light" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <p className="text-base sm:text-lg font-light text-gray-500">
                 Hey {userProfile.first_name}, here's your work
               </p>
             )}
           </motion.div>
 
-          {/* Assignments List */}
-          {assignments.length === 0 ? (
-            <motion.div
-              variants={itemVariants}
-              className="text-center py-20"
+          {/* Assignments area with mascots */}
+          <motion.div variants={itemVariants} className="relative max-w-3xl mx-auto">
+            {/* Pencil - large, overlapping left edge of card */}
+            <img
+              src="/ui assets/pencil.png"
+              alt="Pencil"
+              className="hidden md:block absolute z-20"
+              style={{
+                width: '320px',
+                left: '-140px',
+                top: '-40px',
+                filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.15))",
+                animation: "floatSlow 4s ease-in-out infinite",
+              }}
+            />
+
+            {/* Student mascot - large, overlapping top-right of card */}
+            <img
+              src="/ui assets/student_mascot.png"
+              alt="Student mascot"
+              className="hidden md:block absolute z-20"
+              style={{
+                width: '260px',
+                right: '-80px',
+                top: '-90px',
+                filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.15))",
+              }}
+            />
+
+            {/* Assignments container card */}
+            <div
+              className="relative bg-white p-5 sm:p-8 overflow-y-auto"
+              style={{
+                borderWidth: '3px',
+                borderStyle: 'solid',
+                borderColor: '#D97746',
+                borderRadius: '24px',
+                boxShadow: '0 8px 40px rgba(217, 119, 70, 0.1)',
+                maxHeight: 'calc(100vh - 300px)',
+                minHeight: 'fit-content',
+              }}
             >
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <CheckCircle2 size={40} style={{ color: '#4A9B9B' }} />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">All caught up!</h2>
-              <p style={{ color: 'rgba(255,255,255,0.6)' }}>
-                No assignments right now. Check back later for new work.
-              </p>
-            </motion.div>
-          ) : (
-            <div className="space-y-4">
-              {assignments.map((assignment, index) => {
-                const status = getSubmissionStatus(assignment.id);
-                const isSubmitted = status === "submitted";
-
-                return (
-                  <motion.div
-                    key={assignment.id}
-                    variants={itemVariants}
-                    custom={index}
-                    className="group"
+              {assignments.length === 0 ? (
+                <div className="text-center py-12">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                    style={{ backgroundColor: '#F3EEFF' }}
                   >
-                    <div
-                      className={`relative overflow-hidden rounded-xl sm:rounded-2xl backdrop-blur-md p-4 sm:p-6 transition-all duration-300 cursor-pointer border ${
-                        selectedAssignment?.id === assignment.id
-                          ? "ring-2 ring-white/30"
-                          : ""
-                      }`}
-                      style={{
-                        backgroundColor: isSubmitted ? 'rgba(74, 155, 155, 0.15)' : 'rgba(255,255,255,0.08)',
-                        borderColor: isSubmitted ? 'rgba(74, 155, 155, 0.3)' : 'rgba(255,255,255,0.15)',
-                      }}
-                      onClick={() => !isSubmitted && setSelectedAssignment(assignment)}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6">
-                        <div className="flex items-start gap-3 sm:gap-4 flex-1">
-                          {/* Status Icon */}
-                          <div className="mt-0.5 sm:mt-1 flex-shrink-0">
-                            {isSubmitted ? (
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)' }}>
-                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#4A9B9B' }} />
-                              </div>
-                            ) : (
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' }}>
-                                <Circle className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-                              </div>
-                            )}
-                          </div>
+                    <CheckCircle2 size={32} style={{ color: '#4A9B9B' }} />
+                  </div>
+                  <h2
+                    className="text-xl font-bold mb-2"
+                    style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+                  >
+                    All caught up!
+                  </h2>
+                  <p className="text-gray-500 text-sm">
+                    No assignments right now. Check back later.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {assignments.map((assignment) => {
+                    const status = getSubmissionStatus(assignment.id);
+                    const isSubmitted = status === "submitted";
 
-                          {/* Assignment Details */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2">
-                              {assignment.title}
-                            </h3>
-                            <p className="text-sm sm:text-base mb-2 sm:mb-3 leading-relaxed line-clamp-2 sm:line-clamp-none" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                              {assignment.description}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-                              <div className="flex items-center gap-1.5 sm:gap-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                                <Calendar size={14} className="sm:w-4 sm:h-4" />
-                                <span>Due {formatDate(assignment.due_date)}</span>
-                              </div>
-                              {isSubmitted && (
-                                <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium text-[10px] sm:text-xs" style={{ backgroundColor: 'rgba(74, 155, 155, 0.3)', color: '#4A9B9B' }}>
-                                  Submitted
-                                </span>
-                              )}
-                            </div>
+                    return (
+                      <div
+                        key={assignment.id}
+                        className={`flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 rounded-2xl transition-all duration-200 cursor-pointer hover:shadow-sm ${
+                          selectedAssignment?.id === assignment.id ? "ring-2 ring-[#7B5BA8]/20" : ""
+                        }`}
+                        style={{
+                          backgroundColor: isSubmitted ? '#F0FAFA' : '#F8F5FF',
+                          border: '1.5px solid',
+                          borderColor: isSubmitted ? '#B8E6E6' : '#E8DFFF',
+                        }}
+                        onClick={() => !isSubmitted && setSelectedAssignment(assignment)}
+                      >
+                        {/* Assignment icon - larger like mockup */}
+                        <div
+                          className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center"
+                          style={{
+                            background: isSubmitted
+                              ? 'linear-gradient(135deg, #42C9C9, #5AD5D5)'
+                              : 'linear-gradient(135deg, #7B5BA8, #9B7DC8)',
+                            boxShadow: isSubmitted
+                              ? '0 4px 16px rgba(66, 201, 201, 0.3)'
+                              : '0 4px 16px rgba(123, 91, 168, 0.3)',
+                          }}
+                        >
+                          {isSubmitted ? (
+                            <CheckCircle2 className="w-8 h-8 text-white" />
+                          ) : (
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                              <path d="M9 18V5l12-2v13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              <circle cx="6" cy="18" r="3" fill="white" />
+                              <circle cx="18" cy="16" r="3" fill="white" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Assignment details */}
+                        <div className="flex-1 min-w-0">
+                          <h3
+                            className="text-lg sm:text-xl font-bold"
+                            style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+                          >
+                            {assignment.title}
+                          </h3>
+                          <p className="text-sm text-gray-500 truncate mt-0.5">
+                            {assignment.description}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
+                            <Calendar size={13} />
+                            <span>Due {formatDate(assignment.due_date)}</span>
                           </div>
                         </div>
 
-                        {/* Submit Button */}
-                        {!isSubmitted && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedAssignment(assignment);
-                            }}
-                            className="flex-shrink-0 w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 group-hover:scale-105"
-                            style={{
-                              background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
-                              color: 'white',
-                            }}
-                          >
-                            <Upload size={16} className="sm:w-[18px] sm:h-[18px]" />
-                            <span className="text-sm sm:text-base">Submit</span>
-                          </button>
-                        )}
+                        {/* Action */}
+                        <div className="flex-shrink-0 self-center">
+                          {isSubmitted ? (
+                            <span
+                              className="px-4 py-2 rounded-full font-semibold text-xs"
+                              style={{ backgroundColor: '#D4F5F5', color: '#2D7A7A' }}
+                            >
+                              Submitted
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAssignment(assignment);
+                              }}
+                              className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-sm transition-all hover:scale-105 active:scale-95"
+                              style={{
+                                background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
+                                color: 'white',
+                                boxShadow: '0 4px 16px rgba(217, 119, 70, 0.3)',
+                                fontFamily: "'Fredoka', sans-serif",
+                              }}
+                            >
+                              <Upload size={16} />
+                              <span>Submit</span>
+                              <span className="text-base">🎵</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </motion.div>
         </motion.div>
       </div>
 
@@ -348,7 +508,7 @@ export default function AssignmentsNew() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(26, 43, 74, 0.9)', backdropFilter: 'blur(8px)' }}
+            style={{ backgroundColor: 'rgba(62, 36, 104, 0.5)', backdropFilter: 'blur(8px)' }}
             onClick={() => !uploading && setSelectedAssignment(null)}
           >
             <motion.div
@@ -356,21 +516,26 @@ export default function AssignmentsNew() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.3 }}
-              className="relative backdrop-blur-md border rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full overflow-hidden mx-4 sm:mx-0"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
+              className="relative bg-white border-2 rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full overflow-hidden mx-4 sm:mx-0"
+              style={{ borderColor: '#E8DFFF' }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-4 sm:p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              <div className="p-4 sm:p-6 border-b" style={{ borderColor: '#E8DFFF' }}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white">Submit Assignment</h2>
+                  <h2
+                    className="text-xl sm:text-2xl font-bold"
+                    style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+                  >
+                    Submit Assignment
+                  </h2>
                   <button
                     onClick={() => !uploading && setSelectedAssignment(null)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-gray-100"
+                    style={{ backgroundColor: '#F8F5FF' }}
                     disabled={uploading}
                   >
-                    <X size={20} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                    <X size={20} className="text-gray-400" />
                   </button>
                 </div>
               </div>
@@ -378,13 +543,16 @@ export default function AssignmentsNew() {
               {/* Content */}
               <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">
+                  <h3
+                    className="text-base sm:text-lg font-semibold mb-1 sm:mb-2"
+                    style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+                  >
                     {selectedAssignment.title}
                   </h3>
-                  <p className="text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <p className="text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed text-gray-500">
                     {selectedAssignment.description}
                   </p>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
                     <Calendar size={14} className="sm:w-4 sm:h-4" />
                     <span>Due {formatDate(selectedAssignment.due_date)}</span>
                   </div>
@@ -401,14 +569,17 @@ export default function AssignmentsNew() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="block border-2 border-dashed rounded-lg sm:rounded-xl p-6 sm:p-10 text-center transition-all cursor-pointer hover:bg-white/5"
-                    style={{ borderColor: 'rgba(255,255,255,0.2)' }}
+                    className="block border-2 border-dashed rounded-lg sm:rounded-xl p-6 sm:p-10 text-center transition-all cursor-pointer hover:bg-purple-50"
+                    style={{ borderColor: '#7B5BA8' }}
                   >
-                    <File className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }} />
-                    <p className="text-sm sm:text-base text-white font-medium mb-1 sm:mb-2">
+                    <File className="w-10 h-10 sm:w-12 sm:h-12 mb-3 sm:mb-4 mx-auto text-gray-400" />
+                    <p
+                      className="text-sm sm:text-base font-medium mb-1 sm:mb-2"
+                      style={{ color: '#3E2468' }}
+                    >
                       Click to upload your file
                     </p>
-                    <p className="text-xs sm:text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <p className="text-xs sm:text-sm text-gray-400">
                       PDF, Word, Image, or Audio files
                     </p>
                   </label>
@@ -417,8 +588,11 @@ export default function AssignmentsNew() {
                 {/* Uploading State */}
                 {uploading && (
                   <div className="text-center py-4">
-                    <div className="w-12 h-12 border-4 border-white/20 rounded-full animate-spin mx-auto mb-3" style={{ borderTopColor: '#D97746' }}></div>
-                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>Uploading your work...</p>
+                    <div
+                      className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-3"
+                      style={{ borderColor: '#E8DFFF', borderTopColor: '#D97746' }}
+                    ></div>
+                    <p className="text-gray-500">Uploading your work...</p>
                   </div>
                 )}
 
@@ -426,11 +600,11 @@ export default function AssignmentsNew() {
                 {!uploading && (
                   <button
                     onClick={() => setSelectedAssignment(null)}
-                    className="w-full py-3 rounded-xl border font-medium transition-colors hover:bg-white/10"
+                    className="w-full py-3 rounded-xl border-2 font-medium transition-colors hover:bg-gray-50"
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      borderColor: 'rgba(255,255,255,0.15)',
-                      color: 'white',
+                      backgroundColor: 'white',
+                      borderColor: '#E8DFFF',
+                      color: '#3E2468',
                     }}
                   >
                     Cancel

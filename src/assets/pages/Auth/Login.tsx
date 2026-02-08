@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import CloudShader from "@/components/ui/cloud-shader";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 
@@ -27,71 +26,48 @@ export default function LoginNew() {
     setIsSubmitting(false);
   };
 
-  // Clear error when component unmounts
   useEffect(() => {
     return () => clearError();
   }, [clearError]);
 
   return (
-    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #3E2468 0%, #5B3D8F 50%, #7B5BA8 100%)', fontFamily: "'Outfit', sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
         }
       `}</style>
 
-      {/* CloudShader Background with warm tint */}
-      <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.3}
-          octaves={5}
-          scale={2.5}
-          className="w-full h-full opacity-40"
-        />
-        {/* Warm gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
-      </div>
-
-      {/* Fun Floating Doodles - Hidden on small screens */}
+      {/* Fun Floating Doodles */}
       <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden hidden sm:block">
-        <div className="absolute top-24 right-16 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>🎵</div>
-        <div className="absolute bottom-40 left-16 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✨</div>
-        <div className="absolute top-1/2 left-12 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>🎶</div>
-        <div className="absolute bottom-28 right-24 text-3xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>🪘</div>
+        <div className="absolute top-24 right-16 text-3xl opacity-20" style={{ animation: 'float 4s ease-in-out infinite' }}>🎵</div>
+        <div className="absolute bottom-40 left-16 text-4xl opacity-25" style={{ animation: 'float 3.5s ease-in-out infinite 1s' }}>✨</div>
+        <div className="absolute top-1/2 left-12 text-2xl opacity-15" style={{ animation: 'float 5s ease-in-out infinite 2s' }}>🎶</div>
+        <div className="absolute bottom-28 right-24 text-3xl opacity-20" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>🪘</div>
       </div>
 
       {/* Content Layer */}
       <div className="relative z-10 flex flex-col flex-1">
-        {/* Navigation - Matching NavBarDark style */}
+        {/* Navigation */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 pt-4 sm:pt-6 px-4 w-full sm:w-auto">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 bg-black/40 backdrop-blur-md py-2 px-2 sm:px-3 rounded-full border border-white/10 max-w-full">
-            {/* Logo */}
+          <div
+            className="flex items-center justify-center gap-2 sm:gap-3 py-2 px-2 sm:px-3 rounded-full border shadow-lg max-w-full"
+            style={{
+              background: 'linear-gradient(135deg, #3E2468 0%, #5B3D8F 100%)',
+              borderColor: 'rgba(155, 125, 200, 0.3)',
+            }}
+          >
             <Link to="/" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-base sm:text-lg" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>🪘</div>
-              <span className="text-base sm:text-lg font-bold text-white">Djembe</span>
-            </Link>
-
-            <div className="w-px h-5 sm:h-6 bg-white/20" />
-
-            {/* Nav Links - Hidden on very small screens */}
-            <Link
-              to="/"
-              className="hidden xs:block px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all"
-            >
-              Home
-            </Link>
-
-            <div className="hidden xs:block w-px h-5 sm:h-6 bg-white/20" />
-
-            {/* Auth Buttons */}
-            <Link to="/signup">
-              <button className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-black bg-white hover:bg-white/90 transition-all">
-                Sign Up
-              </button>
+              <span className="text-base sm:text-lg font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+                <span style={{ color: "#D97746" }}>D</span>
+                <span style={{ color: "#42C9C9" }}>J</span>
+                <span style={{ color: "#F2C94C" }}>E</span>
+                <span style={{ color: "#E8627A" }}>M</span>
+                <span style={{ color: "#9B7DC8" }}>B</span>
+                <span style={{ color: "#4ABA6E" }}>E</span>
+              </span>
             </Link>
           </div>
         </div>
@@ -105,138 +81,160 @@ export default function LoginNew() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="space-y-8 text-center"
               >
-                {/* Header */}
-                <div className="space-y-2">
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight text-white">
-                    Welcome to <span style={{ color: '#D97746' }}>Djembe</span>
-                  </h1>
-                  <p className="text-base sm:text-lg font-light" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Sign in to continue your musical journey
-                  </p>
-                </div>
-
-                {/* Error Message */}
-                {error && (
+                {/* Frosted Glass Card */}
+                <div
+                  className="rounded-3xl shadow-2xl p-8 sm:p-10 space-y-6 border border-white/10 relative overflow-hidden"
+                  style={{
+                    background: "linear-gradient(145deg, rgba(91,61,143,0.85) 0%, rgba(62,36,104,0.92) 100%)",
+                    backdropFilter: "blur(20px)",
+                  }}
+                >
+                  {/* Drum Face */}
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="backdrop-blur-md border px-4 py-3 rounded-xl text-sm"
-                    style={{ backgroundColor: 'rgba(220, 38, 38, 0.15)', borderColor: 'rgba(220, 38, 38, 0.3)', color: '#FCA5A5' }}
-                  >
-                    {error}
-                  </motion.div>
-                )}
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+                    className="w-28 h-28 sm:w-32 sm:h-32 mx-auto"
+                    style={{
+                      backgroundImage: `url('/ui assets/djembe_faces.png')`,
+                      backgroundSize: "300% 300%",
+                      backgroundPosition: "0% 0%",
+                      backgroundRepeat: "no-repeat",
+                      filter: "drop-shadow(0 6px 20px rgba(62, 36, 104, 0.25))",
+                    }}
+                  />
 
-                {/* Login Form */}
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Email Input */}
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      <Mail size={20} />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full backdrop-blur-md border rounded-2xl py-4 pl-12 pr-4 focus:outline-none transition-all placeholder:text-white/40"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderColor: 'rgba(255,255,255,0.15)',
-                        color: 'white',
-                      }}
-                      required
-                      disabled={isSubmitting}
-                    />
+                  {/* Header */}
+                  <div className="space-y-2 text-center">
+                    <h1 className="text-3xl sm:text-4xl font-bold" style={{ color: 'white', fontFamily: "'Fredoka', sans-serif" }}>
+                      Welcome Back!
+                    </h1>
+                    <p className="text-base text-white/60">
+                      Sign in to continue your musical journey
+                    </p>
                   </div>
 
-                  {/* Password Input */}
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      <Lock size={20} />
-                    </div>
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full backdrop-blur-md border rounded-2xl py-4 pl-12 pr-4 focus:outline-none transition-all placeholder:text-white/40"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderColor: 'rgba(255,255,255,0.15)',
-                        color: 'white',
-                      }}
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
+                  {/* Error Message */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="border px-4 py-3 rounded-xl text-sm"
+                      style={{ backgroundColor: 'rgba(232, 98, 122, 0.1)', borderColor: 'rgba(232, 98, 122, 0.3)', color: '#E8627A' }}
+                    >
+                      {error}
+                    </motion.div>
+                  )}
 
-                  {/* Remember Device */}
-                  <div className="flex items-center justify-between px-1">
-                    <label className="flex items-center gap-2 cursor-pointer group">
+                  {/* Login Form */}
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Email Input */}
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <Mail size={20} />
+                      </div>
                       <input
-                        type="checkbox"
-                        checked={rememberDevice}
-                        onChange={(e) => setRememberDevice(e.target.checked)}
-                        className="w-4 h-4 rounded cursor-pointer accent-[#D97746]"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all placeholder:text-gray-300"
+                        style={{
+                          borderColor: 'rgba(255,255,255,0.2)',
+                          color: 'white',
+                          backgroundColor: 'rgba(255,255,255,0.08)',
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.4)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+                        required
                         disabled={isSubmitting}
                       />
-                      <span className="text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                        Remember this device
-                      </span>
-                    </label>
-                    <Link
-                      to="#"
-                      className="text-sm transition-colors hover:opacity-80"
-                      style={{ color: '#E6B84D' }}
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
+                    </div>
 
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="group relative w-full rounded-2xl font-semibold py-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden flex items-center justify-center gap-2"
-                    style={{
-                      background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
-                      color: 'white',
-                    }}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {isSubmitting ? "Signing in..." : "Sign In"}
-                      {!isSubmitting && (
-                        <ArrowRight
-                          size={20}
-                          className="transform group-hover:translate-x-1 transition-transform"
+                    {/* Password Input */}
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <Lock size={20} />
+                      </div>
+                      <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all placeholder:text-gray-300"
+                        style={{
+                          borderColor: 'rgba(255,255,255,0.2)',
+                          color: 'white',
+                          backgroundColor: 'rgba(255,255,255,0.08)',
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.4)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Remember Device */}
+                    <div className="flex items-center justify-between px-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rememberDevice}
+                          onChange={(e) => setRememberDevice(e.target.checked)}
+                          className="w-5 h-5 rounded cursor-pointer accent-[#7B5BA8]"
+                          disabled={isSubmitting}
                         />
+                        <span className="text-sm text-white/60">
+                          Remember this device
+                        </span>
+                      </label>
+                      <Link
+                        to="#"
+                        className="text-sm font-medium transition-colors hover:text-white"
+                        style={{ color: '#F2C94C' }}
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="group relative w-full rounded-2xl font-semibold py-4 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden flex items-center justify-center gap-2 text-white text-lg"
+                      style={{
+                        background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
+                        fontFamily: "'Fredoka', sans-serif",
+                      }}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        {isSubmitting ? "Signing in..." : "Sign In"}
+                        {!isSubmitting && (
+                          <ArrowRight
+                            size={20}
+                            className="transform group-hover:translate-x-1 transition-transform"
+                          />
+                        )}
+                      </span>
+                      {!isSubmitting && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                       )}
-                    </span>
-                    {!isSubmitting && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                    )}
-                  </button>
+                    </button>
+                  </form>
+                </div>
 
-                  {/* Divider */}
-                  <div className="flex items-center gap-4 py-2">
-                    <div className="h-px flex-1" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                    <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>or</span>
-                    <div className="h-px flex-1" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+                {/* Below-card content */}
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="h-px flex-1 bg-white/20" />
+                    <span className="text-sm text-white/50">or</span>
+                    <div className="h-px flex-1 bg-white/20" />
                   </div>
-
-                  {/* Google Sign In */}
                   <button
                     type="button"
-                    className="w-full flex items-center justify-center gap-3 backdrop-blur-md border rounded-2xl py-4 transition-all hover:bg-white/10"
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      borderColor: 'rgba(255,255,255,0.15)',
-                      color: 'white'
-                    }}
+                    className="w-full flex items-center justify-center gap-3 border-2 rounded-xl py-3.5 bg-white/10 backdrop-blur transition-all hover:bg-white/20"
+                    style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -246,28 +244,28 @@ export default function LoginNew() {
                     </svg>
                     <span className="font-medium">Continue with Google</span>
                   </button>
-                </form>
+                </div>
 
                 {/* Sign Up Link */}
-                <p className="text-sm pt-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-sm text-center mt-4 text-white/70">
                   Don't have an account?{" "}
                   <Link
                     to="/signup"
-                    className="font-semibold underline underline-offset-2 transition-colors hover:opacity-80"
-                    style={{ color: '#E6B84D' }}
+                    className="font-semibold underline underline-offset-2 transition-colors hover:text-white"
+                    style={{ color: '#F2C94C' }}
                   >
                     Sign up
                   </Link>
                 </p>
 
                 {/* Terms */}
-                <p className="text-xs pt-6 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-xs text-center pt-6 max-w-md mx-auto text-white/50">
                   By signing in, you agree to our{" "}
-                  <Link to="#" className="underline hover:text-white/50 transition-colors">
+                  <Link to="#" className="underline hover:text-white/70 transition-colors">
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link to="#" className="underline hover:text-white/50 transition-colors">
+                  <Link to="#" className="underline hover:text-white/70 transition-colors">
                     Privacy Policy
                   </Link>
                   .

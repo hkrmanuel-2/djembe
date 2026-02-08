@@ -6,7 +6,6 @@ import Timeline from "../../../components/ui/DAW-Lite/Timeline.jsx";
 import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols.jsx";
 import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
 import AILoopGenerator from "../../../components/ui/DAW-Lite/AILoopGenerator.jsx";
-import CloudShader from "../../../components/ui/cloud-shader";
 import { Home, RotateCcw, Smartphone } from "lucide-react";
 
 export default function DAWLite() {
@@ -235,10 +234,8 @@ export default function DAWLite() {
   };
 
   return (
-    <div className="h-screen relative overflow-hidden flex items-center justify-center p-2 md:p-4" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div className="h-screen relative overflow-hidden flex items-center justify-center p-2 md:p-4" style={{ background: 'linear-gradient(180deg, #2A1845 0%, #3E2468 50%, #2A1845 100%)', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
@@ -252,7 +249,7 @@ export default function DAWLite() {
 
       {/* Portrait Mode Overlay - Forces landscape on mobile */}
       {isPortrait && isMobile && (
-        <div className="fixed inset-0 z-[100] bg-[#1A2B4A] flex flex-col items-center justify-center p-8">
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-8" style={{ background: 'linear-gradient(180deg, #2A1845 0%, #3E2468 50%, #2A1845 100%)' }}>
           <div className="text-center max-w-sm">
             {/* Rotating phone icon */}
             <div className="mb-6 relative">
@@ -263,7 +260,7 @@ export default function DAWLite() {
               />
               <RotateCcw
                 size={32}
-                className="text-[#4A9B9B] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                className="text-[#42C9C9] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
               />
             </div>
 
@@ -296,17 +293,10 @@ export default function DAWLite() {
         </div>
       )}
 
-      {/* CloudShader Background with warm tint */}
+      {/* Purple gradient background with subtle color overlays */}
       <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.2}
-          octaves={5}
-          scale={2.5}
-          className="w-full h-full opacity-40"
-        />
-        {/* Warm gradient overlay to blend with landing page colors */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#3E2468]/40 via-transparent to-[#42C9C9]/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#2A1845]/50 via-transparent to-[#D97746]/5" />
       </div>
 
       {/* Fun Musical Doodles - Hidden on mobile */}
@@ -332,8 +322,8 @@ export default function DAWLite() {
               <Home size={isMobile ? 16 : 20} style={{ color: '#E6B84D' }} />
             </button>
 
-            <h1 className="text-lg md:text-2xl font-bold tracking-wide text-white">
-              <span style={{ color: '#D97746' }}>DAW</span><span className="hidden sm:inline">-LITE</span>
+            <h1 className="text-lg md:text-2xl font-bold tracking-wide text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+              <span style={{ color: '#D97746' }}>DAW</span><span className="hidden sm:inline" style={{ color: '#F2C94C' }}>-LITE</span>
             </h1>
 
             {/* Audio Status Indicator - Hidden on very small screens */}
@@ -414,6 +404,54 @@ export default function DAWLite() {
 
         {/* Transport Controls */}
         <TransportControls isMobile={isMobile} />
+
+        {/* Mascot - bottom right corner */}
+        <div className="hidden md:block absolute bottom-10 right-2 z-[20] pointer-events-none">
+          {/* Speech bubble - positioned to the left of mascot */}
+          <div
+            className="absolute -left-28 top-6 px-4 py-3 rounded-2xl"
+            style={{
+              background: 'white',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              animation: 'float 4s ease-in-out infinite',
+            }}
+          >
+            <p className="text-sm font-bold whitespace-nowrap" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>
+              Let's make some<br />magic!
+            </p>
+            {/* Triangle pointer pointing right */}
+            <div
+              className="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0"
+              style={{
+                borderTop: '8px solid transparent',
+                borderBottom: '8px solid transparent',
+                borderLeft: '8px solid white',
+              }}
+            />
+          </div>
+
+          {/* Mascot image - large */}
+          <div className="w-[180px] h-[220px] overflow-hidden" style={{ animation: 'float 4s ease-in-out infinite 0.5s' }}>
+            <img
+              src="/ui assets/djemb_fullbody.png"
+              alt="Djembe mascot"
+              className="w-[300%] h-[300%] max-w-none"
+              style={{
+                transform: 'translate(-66.666%, -33.333%)',
+                filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.35))',
+                imageRendering: 'auto',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Click Play indicator - bottom right */}
+        {!audioInitialized && (
+          <div className="hidden md:flex absolute bottom-2 right-3 z-[20] pointer-events-none items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'linear-gradient(135deg, #D97746, #E6945A)', boxShadow: '0 2px 10px rgba(217,119,70,0.4)' }}>
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span className="text-xs font-bold text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>Click Play</span>
+          </div>
+        )}
       </div>
     </div>
   );

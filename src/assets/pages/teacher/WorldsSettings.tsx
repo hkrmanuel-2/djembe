@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
-import CloudShader from "@/components/ui/cloud-shader";
 import { Globe, Music, Save, Loader2, Check, ArrowLeft } from "lucide-react";
 import { getVoiceSettings, updateVoiceSettings } from "@/lib/teacherApi";
 import { useNavigate } from "react-router-dom";
@@ -156,19 +155,18 @@ export default function WorldsSettings() {
     return (
       <div
         className="flex w-full flex-col min-h-screen relative overflow-hidden"
-        style={{ backgroundColor: "#1A2B4A" }}
+        style={{
+          background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)',
+          fontFamily: "'Outfit', sans-serif",
+        }}
       >
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        </div>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div
-              className="w-16 h-16 border-4 border-white/20 rounded-full animate-spin mx-auto mb-4"
-              style={{ borderTopColor: "#8B5CF6" }}
+              className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4"
+              style={{ borderColor: '#E8DFFF', borderTopColor: '#D97746' }}
             />
-            <p className="text-lg text-white/70">Loading settings...</p>
+            <p className="text-lg text-gray-500">Loading settings...</p>
           </div>
         </div>
       </div>
@@ -178,14 +176,12 @@ export default function WorldsSettings() {
   return (
     <div
       className="flex w-full flex-col min-h-screen relative overflow-hidden"
-      style={{ backgroundColor: "#1A2B4A", fontFamily: "'Outfit', sans-serif" }}
+      style={{
+        background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)',
+        fontFamily: "'Outfit', sans-serif",
+      }}
     >
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#8B5CF6]/20" />
-      </div>
-
-      <div className="relative z-10 min-h-screen px-6 py-24">
+      <div className="relative z-10 min-h-screen px-6 py-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -196,7 +192,8 @@ export default function WorldsSettings() {
           <motion.button
             variants={itemVariants}
             onClick={() => navigate("/students")}
-            className="flex items-center gap-2 text-white/70 hover:text-white mb-6 transition-colors"
+            className="flex items-center gap-2 hover:opacity-70 mb-6 transition-colors"
+            style={{ color: '#3E2468' }}
           >
             <ArrowLeft size={20} />
             <span>Back to Dashboard</span>
@@ -205,17 +202,17 @@ export default function WorldsSettings() {
           {/* Header */}
           <motion.div variants={itemVariants} className="text-center mb-10">
             <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md border mb-4"
-              style={{ backgroundColor: "rgba(139, 92, 246, 0.2)", borderColor: "rgba(139, 92, 246, 0.3)" }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-4"
+              style={{ backgroundColor: 'rgba(123, 91, 168, 0.1)', borderColor: '#E8DFFF' }}
             >
-              <Globe size={16} style={{ color: "#8B5CF6" }} />
-              <span className="text-sm font-medium text-white/90">3D Worlds</span>
+              <Globe size={16} style={{ color: '#7B5BA8' }} />
+              <span className="text-sm font-medium" style={{ color: '#3E2468' }}>3D Worlds</span>
             </div>
 
-            <h1 className="text-5xl font-bold text-white mb-2">
-              World <span style={{ color: "#8B5CF6" }}>Settings</span>
+            <h1 className="text-5xl font-bold mb-2" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>
+              World <span style={{ color: '#7B5BA8' }}>Settings</span>
             </h1>
-            <p className="text-xl text-white/60">
+            <p className="text-xl text-gray-500">
               Configure AI-generated music for student exploration worlds
             </p>
           </motion.div>
@@ -225,22 +222,31 @@ export default function WorldsSettings() {
             variants={itemVariants}
             className="mb-6"
           >
-            <label className="block text-base font-medium text-white mb-3">Select World</label>
+            <label className="block text-base font-medium mb-3" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Select World</label>
             <div className="flex gap-3">
               {WORLD_OPTIONS.map((world) => (
                 <button
                   key={world.id}
                   onClick={() => setSelectedWorld(world.id)}
-                  className={`
-                    flex-1 px-4 py-4 rounded-xl flex items-center gap-3 transition-all
-                    ${selectedWorld === world.id
-                      ? "bg-purple-500/30 border-2 border-purple-400/70 shadow-lg shadow-purple-500/20"
-                      : "bg-white/5 border border-white/10 hover:bg-white/10"
-                    }
-                  `}
+                  className="flex-1 px-4 py-4 rounded-xl flex items-center gap-3 transition-all border-2"
+                  style={
+                    selectedWorld === world.id
+                      ? {
+                          backgroundColor: 'rgba(123, 91, 168, 0.1)',
+                          borderColor: '#7B5BA8',
+                          boxShadow: '0 4px 12px rgba(123, 91, 168, 0.15)',
+                        }
+                      : {
+                          backgroundColor: '#FFFFFF',
+                          borderColor: '#E8DFFF',
+                        }
+                  }
                 >
                   <span className="text-2xl">{world.emoji}</span>
-                  <span className={`font-medium ${selectedWorld === world.id ? "text-purple-200" : "text-white/70"}`}>
+                  <span
+                    className="font-medium"
+                    style={{ color: selectedWorld === world.id ? '#7B5BA8' : '#6B7280' }}
+                  >
                     {world.name}
                   </span>
                 </button>
@@ -251,20 +257,20 @@ export default function WorldsSettings() {
           {/* Settings Card */}
           <motion.div
             variants={itemVariants}
-            className="rounded-2xl backdrop-blur-md border p-8"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.08)",
-              borderColor: "rgba(255,255,255,0.15)",
-            }}
+            className="bg-white shadow-md rounded-2xl border-2 p-8"
+            style={{ borderColor: '#E8DFFF' }}
           >
             {/* Header */}
-            <div className="flex items-center gap-3 mb-8 pb-6 border-b border-white/10">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <Music className="text-purple-400" size={24} />
+            <div className="flex items-center gap-3 mb-8 pb-6 border-b" style={{ borderColor: '#E8DFFF' }}>
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(123, 91, 168, 0.1)' }}
+              >
+                <Music style={{ color: '#7B5BA8' }} size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-white">Music Generation</h3>
-                <p className="text-sm text-white/60">
+                <h3 className="text-xl font-semibold" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Music Generation</h3>
+                <p className="text-sm text-gray-500">
                   Settings for {WORLD_OPTIONS.find(w => w.id === selectedWorld)?.name || "this world"}
                 </p>
               </div>
@@ -274,8 +280,11 @@ export default function WorldsSettings() {
               {/* BPM Slider */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-base font-medium text-white">Tempo (BPM)</label>
-                  <span className="text-lg font-mono text-purple-300 bg-purple-500/20 px-3 py-1 rounded-lg">
+                  <label className="text-base font-medium" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Tempo (BPM)</label>
+                  <span
+                    className="text-lg font-mono px-3 py-1 rounded-lg"
+                    style={{ color: '#7B5BA8', backgroundColor: 'rgba(123, 91, 168, 0.1)' }}
+                  >
                     {settings.bpm}
                   </span>
                 </div>
@@ -285,16 +294,34 @@ export default function WorldsSettings() {
                   max="200"
                   value={settings.bpm}
                   onChange={(e) => handleBpmChange(parseInt(e.target.value))}
-                  className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer
+                  className="w-full h-3 rounded-lg appearance-none cursor-pointer
                            [&::-webkit-slider-thumb]:appearance-none
                            [&::-webkit-slider-thumb]:w-6
                            [&::-webkit-slider-thumb]:h-6
                            [&::-webkit-slider-thumb]:rounded-full
-                           [&::-webkit-slider-thumb]:bg-purple-500
                            [&::-webkit-slider-thumb]:cursor-pointer
                            [&::-webkit-slider-thumb]:shadow-lg"
+                  style={{
+                    background: '#E8DFFF',
+                    // @ts-ignore -- slider thumb color via CSS custom property
+                    '--tw-slider-thumb-bg': '#7B5BA8',
+                  } as React.CSSProperties}
                 />
-                <div className="flex justify-between text-sm text-white/40 mt-2">
+                <style>{`
+                  input[type="range"]::-webkit-slider-thumb {
+                    background-color: #7B5BA8 !important;
+                  }
+                  input[type="range"]::-moz-range-thumb {
+                    background-color: #7B5BA8 !important;
+                    border: none;
+                    width: 1.5rem;
+                    height: 1.5rem;
+                    border-radius: 9999px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                  }
+                `}</style>
+                <div className="flex justify-between text-sm text-gray-400 mt-2">
                   <span>60 (Slow)</span>
                   <span>130 (Medium)</span>
                   <span>200 (Fast)</span>
@@ -303,19 +330,26 @@ export default function WorldsSettings() {
 
               {/* Genre */}
               <div>
-                <label className="block text-base font-medium text-white mb-3">Genre</label>
+                <label className="block text-base font-medium mb-3" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Genre</label>
                 <div className="flex flex-wrap gap-2">
                   {GENRE_OPTIONS.map((genre) => (
                     <button
                       key={genre}
                       onClick={() => setSettings((prev) => ({ ...prev, genre }))}
-                      className={`
-                        px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize
-                        ${settings.genre === genre
-                          ? "bg-purple-500/40 text-purple-200 border-2 border-purple-400/70 shadow-lg shadow-purple-500/20"
-                          : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white/80"
-                        }
-                      `}
+                      className="px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize border-2"
+                      style={
+                        settings.genre === genre
+                          ? {
+                              backgroundColor: 'rgba(217, 119, 70, 0.1)',
+                              color: '#D97746',
+                              borderColor: '#D97746',
+                            }
+                          : {
+                              backgroundColor: '#FFFFFF',
+                              color: '#6B7280',
+                              borderColor: '#E8DFFF',
+                            }
+                      }
                     >
                       {genre}
                     </button>
@@ -325,19 +359,26 @@ export default function WorldsSettings() {
 
               {/* Style */}
               <div>
-                <label className="block text-base font-medium text-white mb-3">Style</label>
+                <label className="block text-base font-medium mb-3" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Style</label>
                 <div className="flex flex-wrap gap-2">
                   {STYLE_OPTIONS.map((style) => (
                     <button
                       key={style}
                       onClick={() => setSettings((prev) => ({ ...prev, style }))}
-                      className={`
-                        px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize
-                        ${settings.style === style
-                          ? "bg-blue-500/40 text-blue-200 border-2 border-blue-400/70 shadow-lg shadow-blue-500/20"
-                          : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white/80"
-                        }
-                      `}
+                      className="px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize border-2"
+                      style={
+                        settings.style === style
+                          ? {
+                              backgroundColor: 'rgba(66, 201, 201, 0.1)',
+                              color: '#42C9C9',
+                              borderColor: '#42C9C9',
+                            }
+                          : {
+                              backgroundColor: '#FFFFFF',
+                              color: '#6B7280',
+                              borderColor: '#E8DFFF',
+                            }
+                      }
                     >
                       {style}
                     </button>
@@ -347,19 +388,26 @@ export default function WorldsSettings() {
 
               {/* Mood */}
               <div>
-                <label className="block text-base font-medium text-white mb-3">Mood</label>
+                <label className="block text-base font-medium mb-3" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>Mood</label>
                 <div className="flex flex-wrap gap-2">
                   {MOOD_OPTIONS.map((mood) => (
                     <button
                       key={mood}
                       onClick={() => setSettings((prev) => ({ ...prev, mood }))}
-                      className={`
-                        px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize
-                        ${settings.mood === mood
-                          ? "bg-green-500/40 text-green-200 border-2 border-green-400/70 shadow-lg shadow-green-500/20"
-                          : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white/80"
-                        }
-                      `}
+                      className="px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize border-2"
+                      style={
+                        settings.mood === mood
+                          ? {
+                              backgroundColor: 'rgba(74, 186, 110, 0.1)',
+                              color: '#4ABA6E',
+                              borderColor: '#4ABA6E',
+                            }
+                          : {
+                              backgroundColor: '#FFFFFF',
+                              color: '#6B7280',
+                              borderColor: '#E8DFFF',
+                            }
+                      }
                     >
                       {mood}
                     </button>
@@ -369,49 +417,62 @@ export default function WorldsSettings() {
 
               {/* Custom prompt */}
               <div>
-                <label className="block text-base font-medium text-white mb-3">
-                  Custom Additions <span className="text-white/40 font-normal">(optional)</span>
+                <label className="block text-base font-medium mb-3" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>
+                  Custom Additions <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={settings.custom_prompt}
                   onChange={(e) => setSettings((prev) => ({ ...prev, custom_prompt: e.target.value }))}
                   placeholder="Add specific instruments, sounds, or descriptions... e.g., 'with djembe drums and kalimba'"
-                  className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl
-                           text-white placeholder:text-white/30 text-base resize-none
-                           focus:outline-none focus:border-purple-400/50 focus:bg-white/8
-                           transition-colors"
+                  className="w-full px-4 py-4 rounded-xl text-base resize-none transition-colors focus:outline-none"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '2px solid #E8DFFF',
+                    color: '#3E2468',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#7B5BA8';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(123, 91, 168, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#E8DFFF';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                   rows={3}
                 />
               </div>
 
               {/* Preview prompt */}
-              <div className="p-4 bg-purple-500/10 rounded-xl border border-purple-400/20">
-                <p className="text-sm text-purple-300 mb-2 font-medium">Music generation settings:</p>
+              <div
+                className="p-4 rounded-xl border-2"
+                style={{ backgroundColor: 'rgba(123, 91, 168, 0.05)', borderColor: '#E8DFFF' }}
+              >
+                <p className="text-sm mb-2 font-medium" style={{ color: '#7B5BA8' }}>Music generation settings:</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-white/60">Genre:</div>
-                  <div className="text-white/90 capitalize">{settings.genre}</div>
-                  <div className="text-white/60">Tempo:</div>
-                  <div className="text-white/90">{settings.bpm} BPM</div>
-                  <div className="text-white/60">Style:</div>
-                  <div className="text-white/90 capitalize">{settings.style}</div>
-                  <div className="text-white/60">Mood:</div>
-                  <div className="text-white/90 capitalize">{settings.mood}</div>
+                  <div className="text-gray-500">Genre:</div>
+                  <div className="capitalize" style={{ color: '#3E2468' }}>{settings.genre}</div>
+                  <div className="text-gray-500">Tempo:</div>
+                  <div style={{ color: '#3E2468' }}>{settings.bpm} BPM</div>
+                  <div className="text-gray-500">Style:</div>
+                  <div className="capitalize" style={{ color: '#3E2468' }}>{settings.style}</div>
+                  <div className="text-gray-500">Mood:</div>
+                  <div className="capitalize" style={{ color: '#3E2468' }}>{settings.mood}</div>
                   {settings.custom_prompt && (
                     <>
-                      <div className="text-white/60">Custom:</div>
-                      <div className="text-white/90">{settings.custom_prompt}</div>
+                      <div className="text-gray-500">Custom:</div>
+                      <div style={{ color: '#3E2468' }}>{settings.custom_prompt}</div>
                     </>
                   )}
                 </div>
-                <p className="text-xs text-white/40 mt-3">
+                <p className="text-xs text-gray-400 mt-3">
                   Generates kid-friendly, educational rhythms with these settings
                 </p>
               </div>
 
               {/* Error message */}
               {error && (
-                <div className="p-4 bg-red-500/20 border border-red-400/30 rounded-xl">
-                  <p className="text-base text-red-300">{error}</p>
+                <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '2px solid rgba(239, 68, 68, 0.3)' }}>
+                  <p className="text-base" style={{ color: '#DC2626' }}>{error}</p>
                 </div>
               )}
 
@@ -419,16 +480,26 @@ export default function WorldsSettings() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className={`
-                  w-full py-4 rounded-xl font-semibold text-base
-                  flex items-center justify-center gap-3 transition-all
-                  ${isSaving
-                    ? "bg-white/10 text-white/50 cursor-not-allowed"
+                className="w-full py-4 rounded-xl font-semibold text-base flex items-center justify-center gap-3 transition-all"
+                style={
+                  isSaving
+                    ? {
+                        backgroundColor: '#E8DFFF',
+                        color: '#9CA3AF',
+                        cursor: 'not-allowed',
+                      }
                     : saveSuccess
-                    ? "bg-green-500/30 text-green-300 border-2 border-green-400/50"
-                    : "bg-purple-500/30 text-purple-200 border-2 border-purple-400/50 hover:bg-purple-500/40 hover:shadow-lg hover:shadow-purple-500/20"
-                  }
-                `}
+                    ? {
+                        backgroundColor: 'rgba(74, 186, 110, 0.15)',
+                        color: '#4ABA6E',
+                        border: '2px solid #4ABA6E',
+                      }
+                    : {
+                        background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
+                        color: '#FFFFFF',
+                        boxShadow: '0 4px 12px rgba(217, 119, 70, 0.3)',
+                      }
+                }
               >
                 {isSaving ? (
                   <>
@@ -449,7 +520,7 @@ export default function WorldsSettings() {
               </button>
 
               {/* Info note */}
-              <p className="text-sm text-white/40 text-center">
+              <p className="text-sm text-gray-400 text-center">
                 These settings will be used to generate music for students in 3D Worlds.
                 Changes take effect on the next student session.
               </p>

@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import React from 'react'
-import CloudShader from "./cloud-shader";
 
 interface CubeLoaderProps {
   className?: string;
@@ -16,26 +15,18 @@ export default function CubeLoader({
   subMessage = "Getting everything ready for you..."
 }: CubeLoaderProps) {
   return (
-    <div className={cn('relative flex flex-col items-center justify-center gap-12 p-12 min-h-[400px] overflow-hidden perspective-container', className)} style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div className={cn('relative flex flex-col items-center justify-center gap-12 p-12 min-h-[400px] overflow-hidden perspective-container', className)} style={{ background: 'linear-gradient(180deg, #3E2468 0%, #5B3D8F 50%, #7B5BA8 100%)', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-15px); }
         }
       `}</style>
 
-      {/* CloudShader Background */}
+      {/* Purple gradient background overlays */}
       <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.2}
-          octaves={5}
-          scale={2.5}
-          className="w-full h-full opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#3E2468]/40 via-transparent to-[#42C9C9]/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#3E2468]/50 via-transparent to-[#D97746]/5" />
       </div>
 
       {/* Fun Floating Doodles */}
@@ -70,11 +61,11 @@ export default function CubeLoader({
 
             {/* Right & Left - Teal accent */}
             <div className='side-wrapper right'>
-              <div className='face' style={{ backgroundColor: 'rgba(74, 155, 155, 0.2)', border: '2px solid #4A9B9B', boxShadow: '0 0 15px rgba(74, 155, 155, 0.5)' }} />
+              <div className='face' style={{ backgroundColor: 'rgba(74, 155, 155, 0.2)', border: '2px solid #42C9C9', boxShadow: '0 0 15px rgba(74, 155, 155, 0.5)' }} />
             </div>
 
             <div className='side-wrapper left'>
-              <div className='face' style={{ backgroundColor: 'rgba(74, 155, 155, 0.2)', border: '2px solid #4A9B9B', boxShadow: '0 0 15px rgba(74, 155, 155, 0.5)' }} />
+              <div className='face' style={{ backgroundColor: 'rgba(74, 155, 155, 0.2)', border: '2px solid #42C9C9', boxShadow: '0 0 15px rgba(74, 155, 155, 0.5)' }} />
             </div>
 
             {/* Top & Bottom - Gold accent */}
@@ -104,7 +95,7 @@ export default function CubeLoader({
           <div className="flex gap-1.5 mt-4">
             <div className="w-2 h-2 rounded-full animate-bounce-delay-0" style={{ backgroundColor: '#D97746' }}></div>
             <div className="w-2 h-2 rounded-full animate-bounce-delay-1" style={{ backgroundColor: '#E6B84D' }}></div>
-            <div className="w-2 h-2 rounded-full animate-bounce-delay-2" style={{ backgroundColor: '#4A9B9B' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce-delay-2" style={{ backgroundColor: '#42C9C9' }}></div>
           </div>
         </div>
       </div>
