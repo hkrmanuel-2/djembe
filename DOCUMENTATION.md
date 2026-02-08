@@ -15,11 +15,17 @@
 7. [State Management](#state-management)
 8. [Authentication System](#authentication-system)
 9. [DAW-Lite Module](#daw-lite-module)
-10. [Database Schema](#database-schema)
-11. [API Integrations](#api-integrations)
-12. [3D Worlds](#3d-worlds)
-13. [Development Guide](#development-guide)
-14. [Deployment](#deployment)
+10. [Assignment System](#assignments-system)
+11. [Notification System](#real-time-notification-system)
+12. [Progress Tracking](#student-progress-tracking-system)
+13. [Teacher Dashboard](#comprehensive-teacher-dashboard)
+14. [Database Schema](#database-schema)
+15. [API Integrations](#api-integrations)
+16. [3D Worlds](#3d-worlds)
+17. [Mobile Responsiveness](#mobile-responsiveness-enhancements)
+18. [Development Guide](#development-guide)
+19. [Deployment](#deployment)
+20. [Version History](#version-history)
 
 ---
 
@@ -29,18 +35,67 @@
 
 ### Key Features
 
+**Music Creation & Production:**
 - **DAW-Lite**: Simplified digital audio workstation for music creation
-- **User Authentication**: Separate teacher and student accounts with role-based access
 - **Project Management**: Save, load, and manage music projects
 - **AI Loop Generation**: Generate music loops using Suno API
-- **3D Interactive Worlds**: Educational 3D environments using Three.js
 - **Audio Export**: Export projects as MP3 or WAV files
 - **Real-time Playback**: Beat-accurate audio playback with transport controls
+- **3D Interactive Worlds**: Educational 3D environments with interactive audio (Voices Panel)
+
+**Student Features:**
+- **Progress Tracking**: XP system with levels, badges, and streaks
+- **Assignments**: View, submit, and track assignment completion
+- **Real-time Notifications**: Get notified of new assignments, grades, and feedback
+- **Project Portfolio**: Create and manage music projects
+- **Mobile Responsive**: Optimized interface for phones and tablets
+
+**Teacher Features:**
+- **Comprehensive Dashboard**: Monitor all student progress at a glance
+- **Assignment Management**: Create, distribute, and grade assignments
+- **Class Organization**: Organize students into classes for targeted instruction
+- **Difficulty Detection**: Identify struggling students early with automated alerts
+- **Feedback System**: Provide detailed feedback and grades
+- **Analytics**: View class statistics and individual student progress
+- **Voice Settings**: Configure per-world music generation parameters
+
+**Technical Features:**
+- **User Authentication**: Separate teacher and student accounts with role-based access
+- **Real-time Updates**: Supabase Realtime for instant notifications
+- **Browser Notifications**: Native browser notification support
+- **Audio Stem Separation**: AI-powered music stem separation (Demucs)
+- **CORS Proxy**: Seamless external audio loading
+- **Mobile Optimization**: Touch-friendly responsive design
 
 ### Target Audience
 
 - **Students**: Learn music production through hands-on DAW experience
 - **Teachers**: Manage classes, assign projects, and track student progress
+- **Schools**: Comprehensive music education platform with analytics and engagement tracking
+
+### Recent Major Updates (February 2026)
+
+🎉 **Version 3.1** introduces UI/UX enhancements and kid-friendly auth:
+
+- **Carousel Signup** - Duolingo-style multi-step signup with drum mascot faces from sprite sheet
+- **Dark Glass Auth** - Frosted purple glass treatment for both Login and Signup pages
+- **Sidebar Navigation** - Persistent color-coded sidebar replacing bottom navbar
+- **Tutorials Page** - New tutorials section with fixed background
+- **Page Fixes** - Resolved spacing, overflow, and content clipping across multiple pages
+- **Loader Removal** - Removed cube loader overlay for faster perceived loading
+
+🎉 **Version 3.0** core platform features:
+
+- **Real-Time Notifications** - Instant alerts for assignments, grades, and submissions
+- **Progress Tracking System** - XP, levels, badges, and streaks to engage students
+- **Teacher Dashboard** - Comprehensive overview of student progress and class analytics
+- **Assignment Management** - Complete assignment workflow with file uploads and grading
+- **Class Organization** - Organize students into classes for targeted instruction
+- **Difficulty Detection** - Automated identification of struggling students
+- **Mobile Optimization** - Fully responsive design with sidebar navigation
+- **Browser Notifications** - Native notification support for desktop and mobile
+
+See [Version History](#version-history) for complete details.
 
 ---
 
@@ -49,33 +104,46 @@
 ### High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend (React)                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   DAW-Lite   │  │    Worlds    │  │    Auth      │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │         Zustand State Management                │   │
-│  └──────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              Supabase (Backend Services)                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  PostgreSQL  │  │   Auth API   │  │   Storage    │  │
-│  │   Database   │  │              │  │              │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              External APIs                               │
-│  ┌──────────────┐                                       │
-│  │  Suno API    │  (AI Music Generation)                 │
-│  └──────────────┘                                       │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                         Frontend (React)                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐  │
+│  │   DAW-Lite   │  │    Worlds    │  │    Auth      │  │  Admin  │  │
+│  │   • Timeline │  │  • World 1   │  │   • Login    │  │  • Dashboard│
+│  │   • Loops    │  │  • World 2   │  │   • Signup   │  │  • Classes  │
+│  │   • Export   │  │  • Voices    │  │              │  │  • Analytics│
+│  └──────────────┘  └──────────────┘  └──────────────┘  └─────────┘  │
+│                                                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │ Assignments  │  │ Notifications│  │   Progress   │               │
+│  │  • Create    │  │  • Bell      │  │  • XP/Levels │               │
+│  │  • Submit    │  │  • Panel     │  │  • Badges    │               │
+│  │  • Grade     │  │  • Real-time │  │  • Streaks   │               │
+│  └──────────────┘  └──────────────┘  └──────────────┘               │
+│                                                                       │
+│  ┌──────────────────────────────────────────────────────────┐        │
+│  │  Zustand Stores: Auth • DAW • Voices • Notifications     │        │
+│  └──────────────────────────────────────────────────────────┘        │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                   Supabase (Backend Services)                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐  │
+│  │  PostgreSQL  │  │   Auth API   │  │   Storage    │  │ Realtime│  │
+│  │   • 20+ Tables  │   • JWT      │  │   • Audio    │  │ • WS    │  │
+│  │   • RLS      │  │   • Sessions │  │   • Files    │  │ • Notify│  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └─────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                         External APIs & Services                      │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────────┐   │
+│  │  Suno API  │  │   MVSEP    │  │   Demucs   │  │ CORS Proxy   │   │
+│  │  • Music   │  │  • Stems   │  │  • Audio   │  │  • Box CDN   │   │
+│  │  • Loops   │  │  • Polling │  │  • Separate│  │  • Suno CDN  │   │
+│  └────────────┘  └────────────┘  └────────────┘  └──────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Design Patterns
@@ -160,23 +228,49 @@
    ```
 
 3. **Environment Setup**
-   
+
    Create a `.env` file in the project root:
    ```env
+   # Supabase (required)
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_SUNO_API_KEY=your_suno_api_key (optional)
+
+   # Suno API (optional - for AI music generation)
+   VITE_SUNO_API_KEY=your_suno_api_key
+
+   # Cloudinary (required - for assignment file uploads)
+   CLOUDINARY_API_KEY=your_cloudinary_api_key
+   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+   # MVSEP (required - for audio stem separation)
+   MVSEP_API_KEY=your_mvsep_api_key
    ```
 
 4. **Database Setup**
-   
-   Run the SQL schema from `src/lib/supabase.js` in your Supabase SQL Editor. This creates:
+
+   Run the following SQL files in your Supabase SQL Editor:
+
+   **Core Schema** (from `src/lib/supabase.js`):
    - `loops` table
    - `projects` table
    - `teachers` table
    - `students` table
    - `schools` table
-   - Row Level Security policies
+   - Basic Row Level Security policies
+
+   **Notifications System** ([src/lib/notifications_setup.sql](src/lib/notifications_setup.sql)):
+   - `notifications` table with indexes
+   - Real-time subscription setup
+   - Helper functions for creating notifications
+   - RLS policies for notifications
+
+   **Complete Schema** (see [Migration Guide](#migration-guide-for-february-2026-update)):
+   - Progress tracking tables
+   - Assignment and submission tables
+   - Classes and feedback tables
+   - All necessary indexes and constraints
+
+   Refer to [DATABASE_SETUP.md](DATABASE_SETUP.md) for detailed setup instructions.
 
 5. **Start Development Server**
    ```bash
@@ -318,6 +412,8 @@ djembe/
 │   ├── models/              # 3D model files (.glb)
 │   │   ├── low_poly_forest.glb
 │   │   └── viola_desmond_the_roseland_theatre.glb
+│   ├── ui assets/           # UI images & mascot assets
+│   │   └── djembe_faces.png # 3x3 sprite sheet of drum mascot faces
 │   └── vite.svg
 │
 ├── src/
@@ -328,12 +424,14 @@ djembe/
 │   │   │   │   ├── Assignments.jsx
 │   │   │   │   └── Settings.jsx
 │   │   │   ├── Auth/        # Authentication pages
-│   │   │   │   ├── Login.jsx
-│   │   │   │   ├── Signup.jsx
+│   │   │   │   ├── Login.tsx         # Dark glass login with drum face
+│   │   │   │   ├── Signup.tsx        # Multi-step carousel signup
 │   │   │   │   └── Profile.jsx
 │   │   │   ├── DAW-Lite/
 │   │   │   │   └── DAWLite.jsx
 │   │   │   ├── Home.jsx
+│   │   │   ├── Tutorials.tsx        # Tutorials page with fixed background
+│   │   │   ├── TeacherSubmissions.tsx # Teacher submissions review
 │   │   │   ├── To-Do.jsx
 │   │   │   └── Worlds.jsx
 │   │   └── react.svg
@@ -346,8 +444,11 @@ djembe/
 │   │   │   ├── checkbox.tsx
 │   │   │   ├── field.tsx
 │   │   │   ├── input.tsx
+│   │   │   ├── Sidebar.tsx                # Persistent sidebar navigation
 │   │   │   ├── cube-loader-dark.tsx       # 3D cube loading animation
-│   │   │   ├── tubelight-navbar-dark.tsx  # Dark navigation bar
+│   │   │   ├── tubelight-navbar-dark.tsx  # Bottom navigation bar (legacy)
+│   │   │   ├── NotificationBell.tsx       # Notification bell icon
+│   │   │   ├── NotificationPanel.tsx      # Notification slide-out panel
 │   │   │   └── DAW-Lite/                  # DAW-specific components
 │   │   │       ├── AILoopGenerator.jsx
 │   │   │       ├── Loopbutton.jsx
@@ -358,6 +459,9 @@ djembe/
 │   │   │       ├── Waveform.jsx
 │   │   │       ├── login-form.tsx
 │   │   │       └── signup-form.tsx
+│   │   ├── teacher/                       # Teacher-specific components
+│   │   │   ├── AssignmentForm.tsx         # Assignment create/edit form
+│   │   │   └── [other teacher components]
 │   │   ├── Voices/                        # Voices/Music components
 │   │   │   ├── VoicesPanel.tsx            # Music control panel in worlds
 │   │   │   ├── VoiceButton.tsx            # Individual voice toggle
@@ -375,14 +479,17 @@ djembe/
 │   │   ├── emailValidation.ts     # Email domain validation
 │   │   ├── sunoApi.js             # Suno API integration
 │   │   ├── supabase.js            # Supabase client & schema
-│   │   ├── teacherApi.js          # Teacher dashboard API functions
+│   │   ├── teacherApi.js          # Teacher dashboard & class management API
+│   │   ├── progressApi.js         # Student progress & analytics API
+│   │   ├── notificationApi.js     # Notification system API
 │   │   ├── voicesApi.js           # Suno + Demucs API integration
 │   │   └── utils.ts               # General utilities
 │   │
 │   ├── store/                     # Zustand stores
 │   │   ├── useAuthStore.js        # Authentication state
 │   │   ├── useStore.js            # DAW state management
-│   │   └── useVoicesStore.js      # Voices/music state management
+│   │   ├── useVoicesStore.js      # Voices/music state management
+│   │   └── useNotificationStore.js # Notification state & real-time subscriptions
 │   │
 │   ├── App.jsx                    # Main app component
 │   ├── App.css                    # Global styles
@@ -594,19 +701,20 @@ UI Update
 
 ## 🧭 Navigation System
 
-### NavBarDark Component
+### Sidebar Component (Primary Navigation)
 
-**File:** [src/components/ui/tubelight-navbar-dark.tsx](src/components/ui/tubelight-navbar-dark.tsx)
+**File:** [src/components/ui/Sidebar.tsx](src/components/ui/Sidebar.tsx)
 
-Modern navigation bar with glassmorphism design and smooth animations.
+Persistent sidebar navigation for all authenticated pages, with color-coded nav items and responsive mobile support.
 
 **Features:**
-- Dark theme with backdrop blur effects
-- Fixed bottom positioning for easy access
-- Icon-based navigation with labels
-- Active route highlighting
-- Smooth hover animations
-- Responsive design
+- Fixed left sidebar (220px desktop, 60px collapsed mobile)
+- Purple gradient background matching brand theme
+- Color-coded navigation items (unique accent per page)
+- Active state: full accent color background fill
+- User profile section with avatar, name, and sign-out
+- Notification bell integration
+- Mobile: tap-to-expand with animated overlay + backdrop
 
 **Props:**
 ```typescript
@@ -616,50 +724,51 @@ interface NavItem {
   icon: LucideIcon;       // Icon component
 }
 
-interface NavBarDarkProps {
-  items: NavItem[];       // Navigation items array
+interface SidebarProps {
+  items: NavItem[];
+  userProfile?: { first_name: string } | null;
+  onSignOut?: () => void;
 }
 ```
 
-**Usage in App:**
+**Nav Item Colors:**
 ```typescript
-const navItems = [
-  { name: 'Home', url: '/', icon: HomeIcon },
-  { name: 'DAW', url: '/daw', icon: Music },
-  { name: 'Assignments', url: '/assignments', icon: FileText },
-  { name: 'Worlds', url: '/world1', icon: Globe },
-];
-
-<NavBarDark items={navItems} />
+const itemColors = {
+  Home: "#F2C94C", DAW: "#D97746", Assignments: "#42C9C9",
+  Progress: "#E8627A", Tutorials: "#4ABA6E", Worlds: "#9B7DC8",
+  Settings: "#A0A0A0", Students: "#F2C94C", Submissions: "#E8627A",
+  Analytics: "#42C9C9", Projects: "#D97746",
+};
 ```
+
+**Desktop (≥768px):**
+- Fixed 220px sidebar with DJEMBE logo, nav list, bell, and user profile
+- Hover animations (scale 1.04) and tap feedback (scale 0.96)
+
+**Mobile (<768px):**
+- Collapsed 60px strip showing only icons
+- Tap strip to expand full sidebar with slide animation
+- Backdrop overlay (click to close)
+- Auto-close on route change and desktop resize
+
+**Styling:**
+- Background: `linear-gradient(180deg, #3E2468, #5B3D8F)`
+- Border: `1px solid rgba(155, 125, 200, 0.2)`
+- Active nav: accent color background, white text, bold
+- Inactive nav: `rgba(255,255,255,0.65)` text
+- User section: `rgba(255,255,255,0.06)` background
+
+### NavBarDark Component (Legacy)
+
+**File:** [src/components/ui/tubelight-navbar-dark.tsx](src/components/ui/tubelight-navbar-dark.tsx)
+
+Bottom navigation bar — previously the primary navigation, now used as a supplementary component.
 
 **Styling:**
 - Background: `bg-black/30` with `backdrop-blur-lg`
 - Border: `border border-white/10`
 - Active state: `bg-white/10` background
-- Hover state: `text-white` with scale transform
 - Rounded corners: `rounded-full`
-
-**Dynamic Items:**
-- Conditionally shows "Assignments" for students only
-- Authentication-based visibility
-- User type-specific navigation
-
-### User Profile Badge
-
-**Location:** Top-right corner of authenticated pages
-
-**Features:**
-- Displays user's first name
-- Logout button with icon
-- Glassmorphism styling matching nav bar
-- Fixed positioning (z-index 50)
-
-**Styling:**
-- Position: `fixed top-6 right-6`
-- Background: `bg-black/40` with `backdrop-blur-md`
-- Border: `border border-white/10`
-- Layout: Horizontal flex with divider
 
 ---
 
@@ -671,17 +780,21 @@ The authentication system uses Supabase Auth with custom user profiles stored in
 
 ### Flow
 
-1. **Sign Up**
+1. **Sign Up** (Multi-step carousel — Duolingo-style)
    ```
-   User submits form
+   Step 1: Select role (Student/Teacher)
        ↓
-   Create Supabase Auth user
+   Step 2: Enter first & last name
+       ↓
+   Step 3: Select school (with domain hints)
+       ↓
+   Step 4: Enter email & password
+       ↓
+   Step 5: Create Supabase Auth user
        ↓
    Create profile in Teachers/Students table
        ↓
-   Load user profile
-       ↓
-   Set authenticated state
+   Load user profile → Navigate to dashboard
    ```
 
 2. **Sign In**
@@ -1337,9 +1450,150 @@ export async function separateStems(audioUrl) {
 }
 ```
 
+### Cloudinary API
+
+**Purpose:** Cloud storage for assignment submission files
+
+**Configuration:**
+- Cloud Name: `dlvdj0xir`
+- Upload Preset: `djembe_assignments` (unsigned upload)
+- Base Folder: "Djembe Assignment Submissions"
+
+**Client Library** (`src/lib/cloudinaryApi.js`):
+
+**Core Functions:**
+
+1. **uploadToCloudinary(file, options)**
+   ```javascript
+   const result = await uploadToCloudinary(file, {
+     folder: "Djembe Assignment Submissions",
+     public_id: "custom_id",
+     onProgress: (percent) => console.log(`${percent}%`)
+   });
+   ```
+   - Generic upload function
+   - Progress tracking support
+   - Returns `{ success, data: { secure_url, public_id, ... } }`
+
+2. **uploadAssignmentSubmission(file, studentId, assignmentId, onProgress)**
+   ```javascript
+   const result = await uploadAssignmentSubmission(
+     file,
+     studentId,
+     assignmentId,
+     (progress) => console.log(`Upload: ${progress}%`)
+   );
+   // Returns Cloudinary secure_url for database storage
+   ```
+   - Specialized for assignment uploads
+   - Auto-generates organized file path
+   - Structure: `student_{id}/assignment_{id}/{timestamp}_{filename}`
+
+3. **validateFile(file, options)**
+   ```javascript
+   const validation = validateFile(file, {
+     maxSizeMB: 10,
+     allowedTypes: ['application/pdf', 'image/jpeg', ...]
+   });
+
+   if (!validation.valid) {
+     console.error(validation.errors);
+   }
+   ```
+   - Pre-upload validation
+   - Default 10MB size limit
+   - Checks allowed file types
+
+4. **getFileTypeDisplay(mimeType)**
+   ```javascript
+   const displayName = getFileTypeDisplay('application/pdf');
+   // Returns: "PDF Document"
+   ```
+   - Human-readable file type names
+
+**Supported File Types:**
+- **Images:** JPEG, JPG, PNG, GIF
+- **Documents:** PDF, DOC, DOCX, PPT, PPTX
+- **Audio:** MP3, WAV, MPEG
+- **Video:** MP4, QuickTime
+
+**File Organization Structure:**
+```
+Djembe Assignment Submissions/
+├── student_uuid-abc123/
+│   ├── assignment_uuid-xyz789/
+│   │   ├── 1738000000000_Essay.pdf
+│   │   └── 1738000001000_Presentation.pptx
+│   └── assignment_uuid-def456/
+│       └── 1738000002000_Audio.mp3
+└── student_uuid-def456/
+    └── assignment_uuid-xyz789/
+        └── 1738000003000_Video.mp4
+```
+
+**Cloudinary Setup Instructions:**
+
+To enable uploads, create an unsigned upload preset:
+
+1. Log in to [Cloudinary Dashboard](https://cloudinary.com/console)
+2. Navigate to **Settings → Upload → Upload presets**
+3. Click **"Add upload preset"**
+4. Configure:
+   - **Upload preset name:** `djembe_assignments`
+   - **Signing Mode:** **Unsigned** (allows client-side uploads)
+   - **Folder:** `Djembe Assignment Submissions`
+   - **Resource type:** Auto
+5. Click **Save**
+
+**Environment Variables:**
+```env
+# Required for Cloudinary integration
+CLOUDINARY_API_KEY=your_api_key_here
+CLOUDINARY_API_SECRET=your_api_secret_here
+```
+
+**Security Notes:**
+- Unsigned uploads allow direct browser-to-Cloudinary transfers
+- Files are public but not indexed (security through obscurity)
+- 10MB size limit enforced client-side
+- File type validation prevents malicious uploads
+- For production, consider implementing signed uploads
+
+**Usage in Assignment Submission:**
+```javascript
+import { uploadAssignmentSubmission, validateFile } from '@/lib/cloudinaryApi';
+
+// 1. Validate file
+const validation = validateFile(file);
+if (!validation.valid) {
+  alert(`Invalid file: ${validation.errors.join(', ')}`);
+  return;
+}
+
+// 2. Upload to Cloudinary
+const uploadResult = await uploadAssignmentSubmission(
+  file,
+  studentId,
+  assignmentId,
+  (progress) => setUploadProgress(progress)
+);
+
+// 3. Save URL to database
+if (uploadResult.success) {
+  await supabase.from('submissions').insert({
+    assignment_id: assignmentId,
+    student_id: studentId,
+    file_url: uploadResult.data.secure_url,
+    file_name: file.name
+  });
+}
+```
+
+---
+
 ### Supabase API
 
-**Purpose:** Backend services (database, auth, storage)
+**Purpose:** Backend services (database, auth)
 
 **Client Configuration** (`src/lib/supabase.js`):
 ```javascript
@@ -2976,10 +3230,9 @@ newAction: (param) => {
 - Dynamic navigation items based on user role and authentication status
 
 **Loading Experience**
-- Added new [LoadingContext](src/contexts/LoadingContext.tsx) for global loading state management
-- Implemented [CubeLoaderDark](src/components/ui/cube-loader-dark.tsx) component with 3D cube animation
-- Full-screen loading overlays with smooth transitions using Framer Motion
-- Contextual loading messages and sub-messages
+- ~~Added new [LoadingContext](src/contexts/LoadingContext.tsx) for global loading state management~~ *(Removed in v3.1)*
+- ~~Implemented [CubeLoaderDark](src/components/ui/cube-loader-dark.tsx) component with 3D cube animation~~ *(Removed in v3.1)*
+- Loading overlay removed in favor of direct page rendering for faster perceived load times
 
 **User Profile Display**
 - Added fixed top-right user profile badge showing first name
@@ -3354,6 +3607,1199 @@ MVSEP_API_KEY=your_mvsep_api_key
 
 ---
 
-**Documentation Version:** 2.2
-**Last Updated:** January 24, 2026
+## 📚 Version History
+
+---
+
+### February 2026 - Major Feature Update: Notifications, Progress Tracking & Teacher Dashboard
+
+This update represents a significant expansion of the platform with comprehensive teacher tools, student progress tracking, real-time notifications, and mobile optimization.
+
+#### Real-Time Notification System
+
+**Overview:** Complete notification infrastructure for student-teacher communication and system alerts.
+
+**New Components:**
+- [NotificationBell.tsx](src/components/ui/NotificationBell.tsx) - Bell icon with unread count badge
+- [NotificationPanel.tsx](src/components/ui/NotificationPanel.tsx) - Slide-out notification panel
+
+**Features:**
+- **Real-time notifications** via Supabase Realtime (PostgreSQL subscriptions)
+- **Browser notifications** with permission request system
+- **Unread count badge** with animated appearance
+- **Time-based grouping** (Today, This Week, Earlier)
+- **Relative timestamps** (e.g., "2m ago", "1h ago")
+- **Click-to-navigate** to relevant pages
+- **Mark as read** individual or bulk actions
+
+**Notification Types:**
+
+*Student Notifications:*
+```javascript
+ASSIGNMENT_CREATED     // "New Assignment" - "Title" assigned, due date
+ASSIGNMENT_GRADED      // "Assignment Graded" - Score received
+FEEDBACK_RECEIVED      // "New Feedback" - Teacher comment
+DUE_DATE_REMINDER      // "Reminder" - Assignment due soon
+```
+
+*Teacher Notifications:*
+```javascript
+SUBMISSION_RECEIVED    // "New Submission" - Student submitted work
+LATE_SUBMISSION        // "Late Submission" - Student submitted late
+```
+
+**Database Schema:**
+```sql
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID NOT NULL,
+  recipient_type VARCHAR(20) NOT NULL, -- 'student' or 'teacher'
+  type VARCHAR(50) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  data JSONB DEFAULT '{}',
+  read BOOLEAN DEFAULT FALSE,
+  read_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_notifications_recipient ON notifications(recipient_id, recipient_type);
+CREATE INDEX idx_notifications_unread ON notifications(recipient_id, read) WHERE read = FALSE;
+CREATE INDEX idx_notifications_created ON notifications(created_at DESC);
+CREATE INDEX idx_notifications_type ON notifications(type);
+```
+
+**API Functions** ([notificationApi.js](src/lib/notificationApi.js)):
+```javascript
+// Single notification
+createNotification({ recipientId, recipientType, type, title, message, data })
+
+// Bulk notifications
+createBulkNotifications(notifications)
+
+// Specialized notification creators
+notifyStudentsNewAssignment({ schoolId, assignmentId, assignmentTitle, dueDate, description })
+notifyStudentFeedback({ studentId, assignmentId, assignmentTitle, score, feedbackPreview })
+notifyTeacherSubmission({ teacherId, studentId, studentName, assignmentId, assignmentTitle, isLate })
+
+// Utilities
+getNotificationIcon(type)        // Returns emoji
+getNotificationLink(type, data)  // Returns route path
+```
+
+**State Management** ([useNotificationStore.js](src/store/useNotificationStore.js)):
+```javascript
+const {
+  notifications,           // Array of notification objects
+  unreadCount,            // Number of unread notifications
+  loadNotifications,      // Fetch from database
+  subscribeToNotifications, // Real-time subscription
+  markAsRead,            // Mark single as read
+  markAllAsRead,         // Bulk mark read
+  showBrowserNotification, // Native browser notification
+  requestNotificationPermission // Request Notification API access
+} = useNotificationStore();
+```
+
+**Integration Points:**
+- **Assignment creation** → Auto-notifies all school students
+- **Assignment submission** → Notifies teacher (with late status)
+- **Feedback/Grading** → Notifies student
+- **Navbar integration** → Bell icon always visible when authenticated
+
+---
+
+#### Enhanced Assignment System
+
+**Complete Overhaul:** Full-featured assignment management for teachers and students.
+
+**Files Modified/Created:**
+- [Assignments.tsx](src/assets/pages/Assignments.tsx) - Student assignment view
+- [AssignmentForm.tsx](src/components/teacher/AssignmentForm.tsx) - Teacher assignment creation
+- [teacherApi.js](src/lib/teacherApi.js) - Backend API functions
+
+**Student Features** (Assignments.tsx):
+- **View all assignments** for school
+- **Submission interface** with file upload modal
+- **Due date tracking** with formatted display (e.g., "Mon, Feb 3")
+- **Status indicators**:
+  - Pending (not submitted)
+  - Submitted (with timestamp)
+  - Graded (with score)
+- **File upload** to Supabase Storage with public URLs
+- **Progress tracking integration** - Records submission time, late status
+- **Automatic notifications** - Teacher notified on submission
+
+**Teacher Features** (AssignmentForm.tsx):
+- **Create assignments** via modal form
+- **Edit existing assignments**
+- **Assignment types:**
+  - `upload` - File submission (PDF, images, documents)
+  - `project` - DAW project submission
+- **Class selection** - Assign to specific classes or all students
+- **Due date picker** with validation
+- **Rich text description** support
+- **Auto-notification** - All students notified on creation
+
+**Database Tables:**
+
+*Assignments:*
+```sql
+CREATE TABLE assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+  school_id UUID NOT NULL REFERENCES schools(school_id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(class_id) ON DELETE SET NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  due_date TIMESTAMP WITH TIME ZONE,
+  assignment_type VARCHAR(50) DEFAULT 'upload', -- 'upload' or 'project'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+*Submissions:*
+```sql
+CREATE TABLE submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  file_url VARCHAR(500),
+  file_name VARCHAR(255),
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+*Feedback:*
+```sql
+CREATE TABLE feedback (
+  feedback_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  teacher_id UUID NOT NULL REFERENCES teachers(teacher_id),
+  comment TEXT,
+  score INT CHECK (score >= 0 AND score <= 100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**API Functions** (teacherApi.js):
+```javascript
+// Assignment CRUD
+createAssignment(teacherId, schoolId, { title, description, dueDate, assignmentType, classId })
+updateAssignment(assignmentId, updates)
+deleteAssignment(assignmentId)
+getTeacherAssignments(schoolId)
+getAssignmentWithSubmissions(assignmentId, schoolId, classId?)
+
+// Feedback/Grading
+createFeedback(teacherId, { submissionId, comment, score })
+updateFeedback(feedbackId, { comment, score })
+getFeedbackForSubmission(submissionId)
+getTeacherFeedback(teacherId)
+```
+
+**Integration with Progress System:**
+- Submission records activity in `xp_activities` table
+- Awards XP based on on-time vs late submission
+- Updates `assignments_completed` counter
+- Tracks streak continuity
+
+**File Storage - Cloudinary Integration:**
+- All assignment submissions stored in Cloudinary cloud storage
+- Files organized in "Djembe Assignment Submissions" folder
+- Hierarchical structure: `student_{id}/assignment_{id}/{timestamp}_{filename}`
+- Supported file types:
+  - Images: JPEG, PNG, GIF
+  - Documents: PDF, DOC, DOCX, PPT, PPTX
+  - Audio: MP3, WAV
+  - Video: MP4, QuickTime
+- Maximum file size: 10MB
+- Client-side file validation
+- Cloudinary secure URLs saved to database
+- Direct file access from teacher dashboard
+
+---
+
+#### Teacher Submissions View
+
+**Overview:** Comprehensive interface for reviewing and grading student assignment submissions.
+
+**File:** [TeacherSubmissions.tsx](src/assets/pages/TeacherSubmissions.tsx)
+
+**Key Features:**
+
+**Assignment List View:**
+- Grid display of all teacher-created assignments
+- Each card shows:
+  - Assignment title and description
+  - Due date
+  - Click to view submissions
+- Responsive card layout with hover effects
+
+**Detailed Submissions Table:**
+- Comprehensive table view with columns:
+  1. **Student** - Full name
+  2. **Status** - Color-coded badge (Pending/On Time/Late)
+  3. **Submitted At** - Date and time of submission
+  4. **File** - Download link with original filename
+  5. **Grade** - Score out of 100 (if graded)
+  6. **Actions** - Feedback/grading button
+
+- Status badges:
+  - 🟡 Yellow: Pending (not yet submitted)
+  - 🟢 Green: On Time (before due date)
+  - 🔴 Red: Late (after due date)
+
+**Grading Modal:**
+- Score input (0-100 scale)
+- Comment text area for detailed feedback
+- Save/update feedback
+- Automatically notifies student when feedback is given
+- Edit existing feedback anytime
+
+**Class Filtering:**
+- Dropdown to filter submissions by class
+- "All Classes" option available
+- Real-time filter updates
+
+**File Management:**
+- Direct links to Cloudinary-hosted files
+- Opens in new tab for viewing/downloading
+- Supports all uploaded file types
+- Original filenames preserved
+
+**Navigation:**
+- Accessible via `/teacher/submissions` route
+- Added to teacher navigation bar with FileCheck icon
+- Protected route (teacher-only access)
+
+---
+
+#### Comprehensive Teacher Dashboard
+
+**Overview:** Full-featured dashboard for monitoring student progress and class analytics.
+
+**File:** [TeacherDashboard.tsx](src/assets/pages/TeacherDashboard.tsx)
+
+**Dashboard Sections:**
+
+**1. Statistics Overview**
+```javascript
+{
+  totalStudents: number,
+  averageLevel: number,
+  totalAssignments: number,
+  totalProjects: number,
+  activeStreaks: number  // Students with 3+ day streak
+}
+```
+
+**2. Class Filter**
+- Dropdown to filter by specific class
+- "All Classes" view by default
+- Updates student list and statistics
+
+**3. Students List Table**
+Displays for each student:
+- Full name
+- Email address
+- Current level (colored badge)
+- Total XP earned
+- Projects created count
+- Current streak (with 🔥 icon if 3+)
+- Click row to view detailed progress
+
+**4. Student Detail Modal**
+When clicking a student:
+- **Progress Summary Card:**
+  - Level with progress bar to next level
+  - Total XP
+  - Projects created
+  - Assignments completed
+  - Time spent (hours and minutes)
+  - Current & longest streak
+
+- **Badges Section:**
+  - Visual badge display with icons
+  - Badge names and descriptions
+  - Unlock dates
+
+- **Recent Activity Timeline:**
+  - Last 30 activities
+  - Activity type and description
+  - XP awarded
+  - Formatted timestamps
+
+**5. Quick Action Cards**
+- Navigate to Assignments management
+- Navigate to Analytics
+- Navigate to Projects review
+
+**API Functions** ([progressApi.js](src/lib/progressApi.js)):
+```javascript
+// Dashboard data
+getStudentsWithProgress(schoolId, classFilter?)
+  // Returns: students with progress summary, sorted by level DESC
+
+getStudentDetailedProgress(studentId)
+  // Returns: { summary, badges, recentActivities, dailyActivity }
+
+getClassStatistics(schoolId, classFilter?)
+  // Returns: aggregated class stats
+
+// Difficulty detection
+getStudentDifficulties(schoolId, classFilter?)
+  // Returns: students with detected issues (inactivity, low XP, missed assignments, etc.)
+```
+
+---
+
+#### Student Progress Tracking System
+
+**Overview:** Gamified XP system with levels, badges, and streaks to engage students.
+
+**Database Tables:**
+
+*Student Progress (Summary):*
+```sql
+CREATE TABLE student_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID UNIQUE NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  total_xp INT DEFAULT 0,
+  current_level INT DEFAULT 1,
+  xp_to_next_level INT DEFAULT 100,
+  assignments_completed INT DEFAULT 0,
+  projects_created INT DEFAULT 0,
+  projects_exported INT DEFAULT 0,
+  loops_placed_total INT DEFAULT 0,
+  total_time_minutes INT DEFAULT 0,
+  current_streak INT DEFAULT 0,
+  longest_streak INT DEFAULT 0,
+  last_activity_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+*XP Activities (Log):*
+```sql
+CREATE TABLE xp_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  activity_type VARCHAR(100) NOT NULL,
+  activity_reference_id UUID,
+  xp_awarded INT NOT NULL,
+  description TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_xp_activities_student ON xp_activities(student_id, created_at DESC);
+CREATE INDEX idx_xp_activities_type ON xp_activities(activity_type);
+```
+
+*Student Badges:*
+```sql
+CREATE TABLE student_badges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  badge_id UUID NOT NULL REFERENCES badge_definitions(id) ON DELETE CASCADE,
+  unlocked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  unlock_context JSONB DEFAULT '{}',
+  UNIQUE(student_id, badge_id)
+);
+```
+
+*Badge Definitions:*
+```sql
+CREATE TABLE badge_definitions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  badge_key VARCHAR(100) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  icon VARCHAR(50),              -- Emoji or icon identifier
+  category VARCHAR(50),          -- 'beginner', 'intermediate', 'advanced', 'special'
+  xp_reward INT DEFAULT 0,
+  unlock_criteria JSONB NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+*Daily Activity:*
+```sql
+CREATE TABLE daily_activity (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  activity_date DATE NOT NULL,
+  login_recorded BOOLEAN DEFAULT FALSE,
+  daw_time_minutes INT DEFAULT 0,
+  loops_placed INT DEFAULT 0,
+  projects_saved INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(student_id, activity_date)
+);
+
+CREATE INDEX idx_daily_activity_student_date ON daily_activity(student_id, activity_date DESC);
+```
+
+**XP Award Activities:**
+- Login (daily) - 10 XP
+- Project saved - 20 XP
+- Project exported - 30 XP
+- Assignment submitted (on-time) - 50 XP
+- Assignment submitted (late) - 25 XP
+- Loop placed - 2 XP
+- 30 minutes in DAW - 15 XP
+- 3-day streak maintained - 50 XP
+- 7-day streak maintained - 100 XP
+
+**Leveling System:**
+- Level 1: 0 XP (starting)
+- Each level: `XP_required = previous_level_XP * 1.15` (15% increase)
+- Example progression:
+  - Level 1 → 2: 100 XP
+  - Level 2 → 3: 115 XP
+  - Level 3 → 4: 132 XP
+  - Level 10 → 11: ~305 XP
+
+**Streak System:**
+- **Current streak**: Consecutive days with activity
+- **Longest streak**: Historical best streak
+- **Activity threshold**: Any XP-earning action counts
+- **Streak breaks**: Missing a day resets current streak to 0
+- **Streak rewards**: XP bonuses at 3, 7, 14, 30, 60, 100 days
+
+---
+
+#### Class Management System
+
+**Overview:** Teachers can organize students into classes for better assignment targeting and analytics.
+
+**Database Table:**
+```sql
+CREATE TABLE classes (
+  class_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+  school_id UUID NOT NULL REFERENCES schools(school_id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add class_id to students table
+ALTER TABLE students ADD COLUMN class_id UUID REFERENCES classes(class_id) ON DELETE SET NULL;
+```
+
+**API Functions** (teacherApi.js):
+```javascript
+// Class CRUD
+getTeacherClasses(teacherId)
+createClass(teacherId, schoolId, name)
+updateClass(classId, name)
+deleteClass(classId)
+
+// Students in class
+getClassStudents(classId)
+assignStudentToClass(studentId, classId)
+removeStudentFromClass(studentId)
+```
+
+**Features:**
+- Filter assignments by class
+- Filter dashboard statistics by class
+- Class-specific analytics
+- Bulk assignment distribution
+
+---
+
+#### Student Difficulty Detection System
+
+**Purpose:** Help teachers identify struggling students early.
+
+**Detection Categories:**
+
+**1. Inactivity**
+```javascript
+{
+  type: "inactivity",
+  severity: "high" | "medium",
+  message: "No activity in 14+ days" | "No activity in 7+ days"
+}
+```
+
+**2. Low XP Gain Rate**
+```javascript
+{
+  type: "low_xp_rate",
+  severity: "high" | "medium",
+  message: "Earning <10 XP/day" | "Earning <20 XP/day"
+}
+```
+
+**3. Missed Assignments**
+```javascript
+{
+  type: "missed_assignments",
+  severity: "high" | "medium",
+  message: "3+ missed assignments" | "2 missed assignments"
+}
+```
+
+**4. Broken Streaks**
+```javascript
+{
+  type: "broken_streak",
+  severity: "low",
+  message: "Lost 5-day streak"
+}
+```
+
+**5. Low Engagement Time**
+```javascript
+{
+  type: "low_engagement",
+  severity: "high" | "medium",
+  message: "Averaging <5 min/day" | "Averaging <15 min/day"
+}
+```
+
+**API Function:**
+```javascript
+getStudentDifficulties(schoolId, classFilter?)
+// Returns: [
+//   {
+//     student: { student_id, first_name, last_name, email },
+//     issues: [{ type, severity, message }],
+//     maxSeverity: "high" | "medium" | "low",
+//     summary: { total_xp, current_level, assignments_completed, ... }
+//   }
+// ]
+// Sorted by: high severity first, then medium, then low
+```
+
+**Usage in Dashboard:**
+- Red/yellow/blue badges for severity
+- Quick filtering of struggling students
+- Direct links to student detail view
+
+---
+
+#### Mobile Responsiveness Enhancements
+
+**Recent Commits:**
+- 7fcf3a5: "Refactor layout and styles for improved UI consistency"
+- 6e77859: "Enhance UI responsiveness and improve mobile experience"
+
+**Navigation Updates** ([tubelight-navbar-dark.tsx](src/components/ui/tubelight-navbar-dark.tsx)):
+
+**Desktop View (≥768px):**
+- Horizontal navbar at bottom
+- Icons with labels
+- Fixed positioning
+- Active tab highlighting
+
+**Mobile View (<768px):**
+- Hamburger menu button (top-right)
+- Slide-in menu panel
+- Full navigation list
+- Notification bell in header
+- Auto-close on route change
+- Auto-collapse on resize to desktop
+
+**Responsive Features:**
+```javascript
+// Window resize listener
+window.addEventListener("resize", handleResize)
+
+// Mobile detection
+const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+// Menu state management
+const [menuOpen, setMenuOpen] = useState(false)
+```
+
+**Mobile Optimizations Across Components:**
+- **Breakpoints:** `sm:`, `md:`, `lg:` Tailwind classes
+- **Typography:** Responsive font sizes (text-sm on mobile, text-base on desktop)
+- **Spacing:** Adaptive padding (px-4 sm:px-6 lg:px-8)
+- **Grids:** Single column on mobile, multi-column on desktop
+- **Touch targets:** Minimum 44×44px for buttons
+- **Modals:** Full-screen on mobile, centered on desktop
+- **Tables:** Horizontal scroll or card layout on mobile
+
+**Device Orientation Handling:**
+- Landscape mode detection
+- Adaptive layouts for portrait vs landscape
+- Audio preview positioning adjustments
+- DAW-Lite timeline scaling
+
+---
+
+#### Additional Improvements
+
+**Performance:**
+- Optimized database queries with proper indexes
+- Session storage caching for audio stems
+- Lazy loading of components
+- Debounced search inputs
+- Pagination for long lists
+
+**Security:**
+- Row-Level Security (RLS) policies on all tables
+- Teacher can only access own school's data
+- Students can only view own progress
+- File upload size limits (10MB)
+- Allowed file type validation
+
+**User Experience:**
+- Loading states with skeleton screens
+- Error boundaries for graceful error handling
+- Toast notifications for user actions
+- Confirmation dialogs for destructive actions
+- Keyboard shortcuts for common actions
+- Accessible ARIA labels throughout
+
+**Code Quality:**
+- TypeScript migration for new components
+- Consistent error handling patterns
+- Comprehensive JSDoc comments
+- Modular API functions
+- Reusable UI components
+
+---
+
+### Migration Guide for February 2026 Update
+
+**1. Database Migrations:**
+
+Run these SQL migrations in your Supabase SQL Editor:
+
+```sql
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID NOT NULL,
+  recipient_type VARCHAR(20) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  data JSONB DEFAULT '{}',
+  read BOOLEAN DEFAULT FALSE,
+  read_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, recipient_type);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(recipient_id, read) WHERE read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+
+-- Classes table
+CREATE TABLE IF NOT EXISTS classes (
+  class_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+  school_id UUID NOT NULL REFERENCES schools(school_id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE students ADD COLUMN IF NOT EXISTS class_id UUID REFERENCES classes(class_id) ON DELETE SET NULL;
+
+-- Assignments table updates
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS school_id UUID REFERENCES schools(school_id) ON DELETE CASCADE;
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS class_id UUID REFERENCES classes(class_id) ON DELETE SET NULL;
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS assignment_type VARCHAR(50) DEFAULT 'upload';
+
+-- Submissions table updates
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_url VARCHAR(500);
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_name VARCHAR(255);
+
+-- Feedback table
+CREATE TABLE IF NOT EXISTS feedback (
+  feedback_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  teacher_id UUID NOT NULL REFERENCES teachers(teacher_id),
+  comment TEXT,
+  score INT CHECK (score >= 0 AND score <= 100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Progress tracking tables
+CREATE TABLE IF NOT EXISTS student_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID UNIQUE NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  total_xp INT DEFAULT 0,
+  current_level INT DEFAULT 1,
+  xp_to_next_level INT DEFAULT 100,
+  assignments_completed INT DEFAULT 0,
+  projects_created INT DEFAULT 0,
+  projects_exported INT DEFAULT 0,
+  loops_placed_total INT DEFAULT 0,
+  total_time_minutes INT DEFAULT 0,
+  current_streak INT DEFAULT 0,
+  longest_streak INT DEFAULT 0,
+  last_activity_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS xp_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  activity_type VARCHAR(100) NOT NULL,
+  activity_reference_id UUID,
+  xp_awarded INT NOT NULL,
+  description TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_xp_activities_student ON xp_activities(student_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS badge_definitions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  badge_key VARCHAR(100) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  icon VARCHAR(50),
+  category VARCHAR(50),
+  xp_reward INT DEFAULT 0,
+  unlock_criteria JSONB NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS student_badges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  badge_id UUID NOT NULL REFERENCES badge_definitions(id) ON DELETE CASCADE,
+  unlocked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  unlock_context JSONB DEFAULT '{}',
+  UNIQUE(student_id, badge_id)
+);
+
+CREATE TABLE IF NOT EXISTS daily_activity (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+  activity_date DATE NOT NULL,
+  login_recorded BOOLEAN DEFAULT FALSE,
+  daw_time_minutes INT DEFAULT 0,
+  loops_placed INT DEFAULT 0,
+  projects_saved INT DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(student_id, activity_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_activity_student_date ON daily_activity(student_id, activity_date DESC);
+```
+
+**2. Row Level Security Policies:**
+
+Apply comprehensive RLS policies:
+
+```sql
+-- Notifications: Users see only their own
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own notifications" ON notifications
+  FOR SELECT USING (
+    auth.uid()::text IN (
+      SELECT student_id::text FROM students WHERE student_id = notifications.recipient_id
+      UNION
+      SELECT teacher_id::text FROM teachers WHERE teacher_id = notifications.recipient_id
+    )
+  );
+
+CREATE POLICY "Users can update own notifications" ON notifications
+  FOR UPDATE USING (
+    auth.uid()::text IN (
+      SELECT student_id::text FROM students WHERE student_id = notifications.recipient_id
+      UNION
+      SELECT teacher_id::text FROM teachers WHERE teacher_id = notifications.recipient_id
+    )
+  );
+
+-- Student Progress: Students view own, teachers view school
+ALTER TABLE student_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Students can view own progress" ON student_progress
+  FOR SELECT USING (
+    student_id = (SELECT student_id FROM students WHERE student_id::text = auth.uid()::text)
+  );
+
+CREATE POLICY "Teachers can view school progress" ON student_progress
+  FOR SELECT USING (
+    student_id IN (
+      SELECT s.student_id FROM students s
+      INNER JOIN teachers t ON s.school_id = t.school_id
+      WHERE t.teacher_id::text = auth.uid()::text
+    )
+  );
+
+-- Similar policies for other tables...
+```
+
+**3. Environment Variables:**
+
+No new environment variables required for this update. Existing variables remain the same:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUNO_API_KEY=your_suno_api_key
+MVSEP_API_KEY=your_mvsep_api_key
+```
+
+**4. Dependencies:**
+
+All dependencies are already included in package.json. Run:
+```bash
+npm install
+```
+
+**5. Clear Browser Storage:**
+
+Users should clear browser storage to reset any cached state:
+```javascript
+// In browser console:
+localStorage.clear();
+sessionStorage.clear();
+```
+
+**6. Test Notifications:**
+
+After deployment, test notification system:
+1. Create an assignment as teacher
+2. Verify students receive notification
+3. Submit assignment as student
+4. Verify teacher receives notification
+5. Test browser notification permission flow
+
+---
+
+### February 2026 - UI/UX Overhaul: Carousel Signup, Sidebar Navigation & Dark Glass Theme
+
+This update focuses on modernizing the authentication pages and navigation, making the experience more engaging and kid-friendly.
+
+#### Carousel Signup Redesign (Duolingo-Style)
+
+**Overview:** Complete rewrite of the signup page from a single-form layout into a fun, multi-step carousel with mascot drum faces — inspired by Duolingo's onboarding flow.
+
+**File:** [Signup.tsx](src/assets/pages/Auth/Signup.tsx)
+
+**Carousel Steps:**
+
+| Step | Title | Content | Drum Face |
+|------|-------|---------|-----------|
+| 1 | "Who are you?" | Student/Teacher role selection (auto-advances on click) | Happy/smiling |
+| 2 | "What's your name?" | First name + Last name inputs | Surprised |
+| 3 | "Where do you learn?" | School dropdown with domain hints | Music/sleepy |
+| 4 | "Almost there!" | Email + Password + Remember device | Determined |
+| 5 | "Creating account..." | Loading animation → success checkmark → auto-navigate | Happy (bouncing) |
+
+**Sprite Sheet System:**
+- Asset: `public/ui assets/djembe_faces.png` — 3x3 grid of drum mascot expressions
+- Extracted via CSS `background-size: 300% 300%` and `background-position` offsets
+- Inline `DrumFace` component renders any face by row/col coordinates
+- Faces scale+bounce on each step transition
+
+**New State & Functions:**
+```typescript
+const [currentStep, setCurrentStep] = useState(1);   // Active carousel step (1-5)
+const [direction, setDirection] = useState<1 | -1>(1); // Slide animation direction
+
+goNext()          // Advance step with direction=1
+goBack()          // Go back with direction=-1
+canAdvance()      // Per-step validation (names? school? email+password?)
+handleFinalSubmit() // Advances to step 5, calls signUp(), handles errors
+```
+
+**Animation:**
+- Framer Motion `AnimatePresence mode="wait"` with custom `slideVariants`
+- Horizontal slide transitions (300px) with direction-awareness
+- Progress dots: 4 Duolingo-style pills, active dot stretches wider
+- Step 5: bouncing drum face + animated loading dots → spring checkmark
+
+**Preserved Business Logic:**
+- `loadSchools()` with Supabase loading and error handling
+- `selectedSchool` and `allowedDomains` memos
+- Email domain validation with `validateEmailDomain()`
+- Error display and cleanup effects
+- Google Sign In button (step 4 below card)
+- Terms of Service and Privacy Policy links
+
+---
+
+#### Login Page Dark Glass Treatment
+
+**Overview:** Transformed the login page from a white card to a frosted purple glass card matching the signup carousel style.
+
+**File:** [Login.tsx](src/assets/pages/Auth/Login.tsx)
+
+**Changes:**
+- **Card background**: `linear-gradient(145deg, rgba(91,61,143,0.85), rgba(62,36,104,0.92))` with `backdrop-filter: blur(20px)`
+- **Drum face mascot**: Happy face from sprite sheet added at top of card
+- **Text colors**: Headings → white, subtexts → `text-white/60`
+- **Input fields**: Frosted glass style (`rgba(255,255,255,0.08)` background, white text, `rgba(255,255,255,0.2)` borders)
+- **Icons**: Changed from `#9B7DC8` to `rgba(255,255,255,0.4)`
+- **Google Sign In**: Moved below card with glass styling (`bg-white/10 backdrop-blur`)
+- **Links**: "Forgot password?" → yellow (`#F2C94C`), "Sign up" → yellow
+- **Remember device**: Text changed to `text-white/60`
+
+---
+
+#### Sidebar Navigation
+
+**Overview:** New persistent sidebar navigation replacing the bottom navbar for authenticated pages.
+
+**File:** [Sidebar.tsx](src/components/ui/Sidebar.tsx)
+
+**Features:**
+- **Desktop (≥768px)**: Fixed 220px sidebar with logo, nav items, notification bell, and user profile
+- **Mobile (<768px)**: Collapsed 60px icon strip, tap to expand with animated slide-in overlay
+- **Color-coded nav items**: Each page has a unique accent color (Home=yellow, DAW=orange, Assignments=teal, etc.)
+- **Active state**: Full background color fill on active item
+- **User profile section**: Avatar initial, name, and sign-out button
+- **Auto-collapse**: Closes on route change (mobile) and window resize to desktop
+
+**Nav Item Colors:**
+```typescript
+const itemColors = {
+  Home: "#F2C94C", DAW: "#D97746", Assignments: "#42C9C9",
+  Progress: "#E8627A", Tutorials: "#4ABA6E", Worlds: "#9B7DC8",
+  Settings: "#A0A0A0", Students: "#F2C94C", Submissions: "#E8627A",
+  Analytics: "#42C9C9", Projects: "#D97746",
+};
+```
+
+---
+
+#### Auth Page Navigation Simplification
+
+**Changes to both Login and Signup pages:**
+- Removed "Log In" / "Sign Up" buttons from nav
+- Removed "Home" link and dividers
+- Nav now shows only the DJEMBE colorful logo
+- Cleaner, less cluttered header
+
+---
+
+#### Loading Overlay Removal
+
+**Files Modified:**
+- [App.jsx](src/App.jsx) — Removed `LoadingOverlay` component, `CubeLoaderDark` import, `useLoading` import
+
+**Reason:** The cube loader was unnecessary and created a jarring experience. Pages now render directly.
+
+---
+
+#### Page Layout & Spacing Fixes
+
+**Assignments Page** ([Assignments.tsx](src/assets/pages/Assignments.tsx)):
+- Changed `h-screen` to `min-h-screen` (prevents content cutoff)
+- Changed `overflow-hidden` to `overflow-x-hidden` (allows vertical scrolling)
+- Added `pb-8` for bottom padding
+- Adjusted `maxHeight` and added `minHeight: 'fit-content'`
+
+**Student Progress Page** ([StudentProgress.tsx](src/assets/pages/StudentProgress.tsx)):
+- Changed `overflow-hidden` to `overflow-x-hidden`
+- Increased top padding from `pt-6` to `pt-16`
+
+**Tutorials Page** ([Tutorials.tsx](src/assets/pages/Tutorials.tsx)):
+- Changed `overflow-hidden` to `overflow-x-hidden`
+- Increased top padding from `pt-6` to `pt-16`
+- Made background gradient, blobs, and floating elements `fixed` instead of `absolute` (background stays in place while content scrolls)
+- Removed top fade overlay div
+- Removed loading state entirely (loading variable, setLoading calls, loading return block)
+
+---
+
+### Known Issues & Future Improvements
+
+**Current Limitations:**
+- Notifications limited to last 50 per user (pagination needed)
+- Badge system requires manual definition in database
+- Difficulty detection runs on-demand (no automated alerts yet)
+- File uploads limited to 10MB (Supabase free tier)
+
+**Planned Features:**
+- Email notification digest (daily/weekly)
+- Push notifications for mobile PWA
+- Advanced analytics dashboard with charts
+- Automated badge unlocking on criteria match
+- Assignment templates library
+- Bulk student import/export
+- Parent portal for progress viewing
+- Multi-language support
+
+---
+
+## 🔗 API Endpoints Reference
+
+**Vercel Serverless Functions:**
+
+All API routes are located in the `api/` directory and deployed as serverless functions.
+
+### Audio Processing
+
+**POST /api/separate**
+- **Purpose**: Start audio stem separation job
+- **Body**: `{ audioUrl: string }`
+- **Returns**: `{ hash: string }` - Job ID for polling
+- **Timeout**: <10 seconds (just starts job)
+
+**GET /api/separate-status**
+- **Purpose**: Check stem separation job status
+- **Query**: `?hash={jobHash}`
+- **Returns**:
+  ```json
+  {
+    "status": "processing" | "done" | "failed",
+    "stems": {
+      "drums": "url",
+      "bass": "url",
+      "guitar": "url",
+      "piano": "url",
+      "vocals": "url",
+      "other": "url"
+    }
+  }
+  ```
+- **Timeout**: <5 seconds (just checks status)
+
+**GET /api/proxy-audio**
+- **Purpose**: CORS proxy for external audio files
+- **Query**: `?url={encodedUrl}`
+- **Allowed Domains**:
+  - mvsep.com
+  - musicfile.api.box
+  - cdn.suno.ai
+  - cdn1.suno.ai
+  - cdn2.suno.ai
+- **Returns**: Audio file with CORS headers
+- **Cache**: 1 hour
+
+### Usage Examples
+
+**Stem Separation:**
+```javascript
+// 1. Start job
+const { hash } = await fetch('/api/separate', {
+  method: 'POST',
+  body: JSON.stringify({ audioUrl: 'https://...' })
+}).then(r => r.json());
+
+// 2. Poll for completion
+const checkStatus = async () => {
+  const { status, stems } = await fetch(`/api/separate-status?hash=${hash}`)
+    .then(r => r.json());
+
+  if (status === 'done') {
+    return stems;
+  } else if (status === 'processing') {
+    await new Promise(r => setTimeout(r, 3000));
+    return checkStatus();
+  }
+};
+
+const stems = await checkStatus();
+```
+
+**Audio Proxy:**
+```javascript
+const externalUrl = 'https://cdn.suno.ai/abc123.mp3';
+const proxiedUrl = `/api/proxy-audio?url=${encodeURIComponent(externalUrl)}`;
+
+// Use proxiedUrl in <audio> element or Tone.Player
+```
+
+---
+
+## 📊 Project Statistics
+
+**Codebase Size:**
+- **Total Files**: 100+ files
+- **React Components**: 50+ components
+- **API Functions**: 15+ functions
+- **Database Tables**: 20+ tables
+- **Lines of Code**: ~15,000+ LOC
+
+**Feature Coverage:**
+- ✅ Music Creation (DAW-Lite)
+- ✅ 3D Worlds with Interactive Audio
+- ✅ AI Music Generation (Suno API)
+- ✅ Audio Stem Separation (Demucs)
+- ✅ Assignment Management
+- ✅ Progress Tracking & Gamification
+- ✅ Real-time Notifications
+- ✅ Teacher Dashboard & Analytics
+- ✅ Class Organization
+- ✅ Mobile Responsive Design
+- ✅ User Authentication (Student/Teacher)
+- ✅ File Upload & Storage
+- ✅ Audio Export (MP3/WAV)
+
+**Browser Support:**
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+- Mobile Safari (iOS 14+)
+- Chrome Mobile (Android 10+)
+
+**Performance Targets:**
+- Initial Load: <3 seconds
+- DAW Playback Latency: <50ms
+- Notification Delivery: <1 second
+- Database Query Time: <200ms
+- API Response Time: <500ms
+
+---
+
+**Documentation Version:** 3.1
+**Last Updated:** February 8, 2026
 **Maintained by:** Development Team
+
+---
+
+## 🤝 Contributing
+
+For contributing to this project:
+1. Create a feature branch from `main`
+2. Make your changes with clear commit messages
+3. Update this documentation for any new features
+4. Test thoroughly on both desktop and mobile
+5. Submit a pull request with description of changes
+
+**Commit Message Format:**
+```
+<type>: <description>
+
+[optional body]
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
+
+**Types:** feat, fix, docs, style, refactor, test, chore
+
+---
+
+## 📞 Support
+
+For questions or issues:
+- Check [TROUBLESHOOTING_SCHOOLS.md](TROUBLESHOOTING_SCHOOLS.md)
+- Review this documentation thoroughly
+- Check recent commit messages for context
+- Contact the development team
+
+---
+
+**Thank you for using Djembe!** 🥁🎵

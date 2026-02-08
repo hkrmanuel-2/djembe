@@ -7,7 +7,6 @@ import {
   deleteAssignment,
   getTeacherClasses,
 } from "@/lib/teacherApi";
-import CloudShader from "@/components/ui/cloud-shader";
 import {
   FileText,
   Plus,
@@ -186,19 +185,15 @@ export default function TeacherAssignments() {
     return (
       <div
         className="flex w-full flex-col min-h-screen relative overflow-hidden"
-        style={{ backgroundColor: "#1A2B4A" }}
+        style={{ background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)' }}
       >
-        <div className="absolute inset-0 z-0">
-          <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        </div>
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div
-              className="w-16 h-16 border-4 border-white/20 rounded-full animate-spin mx-auto mb-4"
-              style={{ borderTopColor: "#D97746" }}
+              className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4"
+              style={{ borderColor: '#E8DFFF', borderTopColor: "#D97746" }}
             />
-            <p className="text-lg text-white/70">Loading assignments...</p>
+            <p className="text-lg text-gray-500">Loading assignments...</p>
           </div>
         </div>
       </div>
@@ -210,14 +205,9 @@ export default function TeacherAssignments() {
     return (
       <div
         className="flex w-full flex-col min-h-screen relative overflow-hidden"
-        style={{ backgroundColor: "#1A2B4A", fontFamily: "'Outfit', sans-serif" }}
+        style={{ background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)', fontFamily: "'Outfit', sans-serif" }}
       >
-        <div className="absolute inset-0 z-0">
-          <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        </div>
-
-        <div className="relative z-10 min-h-screen px-6 py-24">
+        <div className="relative z-10 min-h-screen px-6 py-8">
           <div className="max-w-5xl mx-auto">
             {/* Back Button */}
             <button
@@ -225,7 +215,7 @@ export default function TeacherAssignments() {
                 setSelectedAssignment(null);
                 setAssignmentDetail(null);
               }}
-              className="flex items-center gap-2 text-white/70 hover:text-white mb-6 transition-colors"
+              className="flex items-center gap-2 text-gray-500 hover:text-[#3E2468] mb-6 transition-colors"
             >
               <ArrowLeft size={20} />
               <span>Back to Assignments</span>
@@ -234,21 +224,18 @@ export default function TeacherAssignments() {
             {detailLoading ? (
               <div className="text-center py-20">
                 <div
-                  className="w-12 h-12 border-4 border-white/20 rounded-full animate-spin mx-auto mb-4"
-                  style={{ borderTopColor: "#D97746" }}
+                  className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4"
+                  style={{ borderColor: '#E8DFFF', borderTopColor: "#D97746" }}
                 />
-                <p className="text-white/70">Loading submissions...</p>
+                <p className="text-gray-500">Loading submissions...</p>
               </div>
             ) : (
               <motion.div variants={containerVariants} initial="hidden" animate="visible">
                 {/* Assignment Header */}
                 <motion.div variants={itemVariants} className="mb-8">
                   <div
-                    className="rounded-2xl p-6 backdrop-blur-md border"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.08)",
-                      borderColor: "rgba(255,255,255,0.15)",
-                    }}
+                    className="rounded-2xl p-6 bg-white shadow-md border-2"
+                    style={{ borderColor: '#E8DFFF' }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div>
@@ -263,8 +250,8 @@ export default function TeacherAssignments() {
                             style={{
                               backgroundColor:
                                 assignmentDetail.assignment.assignment_type === "project"
-                                  ? "rgba(74, 155, 155, 0.2)"
-                                  : "rgba(217, 119, 70, 0.2)",
+                                  ? "rgba(74, 155, 155, 0.12)"
+                                  : "rgba(217, 119, 70, 0.12)",
                               color:
                                 assignmentDetail.assignment.assignment_type === "project"
                                   ? "#4A9B9B"
@@ -276,20 +263,23 @@ export default function TeacherAssignments() {
                               : "Upload"}
                           </span>
                         </div>
-                        <h1 className="text-3xl font-bold text-white">
+                        <h1
+                          className="text-3xl font-bold"
+                          style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+                        >
                           {assignmentDetail.assignment.title}
                         </h1>
-                        <p className="text-white/60 mt-2">
+                        <p className="text-gray-500 mt-2">
                           {assignmentDetail.assignment.description}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-white/60 text-sm">Due Date</p>
+                        <p className="text-gray-400 text-sm">Due Date</p>
                         <p
                           className="text-lg font-semibold"
                           style={{
                             color: isPastDue(assignmentDetail.assignment.due_date)
-                              ? "#EF4444"
+                              ? "#E8627A"
                               : "#E6B84D",
                           }}
                         >
@@ -299,15 +289,15 @@ export default function TeacherAssignments() {
                     </div>
 
                     {/* Submission Stats */}
-                    <div className="flex items-center gap-6 pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-6 pt-4 border-t" style={{ borderColor: '#E8DFFF' }}>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 size={18} style={{ color: "#10B981" }} />
-                        <span className="text-white">
+                        <CheckCircle2 size={18} style={{ color: "#4ABA6E" }} />
+                        <span style={{ color: '#3E2468' }}>
                           {assignmentDetail.submittedCount} / {assignmentDetail.totalStudents}{" "}
                           submitted
                         </span>
                       </div>
-                      <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full"
                           style={{
@@ -315,7 +305,7 @@ export default function TeacherAssignments() {
                               (assignmentDetail.submittedCount / assignmentDetail.totalStudents) *
                               100
                             }%`,
-                            backgroundColor: "#10B981",
+                            backgroundColor: "#4ABA6E",
                           }}
                         />
                       </div>
@@ -327,26 +317,25 @@ export default function TeacherAssignments() {
                 {classes.length > 0 && (
                   <motion.div variants={itemVariants} className="mb-6">
                     <div className="flex items-center gap-3">
-                      <Filter size={18} className="text-white/60" />
-                      <span className="text-white/60 text-sm">Filter by class:</span>
+                      <Filter size={18} className="text-gray-400" />
+                      <span className="text-gray-400 text-sm">Filter by class:</span>
                       <select
                         value={selectedClass}
                         onChange={(e) => setSelectedClass(e.target.value)}
-                        className="px-4 py-2 rounded-xl backdrop-blur-md border focus:outline-none transition-all cursor-pointer min-w-[180px]"
+                        className="px-4 py-2 rounded-xl border-2 focus:outline-none transition-all cursor-pointer min-w-[180px]"
                         style={{
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          borderColor: selectedClass ? "#4A9B9B" : "rgba(255,255,255,0.15)",
-                          color: "white",
+                          backgroundColor: "white",
+                          borderColor: selectedClass ? "#4A9B9B" : '#E8DFFF',
+                          color: '#3E2468',
                         }}
                       >
-                        <option value="" style={{ backgroundColor: "#1A2B4A", color: "white" }}>
+                        <option value="">
                           All Classes
                         </option>
                         {classes.map((cls) => (
                           <option
                             key={cls.class_id}
                             value={cls.class_id}
-                            style={{ backgroundColor: "#1A2B4A", color: "white" }}
                           >
                             {cls.name}
                           </option>
@@ -355,7 +344,7 @@ export default function TeacherAssignments() {
                       {selectedClass && (
                         <button
                           onClick={() => setSelectedClass("")}
-                          className="text-white/60 hover:text-white text-sm underline"
+                          className="text-gray-400 hover:text-[#3E2468] text-sm underline"
                         >
                           Clear
                         </button>
@@ -366,16 +355,21 @@ export default function TeacherAssignments() {
 
                 {/* Student Submissions List */}
                 <motion.div variants={itemVariants}>
-                  <h2 className="text-xl font-bold text-white mb-4">Student Submissions</h2>
+                  <h2
+                    className="text-xl font-bold mb-4"
+                    style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+                  >
+                    Student Submissions
+                  </h2>
                   <div
-                    className="rounded-2xl backdrop-blur-md border overflow-hidden"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.08)",
-                      borderColor: "rgba(255,255,255,0.15)",
-                    }}
+                    className="rounded-2xl bg-white shadow-md border-2 overflow-hidden"
+                    style={{ borderColor: '#E8DFFF' }}
                   >
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/10 text-sm font-semibold text-white/60">
+                    <div
+                      className="grid grid-cols-12 gap-4 px-6 py-4 border-b text-sm font-semibold text-gray-400"
+                      style={{ borderColor: '#E8DFFF', backgroundColor: '#F8F5FF' }}
+                    >
                       <div className="col-span-4">Student</div>
                       <div className="col-span-2 text-center">Status</div>
                       <div className="col-span-2 text-center">Submitted</div>
@@ -389,15 +383,16 @@ export default function TeacherAssignments() {
                         key={student.student_id}
                         className={`grid grid-cols-12 gap-4 px-6 py-4 items-center ${
                           index !== assignmentDetail.students.length - 1
-                            ? "border-b border-white/10"
+                            ? "border-b"
                             : ""
                         }`}
+                        style={{ borderColor: '#E8DFFF' }}
                       >
                         <div className="col-span-4 flex items-center gap-3">
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold"
                             style={{
-                              backgroundColor: "rgba(217, 119, 70, 0.3)",
+                              backgroundColor: "rgba(217, 119, 70, 0.15)",
                               color: "#D97746",
                             }}
                           >
@@ -405,10 +400,10 @@ export default function TeacherAssignments() {
                             {student.last_name?.[0]}
                           </div>
                           <div>
-                            <p className="text-white font-medium">
+                            <p className="font-medium" style={{ color: '#3E2468' }}>
                               {student.first_name} {student.last_name}
                             </p>
-                            <p className="text-white/50 text-xs">{student.email}</p>
+                            <p className="text-gray-400 text-xs">{student.email}</p>
                           </div>
                         </div>
 
@@ -418,9 +413,9 @@ export default function TeacherAssignments() {
                               className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
                               style={{
                                 backgroundColor: student.is_on_time
-                                  ? "rgba(16, 185, 129, 0.2)"
-                                  : "rgba(239, 68, 68, 0.2)",
-                                color: student.is_on_time ? "#10B981" : "#EF4444",
+                                  ? "rgba(74, 186, 110, 0.12)"
+                                  : "rgba(232, 98, 122, 0.12)",
+                                color: student.is_on_time ? "#4ABA6E" : "#E8627A",
                               }}
                             >
                               <CheckCircle2 size={12} />
@@ -430,8 +425,8 @@ export default function TeacherAssignments() {
                             <span
                               className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
                               style={{
-                                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                                color: "rgba(255, 255, 255, 0.5)",
+                                backgroundColor: "rgba(242, 201, 76, 0.12)",
+                                color: "#F2C94C",
                               }}
                             >
                               <Clock size={12} />
@@ -440,10 +435,10 @@ export default function TeacherAssignments() {
                           )}
                         </div>
 
-                        <div className="col-span-2 text-center text-white/70 text-sm">
+                        <div className="col-span-2 text-center text-gray-500 text-sm">
                           {student.submission
                             ? formatDate(student.submission.submitted_at)
-                            : "—"}
+                            : "\u2014"}
                         </div>
 
                         <div className="col-span-2 text-center">
@@ -451,16 +446,16 @@ export default function TeacherAssignments() {
                             <span
                               className="px-3 py-1 rounded-full text-sm font-semibold"
                               style={{
-                                backgroundColor: "rgba(230, 184, 77, 0.2)",
+                                backgroundColor: "rgba(230, 184, 77, 0.12)",
                                 color: "#E6B84D",
                               }}
                             >
                               {student.feedback.score}
                             </span>
                           ) : student.feedback?.comment ? (
-                            <span className="text-white/50 text-xs">Feedback given</span>
+                            <span className="text-gray-400 text-xs">Feedback given</span>
                           ) : (
-                            <span className="text-white/40">—</span>
+                            <span className="text-gray-300">\u2014</span>
                           )}
                         </div>
 
@@ -471,20 +466,20 @@ export default function TeacherAssignments() {
                                 href={student.submission.file_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
                                 title="View Submission"
                               >
-                                <FileText size={16} className="text-white/70" />
+                                <FileText size={16} className="text-gray-400" />
                               </a>
                               <button
                                 onClick={() => setFeedbackStudent(student)}
-                                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
                                 title="Give Feedback"
                               >
                                 <MessageSquare
                                   size={16}
                                   style={{
-                                    color: student.feedback ? "#E6B84D" : "rgba(255,255,255,0.7)",
+                                    color: student.feedback ? "#E6B84D" : "#9CA3AF",
                                   }}
                                 />
                               </button>
@@ -523,14 +518,9 @@ export default function TeacherAssignments() {
   return (
     <div
       className="flex w-full flex-col min-h-screen relative overflow-hidden"
-      style={{ backgroundColor: "#1A2B4A", fontFamily: "'Outfit', sans-serif" }}
+      style={{ background: 'linear-gradient(180deg, #F3EEFF 0%, #E8DFFF 50%, #F8F5FF 100%)', fontFamily: "'Outfit', sans-serif" }}
     >
-      <div className="absolute inset-0 z-0">
-        <CloudShader speed={0.3} octaves={5} scale={2.5} className="w-full h-full opacity-40" />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-      </div>
-
-      <div className="relative z-10 min-h-screen px-6 py-24">
+      <div className="relative z-10 min-h-screen px-6 py-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -544,19 +534,22 @@ export default function TeacherAssignments() {
           >
             <div>
               <div
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md border mb-4"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 mb-4"
                 style={{
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  borderColor: "rgba(255,255,255,0.2)",
+                  backgroundColor: "rgba(232, 223, 255, 0.5)",
+                  borderColor: '#E8DFFF',
                 }}
               >
                 <FileText size={16} style={{ color: "#E6B84D" }} />
-                <span className="text-sm font-medium text-white/90">Assignments</span>
+                <span className="text-sm font-medium" style={{ color: '#3E2468' }}>Assignments</span>
               </div>
-              <h1 className="text-4xl font-bold text-white">
+              <h1
+                className="text-4xl font-bold"
+                style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
+              >
                 Manage <span style={{ color: "#D97746" }}>Assignments</span>
               </h1>
-              <p className="text-white/60 mt-2">Create and track student assignments</p>
+              <p className="text-gray-500 mt-2">Create and track student assignments</p>
             </div>
 
             <button
@@ -578,26 +571,20 @@ export default function TeacherAssignments() {
           {assignments.length === 0 ? (
             <motion.div
               variants={itemVariants}
-              className="text-center py-16 rounded-2xl backdrop-blur-md border"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.08)",
-                borderColor: "rgba(255,255,255,0.15)",
-              }}
+              className="text-center py-16 rounded-2xl bg-white shadow-md border-2"
+              style={{ borderColor: '#E8DFFF' }}
             >
-              <FileText size={48} className="mx-auto mb-4 text-white/40" />
-              <p className="text-white/60 text-lg">No assignments yet</p>
-              <p className="text-white/40 mt-1">Create your first assignment to get started</p>
+              <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-500 text-lg">No assignments yet</p>
+              <p className="text-gray-400 mt-1">Create your first assignment to get started</p>
             </motion.div>
           ) : (
             <motion.div variants={itemVariants} className="space-y-4">
               {assignments.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className="rounded-2xl backdrop-blur-md border overflow-hidden cursor-pointer hover:bg-white/5 transition-colors"
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    borderColor: "rgba(255,255,255,0.15)",
-                  }}
+                  className="rounded-2xl bg-white shadow-md border-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all"
+                  style={{ borderColor: '#E8DFFF' }}
                   onClick={() => handleAssignmentClick(assignment)}
                 >
                   <div className="p-6 flex items-center justify-between">
@@ -607,8 +594,8 @@ export default function TeacherAssignments() {
                         style={{
                           backgroundColor:
                             assignment.assignment_type === "project"
-                              ? "rgba(74, 155, 155, 0.2)"
-                              : "rgba(217, 119, 70, 0.2)",
+                              ? "rgba(74, 155, 155, 0.12)"
+                              : "rgba(217, 119, 70, 0.12)",
                         }}
                       >
                         {assignment.assignment_type === "project" ? (
@@ -624,8 +611,8 @@ export default function TeacherAssignments() {
                         )}
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{assignment.title}</h3>
-                        <p className="text-white/50 text-sm line-clamp-1">
+                        <h3 className="text-lg font-semibold" style={{ color: '#3E2468' }}>{assignment.title}</h3>
+                        <p className="text-gray-400 text-sm line-clamp-1">
                           {assignment.description}
                         </p>
                       </div>
@@ -636,15 +623,15 @@ export default function TeacherAssignments() {
                         <Calendar
                           size={16}
                           style={{
-                            color: isPastDue(assignment.due_date) ? "#EF4444" : "#E6B84D",
+                            color: isPastDue(assignment.due_date) ? "#E8627A" : "#E6B84D",
                           }}
                         />
                         <span
                           className="text-sm"
                           style={{
                             color: isPastDue(assignment.due_date)
-                              ? "#EF4444"
-                              : "rgba(255,255,255,0.7)",
+                              ? "#E8627A"
+                              : "#6B7280",
                           }}
                         >
                           {formatDate(assignment.due_date)}
@@ -658,22 +645,22 @@ export default function TeacherAssignments() {
                             setEditingAssignment(assignment);
                             setShowForm(true);
                           }}
-                          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                          className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
                           title="Edit"
                         >
-                          <Edit size={16} className="text-white/70" />
+                          <Edit size={16} className="text-gray-400" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDelete(assignment.id);
                           }}
-                          className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                          className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                           title="Delete"
                         >
                           <Trash2 size={16} className="text-red-400" />
                         </button>
-                        <ChevronRight size={20} className="text-white/40" />
+                        <ChevronRight size={20} className="text-gray-300" />
                       </div>
                     </div>
                   </div>

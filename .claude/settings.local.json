@@ -15,7 +15,18 @@
       "Bash(git push:*)",
       "Bash(git pull:*)",
       "Bash(git stash:*)",
-      "Bash(git stash pop:*)"
+      "Bash(git stash pop:*)",
+      "Bash(findstr:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"{}\"\"; wc -l \"\"{}\"\"')",
+      "Bash(wc:*)",
+      "Bash(while read f)",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(do wc -l \"$file\")",
+      "Bash(npx vite build)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

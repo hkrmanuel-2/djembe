@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useStore } from "../../../store/useStore.js";
 import { exportProjectAsAudio } from "../../../lib/audioExport.js";
 
-export default function ProjectMenu() {
+export default function ProjectMenu({ isMobile }) {
     const [showProjects, setShowProjects] = useState(false);
     const [notification, setNotification] = useState(null);
 
@@ -85,35 +85,35 @@ export default function ProjectMenu() {
     };
 
     return (
-        <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm px-4 py-2 flex-shrink-0">
+        <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm px-2 md:px-4 py-1.5 md:py-2 flex-shrink-0">
             {/* Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 md:gap-2 flex-wrap">
                 <button
                     onClick={handleNew}
-                    className="px-3 py-1.5 bg-blue-500/80 text-white rounded-md hover:bg-blue-500 transition-colors font-semibold text-xs shadow-lg"
+                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-blue-500/80 text-white rounded-md hover:bg-blue-500 transition-colors font-semibold shadow-lg`}
                 >
-                    📄 New
+                    📄 {isMobile ? '' : 'New'}
                 </button>
                 <button
                     onClick={handleSave}
                     disabled={isLoading}
-                    className="px-3 py-1.5 bg-green-500/80 text-white rounded-md hover:bg-green-500 transition-colors font-semibold text-xs disabled:opacity-50 shadow-lg"
+                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-green-500/80 text-white rounded-md hover:bg-green-500 transition-colors font-semibold disabled:opacity-50 shadow-lg`}
                 >
-                    💾 {isLoading ? "Saving..." : "Save"}
+                    💾 {isLoading ? "..." : (isMobile ? '' : 'Save')}
                 </button>
                 <button
                     onClick={handleLoadClick}
-                    className="px-3 py-1.5 bg-purple-500/80 text-white rounded-md hover:bg-purple-500 transition-colors font-semibold text-xs shadow-lg"
+                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-purple-500/80 text-white rounded-md hover:bg-purple-500 transition-colors font-semibold shadow-lg`}
                 >
-                    📂 Load
+                    📂 {isMobile ? '' : 'Load'}
                 </button>
                 <button
                     onClick={handleExport}
                     disabled={isExporting || placedLoops.length === 0}
-                    className="px-3 py-1.5 bg-orange-500/80 text-white rounded-md hover:bg-orange-500 transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-orange-500/80 text-white rounded-md hover:bg-orange-500 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
                     title={placedLoops.length === 0 ? "Add loops to export" : "Export project as MP3 audio file"}
                 >
-                    {isExporting ? "⏳ Exp..." : "⬇️ Export"}
+                    {isExporting ? "⏳" : "⬇️"} {isMobile ? '' : 'Export'}
                 </button>
             </div>
 
@@ -131,43 +131,43 @@ export default function ProjectMenu() {
 
             {/* Projects List */}
             {showProjects && (
-                <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 max-h-64 overflow-y-auto">
-                    <h3 className="font-bold text-lg mb-3 text-white">Your Projects</h3>
+                <div className={`mt-2 md:mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-2 md:p-4 ${isMobile ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
+                    <h3 className={`font-bold ${isMobile ? 'text-sm' : 'text-lg'} mb-2 md:mb-3 text-white`}>Your Projects</h3>
 
                     {isLoading ? (
-                        <p className="text-white/60">Loading...</p>
+                        <p className="text-white/60 text-sm">Loading...</p>
                     ) : userProjects.length === 0 ? (
-                        <p className="text-white/60">No saved projects yet.</p>
+                        <p className="text-white/60 text-sm">No saved projects yet.</p>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5 md:space-y-2">
                             {userProjects.map((project) => (
                                 <div
                                     key={project.project_id}
-                                    className={`flex items-center justify-between p-3 rounded-md border-2 ${project.prokect_id === currentProjectId
+                                    className={`flex items-center justify-between p-2 md:p-3 rounded-md border-2 ${project.project_id === currentProjectId
                                         ? "border-blue-400/50 bg-blue-500/20"
                                         : "border-white/20 bg-white/5"
                                         }`}
                                 >
-                                    <div>
-                                        <h4 className="font-semibold text-white">{project.name}</h4>
-                                        <p className="text-xs text-white/60">
-                                            BPM: {project.bpm} • {new Date(project.updated_at).toLocaleDateString()}
+                                    <div className="flex-1 min-w-0 mr-2">
+                                        <h4 className={`font-semibold text-white truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{project.name}</h4>
+                                        <p className="text-[10px] md:text-xs text-white/60">
+                                            {project.bpm}bpm • {new Date(project.updated_at).toLocaleDateString()}
                                         </p>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1 md:gap-2 flex-shrink-0">
                                         {project.project_id !== currentProjectId && (
                                             <button
                                                 onClick={() => handleLoadProject(project.project_id)}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 shadow-lg"
+                                                className={`${isMobile ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-sm'} bg-blue-500 text-white rounded hover:bg-blue-600 shadow-lg`}
                                             >
                                                 Load
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleDelete(project.project_id, project.name)}
-                                            className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 shadow-lg"
+                                            className={`${isMobile ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-sm'} bg-red-500 text-white rounded hover:bg-red-600 shadow-lg`}
                                         >
-                                            Delete
+                                            Del
                                         </button>
                                     </div>
                                 </div>

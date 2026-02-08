@@ -23,7 +23,7 @@ export const useStore = create(
         try {
           const audio = new Audio(loop.url);
           audio.loop = false; // Play once, don't loop
-          audio.volume = 0.7;
+          audio.volume = 1.0; // Full volume for clear playback
           audio.play().catch((err) => {
             console.warn("Audio play error:", err);
           });

@@ -29,17 +29,19 @@ export default async function handler(
 
   // Allow proxying from trusted audio sources
   const allowedDomains = [
-    "https://mvsep.com/",
-    "https://musicfile.api.box/",
-    "https://cdn.suno.ai/",
-    "https://cdn1.suno.ai/",
-    "https://cdn2.suno.ai/",
+    "mvsep.com",
+    "musicfile.api.box",
+    "cdn.suno.ai",
+    "cdn1.suno.ai",
+    "cdn2.suno.ai",
   ];
 
-  const isAllowed = allowedDomains.some(domain => url.startsWith(domain));
+  // Check if URL contains any allowed domain
+  const isAllowed = allowedDomains.some(domain => url.includes(domain));
   if (!isAllowed) {
     return res.status(403).json({
       error: "URL domain not allowed",
+      url,
       allowedDomains
     });
   }

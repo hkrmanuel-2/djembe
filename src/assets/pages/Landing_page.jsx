@@ -1,324 +1,523 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import CloudShader from "@/components/ui/cloud-shader";
+import { motion, AnimatePresence } from "framer-motion";
+
+const CAROUSEL_SLIDES = [
+  {
+    heading: "Create Your Own Beats. It's Easy!",
+    description:
+      "Use our intuitive DAW-Lite to drag, drop, and arrange loops into original compositions. The platform makes it simple for beginners to create professional-sounding rhythms.",
+  },
+  {
+    heading: "Explore Immersive 3D Worlds",
+    description:
+      "Step into vibrant musical environments where instruments come alive. Interact with djembes, shekeres, and more in a beautiful 3D space designed for discovery.",
+  },
+  {
+    heading: "Learn Rhythm Through Play",
+    description:
+      "AI-assisted tools help children compose, experiment, and discover Ghanaian musical traditions. Every session is an adventure in creativity and cultural learning.",
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Kwame A.",
+    quote: "I made my first beat in 5 minutes! The drums sound so real and it's really fun to play with.",
+    imgOffset: "-5%",
+  },
+  {
+    name: "Ama S.",
+    quote: "We use it in our class and everyone loves making music together. The 3D worlds are amazing!",
+    imgOffset: "-195%",
+  },
+  {
+    name: "Kofi M.",
+    quote: "What I like is you can create beats and your teacher gives you feedback. It's cool for learning.",
+    imgOffset: "-385%",
+  },
+];
 
 const Landing_page = () => {
   const navigate = useNavigate();
-  const [isVisible, setIsVisible] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+  const heroRef = useRef(null);
 
   useEffect(() => {
-    setIsVisible(true);
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Auto-advance carousel
   useEffect(() => {
-    setIsVisible(scrollY <= 100);
-  }, [scrollY]);
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % CAROUSEL_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % CAROUSEL_SLIDES.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + CAROUSEL_SLIDES.length) % CAROUSEL_SLIDES.length);
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div
+      className="min-h-screen overflow-x-hidden"
+      style={{ fontFamily: "'Fredoka', 'Outfit', sans-serif" }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
+          50% { transform: translateY(-14px); }
         }
-
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.05); opacity: 0.8; }
+        @keyframes floatSlow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(3deg); }
         }
-
-        .nav-link:hover { color: #E6B84D !important; }
-        .feature-card:hover { transform: translateY(-4px); }
-        .step-card:hover { transform: translateY(-4px); }
-        .audience-card:hover { transform: translateY(-6px); }
-        .footer-link:hover { color: #E6B84D !important; }
-        .cta-primary:hover { transform: translateY(-2px) scale(1.02); }
-        .help-btn:hover { transform: scale(1.1); }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(242, 201, 76, 0.3); }
+          50% { box-shadow: 0 0 40px rgba(242, 201, 76, 0.6); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes bounce-soft {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        .cta-bar { animation: pulse-glow 3s ease-in-out infinite; }
+        .nav-scrolled {
+          background: rgba(62, 36, 104, 0.95) !important;
+          box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+        }
       `}</style>
 
-      {/* CloudShader Background */}
-      <div className="fixed inset-0 z-0">
-        <CloudShader speed={0.15} octaves={5} scale={3} className="w-full h-full opacity-40" />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
-      </div>
-
-      {/* Floating Doodles */}
-      <div className="fixed inset-0 z-[5] pointer-events-none overflow-hidden">
-        <div className="absolute top-24 left-12 text-4xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite' }}>🎵</div>
-        <div className="absolute top-40 right-20 text-3xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite 1s' }}>🎶</div>
-        <div className="absolute bottom-40 left-1/4 text-5xl opacity-10" style={{ animation: 'float 3.5s ease-in-out infinite 2s' }}>⭐</div>
-        <div className="absolute top-1/3 right-10 text-4xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 0.5s' }}>✨</div>
-        <div className="absolute bottom-32 right-1/3 text-3xl opacity-20" style={{ animation: 'float 3s ease-in-out infinite 1.5s' }}>🪘</div>
-      </div>
-
-      {/* Navigation - Matching NavBarDark style */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 pt-6">
-        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md py-2 px-3 rounded-full border border-white/10">
+      {/* ═══════════════════════════════════════════ */}
+      {/* NAVIGATION */}
+      {/* ═══════════════════════════════════════════ */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{
+          background: scrolled ? "rgba(62, 36, 104, 0.95)" : "transparent",
+          backdropFilter: scrolled ? "blur(12px)" : "none",
+          boxShadow: scrolled ? "0 4px 30px rgba(0,0,0,0.15)" : "none",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2 px-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>🪘</div>
-            <span className="text-lg font-bold text-white">Djembe</span>
+          <div
+            className="text-2xl md:text-3xl font-bold tracking-wide cursor-pointer"
+            style={{ fontFamily: "'Fredoka', sans-serif" }}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
+            <span style={{ color: "#D97746" }}>D</span>
+            <span style={{ color: "#42C9C9" }}>J</span>
+            <span style={{ color: "#F2C94C" }}>E</span>
+            <span style={{ color: "#E8627A" }}>M</span>
+            <span style={{ color: "#7B5BA8" }}>B</span>
+            <span style={{ color: "#4ABA6E" }}>E</span>
           </div>
-
-          <div className="w-px h-6 bg-white/20" />
 
           {/* Nav Links */}
-          <a
-            href="#teachers"
-            className="nav-link px-4 py-2 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-              <line x1="9" y1="9" x2="9.01" y2="9" />
-              <line x1="15" y1="9" x2="15.01" y2="9" />
-            </svg>
-            <span className="hidden md:inline">For Teachers</span>
-          </a>
-
-          <div className="w-px h-6 bg-white/20" />
-
-          {/* Auth Buttons */}
-          <button
-            onClick={() => navigate('/login')}
-            className="px-4 py-2 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all"
-          >
-            Login
-          </button>
-          <button
-            onClick={() => navigate('/signup')}
-            className="px-5 py-2 rounded-full text-sm font-semibold text-black bg-white hover:bg-white/90 transition-all"
-          >
-            Sign Up
-          </button>
-        </div>
-      </div>
-
-      {/* Hero Section */}
-      <section className="relative z-10 pt-40 pb-20 px-8 max-w-6xl mx-auto">
-        <div className="max-w-3xl">
-          <div
-            className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full backdrop-blur-md border mb-8 transition-all duration-500"
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              borderColor: 'rgba(255,255,255,0.2)',
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
-            }}
-          >
-            <span style={{ color: '#E6B84D' }}>✨</span>
-            <span className="text-white/90 text-sm font-medium">No installation required — Start creating music instantly!</span>
-          </div>
-
-          <h1
-            className="text-6xl md:text-7xl font-bold text-white leading-tight tracking-tight mb-6 transition-all duration-500"
-            style={{
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            }}
-          >
-            Create. Collaborate. <span style={{ color: '#D97746' }}>Inspire.</span>
-          </h1>
-
-          <p
-            className="text-xl leading-relaxed mb-10 max-w-2xl transition-all duration-500"
-            style={{
-              color: 'rgba(255,255,255,0.7)',
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            }}
-          >
-            Djembe is the ultimate online music creation platform designed for educators and students. Unleash your creativity through African instruments in this magical world.
-          </p>
-
-          <div
-            className="flex gap-4 mb-12 transition-all duration-500"
-            style={{
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            }}
-          >
+          <div className="hidden md:flex items-center gap-1">
+            {["About", "Features", "Tutorials", "Contact"].map((item) => (
+              <a
+                key={item}
+                href={`#${item.toLowerCase()}`}
+                className="px-4 py-2 rounded-full text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all"
+              >
+                {item.toUpperCase()}
+              </a>
+            ))}
             <button
-              onClick={() => navigate('/signup')}
-              className="cta-primary px-8 py-4 rounded-full font-semibold text-white flex items-center gap-3 transition-all"
-              style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)', boxShadow: '0 4px 20px rgba(217, 119, 70, 0.4)' }}
+              onClick={() => navigate("/signup")}
+              className="ml-3 px-6 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, #D97746, #E6B84D)",
+                boxShadow: "0 2px 12px rgba(217, 119, 70, 0.4)",
+              }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-              Get Started
+              SIGN UP
             </button>
           </div>
 
-          <div className="flex gap-8 flex-wrap" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#4A9B9B' }}></span>
-              Ages 8-12
-            </span>
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D97746' }}></span>
-              Ghanaian Rhythms
-            </span>
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#E6B84D' }}></span>
-              AI-assisted Composition
-            </span>
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden w-10 h-10 rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all"
+            onClick={() => navigate("/login")}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* HERO SECTION */}
+      {/* ═══════════════════════════════════════════ */}
+      <section
+        ref={heroRef}
+        className="relative flex flex-col items-center overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #3E2468 0%, #5B3D8F 50%, #7B5BA8 100%)",
+        }}
+      >
+        {/* Hero image - full width */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative w-full pt-20 md:pt-24 flex justify-center"
+        >
+          <img
+            src="/ui assets/hero image 1.png"
+            alt="Djembe - Create music together"
+            className="w-full"
+          />
+        </motion.div>
+
+        {/* CTA Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="relative z-10 flex items-center gap-3 md:gap-5 -mt-12 md:-mt-16 mb-12 md:mb-16 px-4"
+        >
+          {/* Smiley Button */}
+          <button
+            onClick={() => navigate("/login")}
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white text-2xl shadow-lg hover:scale-110 active:scale-95 transition-transform"
+            style={{
+              background: "linear-gradient(135deg, #E8627A, #F06292)",
+              boxShadow: "0 4px 20px rgba(232, 98, 122, 0.4)",
+            }}
+            title="Login"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="white" strokeWidth="2" />
+              <circle cx="9" cy="10" r="1.2" />
+              <circle cx="15" cy="10" r="1.2" />
+              <path d="M8 14.5c1 1.5 2.5 2 4 2s3-0.5 4-2" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          {/* Main CTA */}
+          <button
+            onClick={() => navigate("/signup")}
+            className="cta-bar flex items-center gap-4 md:gap-8 px-8 md:px-14 py-4 md:py-5 rounded-full font-bold text-base md:text-lg transition-all hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #F2C94C 0%, #EFBA3C 100%)",
+              color: "#3E2468",
+              boxShadow: "0 6px 30px rgba(242, 201, 76, 0.4)",
+              fontFamily: "'Fredoka', sans-serif",
+              letterSpacing: "0.5px",
+            }}
+          >
+            <span>START MAKING</span>
+            <span className="w-[2px] h-6 bg-[#3E2468]/20 rounded-full" />
+            <span>EXPLORE</span>
+          </button>
+
+          {/* Document Button */}
+          <button
+            onClick={() => navigate("/signup")}
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white text-2xl shadow-lg hover:scale-110 active:scale-95 transition-transform"
+            style={{
+              background: "linear-gradient(135deg, #42C9C9, #5AC8C8)",
+              boxShadow: "0 4px 20px rgba(66, 201, 201, 0.4)",
+            }}
+            title="Sign Up"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+              <rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="white" strokeWidth="2" />
+              <line x1="9" y1="8" x2="15" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="9" y1="12" x2="15" y2="12" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="9" y1="16" x2="12" y2="16" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </motion.div>
+
+        {/* Bottom curve transition */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+            <path d="M0 80V40C240 0 480 0 720 20C960 40 1200 60 1440 40V80H0Z" fill="#6B4F9E" />
+          </svg>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* FEATURES CAROUSEL SECTION */}
+      {/* ═══════════════════════════════════════════ */}
+      <section
+        id="features"
+        className="relative py-16 md:py-24 overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #6B4F9E 0%, #7B5BA8 100%)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 md:px-10">
+          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            {/* Left: Text Content */}
+            <div className="flex-1 relative">
+              {/* Arrow Left */}
+              <button
+                onClick={prevSlide}
+                className="absolute left-0 md:-left-12 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all z-10 backdrop-blur-sm"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+
+              <div className="px-8 md:px-4">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentSlide}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <h2
+                      className="text-3xl md:text-5xl font-bold text-white leading-tight mb-6"
+                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                    >
+                      {CAROUSEL_SLIDES[currentSlide].heading}
+                    </h2>
+                    <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-lg" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                      {CAROUSEL_SLIDES[currentSlide].description}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Slide indicators */}
+                <div className="flex gap-2 mt-8">
+                  {CAROUSEL_SLIDES.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentSlide(i)}
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: currentSlide === i ? "32px" : "10px",
+                        backgroundColor: currentSlide === i ? "#F2C94C" : "rgba(255,255,255,0.3)",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Preview Card */}
+            <div className="flex-1 relative">
+              {/* Arrow Right */}
+              <button
+                onClick={nextSlide}
+                className="absolute right-0 md:-right-12 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all z-10 backdrop-blur-sm"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+
+              <motion.div
+                className="relative rounded-3xl overflow-hidden border border-white/15 backdrop-blur-sm"
+                style={{
+                  background: "linear-gradient(145deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)",
+                }}
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Mock DAW Preview */}
+                <div className="p-4 md:p-6">
+                  {/* Title bar */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-sm font-bold text-white/90" style={{ fontFamily: "'Fredoka', sans-serif" }}>DJEMBE</span>
+                    <div className="flex gap-1.5 ml-auto">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+                    </div>
+                  </div>
+
+                  {/* DAW-like tracks */}
+                  <div className="space-y-2 mb-4">
+                    {[
+                      { name: "Drums", color: "#E8627A", width: "85%" },
+                      { name: "Bass", color: "#42C9C9", width: "70%" },
+                      { name: "Melody", color: "#F2C94C", width: "90%" },
+                      { name: "Rhythm", color: "#D97746", width: "60%" },
+                    ].map((track) => (
+                      <div key={track.name} className="flex items-center gap-3">
+                        <span className="text-[10px] md:text-xs text-white/60 w-12 text-right">{track.name}</span>
+                        <div className="flex-1 h-6 md:h-8 rounded-lg overflow-hidden bg-white/5">
+                          <div
+                            className="h-full rounded-lg"
+                            style={{
+                              width: track.width,
+                              background: `linear-gradient(90deg, ${track.color}80, ${track.color}40)`,
+                              boxShadow: `inset 0 1px 0 ${track.color}50`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Playback controls */}
+                  <div className="flex items-center justify-center gap-4 pt-2">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="4" y="4" width="6" height="16" rx="1" /><rect x="14" y="4" width="6" height="16" rx="1" /></svg>
+                    </div>
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg, #D97746, #E6B84D)" }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21" /></svg>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </div>
 
-        {/* Decorative Circles */}
-        <div className="absolute w-80 h-80 rounded-full right-[10%] top-[20%] -z-10" style={{ background: 'radial-gradient(circle, rgba(217, 119, 70, 0.2) 0%, transparent 70%)', animation: 'pulse 4s ease-in-out infinite' }} />
-        <div className="absolute w-60 h-60 rounded-full right-[5%] bottom-[10%] -z-10" style={{ background: 'radial-gradient(circle, rgba(74, 155, 155, 0.15) 0%, transparent 70%)', animation: 'pulse 5s ease-in-out infinite 0.5s' }} />
+        {/* Bottom curve transition to white */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+            <path d="M0 100V50C360 0 720 80 1080 30C1260 5 1380 10 1440 20V100H0Z" fill="#FAFAFE" />
+          </svg>
+        </div>
       </section>
 
-      {/* Image Section */}
-      <section className="relative z-10 px-8 pb-20 max-w-6xl mx-auto">
-        <div className="rounded-2xl overflow-hidden backdrop-blur-md border" style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}>
-          <div className="h-96 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(217, 119, 70, 0.1) 0%, rgba(74, 155, 155, 0.1) 100%)' }}>
-            <div className="text-center">
-              <span className="text-7xl block mb-4">🪘</span>
-              <span className="text-2xl font-semibold text-white">Interactive 3D Experience</span>
-              <p className="text-white/60 mt-2">Dive into an immersive environment where you can create, learn, and collaborate</p>
-            </div>
+      {/* ═══════════════════════════════════════════ */}
+      {/* TESTIMONIALS SECTION */}
+      {/* ═══════════════════════════════════════════ */}
+      <section
+        id="about"
+        className="relative py-16 md:py-24"
+        style={{ background: "#FAFAFE" }}
+      >
+        <div className="max-w-6xl mx-auto px-6 md:px-10">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-3xl md:text-5xl font-bold text-center mb-16"
+            style={{ color: "#2D2040", fontFamily: "'Fredoka', sans-serif" }}
+          >
+            What Kids Are Saying
+          </motion.h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+            {TESTIMONIALS.map((testimonial, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+                className="flex flex-col items-center text-center"
+              >
+                {/* Avatar */}
+                <div
+                  className="w-32 h-32 md:w-40 md:h-40 rounded-full mb-6 overflow-hidden border-4 bg-white"
+                  style={{
+                    borderColor: "#C4B5E3",
+                    boxShadow: "0 8px 30px rgba(107, 79, 158, 0.15)",
+                  }}
+                >
+                  <img
+                    src="./ui assets/avatar.png"
+                    alt={testimonial.name}
+                    className="h-full object-cover"
+                    style={{
+                      width: "500%",
+                      maxWidth: "none",
+                      marginLeft: testimonial.imgOffset,
+                      marginTop: "5%",
+                    }}
+                  />
+                </div>
+
+                {/* Name */}
+                <h4
+                  className="text-lg font-bold mb-3"
+                  style={{ color: "#2D2040", fontFamily: "'Fredoka', sans-serif" }}
+                >
+                  {testimonial.name}
+                </h4>
+
+                {/* Quote */}
+                <p
+                  className="text-sm md:text-base leading-relaxed max-w-xs"
+                  style={{ color: "#6B5F7A", fontFamily: "'Outfit', sans-serif" }}
+                >
+                  &ldquo;{testimonial.quote}&rdquo;
+                </p>
+              </motion.div>
+            ))}
           </div>
-          <div className="absolute bottom-8 left-8 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 border" style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>▶</div>
-            <div>
-              <div className="font-semibold text-white">Interactive 3D Experience</div>
-              <div className="text-sm text-white/60">Click to embark on your musical journey</div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="relative z-10 py-24 px-8 max-w-6xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-4 tracking-tight">How It Works</h2>
-        <p className="text-white/60 text-center text-lg mb-16">Four simple steps to musical discovery</p>
-
-        <div className="grid md:grid-cols-4 gap-6">
-          {[
-            { num: '01', icon: '✨', title: 'Enter a musical world', desc: 'Step into a vibrant 3D space filled with African instruments', color: '#D97746' },
-            { num: '02', icon: '🪘', title: 'Tap and play instruments', desc: 'Touch, click, and explore djembes, shekeres, and more', color: '#4A9B9B' },
-            { num: '03', icon: '🪄', title: 'Create music with AI', desc: 'Let AI help you build rhythmic loops and patterns', color: '#E6B84D' },
-            { num: '04', icon: '🎵', title: 'Learn rhythm through play', desc: 'Discover Ghanaian music traditions while having fun', color: '#4A9B9B' },
-          ].map((step, i) => (
-            <div
-              key={i}
-              className="step-card relative rounded-2xl backdrop-blur-md p-8 border transition-all duration-300"
-              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-            >
-              <span className="absolute top-4 left-6 text-6xl font-bold" style={{ color: 'rgba(255,255,255,0.05)' }}>{step.num}</span>
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl mb-4 mt-8" style={{ backgroundColor: `${step.color}20` }}>
-                {step.icon}
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
-              <p className="text-sm text-white/60 leading-relaxed">{step.desc}</p>
-            </div>
-          ))}
+      {/* ═══════════════════════════════════════════ */}
+      {/* CTA SECTION */}
+      {/* ═══════════════════════════════════════════ */}
+      <section
+        className="relative py-20 md:py-28 overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, #5B3D8F 0%, #7B5BA8 50%, #9B7DC8 100%)",
+        }}
+      >
+        {/* Decorative elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-10 left-[10%] text-4xl opacity-15 text-white" style={{ animation: "float 4s ease-in-out infinite" }}>&#9835;</div>
+          <div className="absolute bottom-10 right-[10%] text-3xl opacity-20 text-yellow-300" style={{ animation: "floatSlow 5s ease-in-out infinite 1s" }}>&#9834;</div>
         </div>
-      </section>
 
-      {/* Why Djembe Section */}
-      <section className="relative z-10 py-24 px-8 max-w-6xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-4 tracking-tight">Why Djembe?</h2>
-        <p className="text-white/60 text-center text-lg mb-16">Empowering music education through innovation</p>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            { icon: '📦', gradient: 'linear-gradient(135deg, #E6B84D 0%, #4A9B9B 100%)', title: '3D Interactive Learning', desc: 'Experience music in a fully immersive 3D environment that brings instruments to life' },
-            { icon: '🌍', gradient: 'linear-gradient(135deg, #E6B84D 0%, #D97746 100%)', title: 'African/Ghanaian Instruments', desc: 'Connect with authentic cultural sounds through djembes, shekeres, and traditional rhythms' },
-            { icon: '✨', gradient: 'linear-gradient(135deg, #4A9B9B 0%, #1A2B4A 100%)', title: 'AI-Assisted Creativity', desc: 'Smart tools help children compose and explore musical patterns with confidence' },
-            { icon: '⚡', gradient: 'linear-gradient(135deg, #1A2B4A 0%, #4A9B9B 100%)', title: 'Browser-Based Access', desc: 'No downloads or setup required. Just open your browser and start playing instantly' },
-            { icon: '🎓', gradient: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)', title: 'Educator-Focused Tools', desc: 'Built-in features for teachers to track progress, assign activities, and foster collaboration' },
-          ].map((feature, i) => (
-            <div
-              key={i}
-              className="feature-card rounded-2xl backdrop-blur-md p-8 border transition-all duration-300"
-              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-            >
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-5" style={{ background: feature.gradient }}>
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-white/60 leading-relaxed">{feature.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Who It's For Section */}
-      <section id="teachers" className="relative z-10 py-24 px-8 max-w-6xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-4 tracking-tight">Who Is Djembe For?</h2>
-        <p className="text-white/60 text-center text-lg mb-16">Designed with educators and students in mind</p>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { emoji: '🎨', icon: '❤️', title: 'Kids', desc: 'Learn rhythm and creativity through immersive play experiences', color: '#D97746' },
-            { emoji: '👩‍🏫', icon: '📖', title: 'Teachers', desc: 'Engage students with interactive, curriculum-aligned music lessons', color: '#4A9B9B' },
-            { emoji: '🏫', icon: '🏛️', title: 'Schools', desc: 'Accessible, scalable music education for entire classrooms', color: '#E6B84D' },
-          ].map((audience, i) => (
-            <div
-              key={i}
-              className="audience-card rounded-2xl backdrop-blur-md p-10 border text-center transition-all duration-300"
-              style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-            >
-              <span className="text-6xl block mb-4">{audience.emoji}</span>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mx-auto mb-4" style={{ backgroundColor: `${audience.color}30` }}>
-                {audience.icon}
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3">{audience.title}</h3>
-              <p className="text-white/60 leading-relaxed">{audience.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Info Banner */}
-      <section className="relative z-10 py-12 px-8 flex justify-center">
-        <div className="flex items-center gap-4 px-8 py-4 rounded-full" style={{ background: 'linear-gradient(135deg, rgba(217, 119, 70, 0.2) 0%, rgba(74, 155, 155, 0.2) 100%)', border: '1px solid rgba(255,255,255,0.15)' }}>
-          <span className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: '#D97746' }}>8+</span>
-          <span className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: '#4A9B9B' }}>✓</span>
-          <span className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: '#4A9B9B' }}>🌍</span>
-          <span className="text-white/90 font-medium ml-2">Perfect for ages 8-12 • Ghana-focused • Classroom-ready</span>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative z-10 py-24 px-8 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-            Ready to discover the <span style={{ color: '#D97746' }}>rhythm</span> within?
-          </h2>
-          <p className="text-lg text-white/70 mb-10 leading-relaxed">
-            Start playing today. No downloads, no setup—just open your browser and let the music begin.
+        <div className="relative z-10 max-w-3xl mx-auto text-center px-6">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl md:text-5xl font-bold text-white mb-6"
+            style={{ fontFamily: "'Fredoka', sans-serif" }}
+          >
+            Ready to Discover the{" "}
+            <span style={{ color: "#F2C94C" }}>Rhythm</span> Within?
+          </motion.h2>
+          <p className="text-white/70 text-lg mb-10" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            No downloads, no setup — just open your browser and let the music begin.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate('/signup')}
-              className="cta-primary px-10 py-4 rounded-full font-semibold text-white flex items-center gap-3 transition-all"
-              style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)', boxShadow: '0 4px 20px rgba(217, 119, 70, 0.4)' }}
+              onClick={() => navigate("/signup")}
+              className="px-10 py-4 rounded-full font-bold text-lg transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, #F2C94C, #EFBA3C)",
+                color: "#3E2468",
+                boxShadow: "0 6px 30px rgba(242, 201, 76, 0.35)",
+                fontFamily: "'Fredoka', sans-serif",
+              }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
               Start Playing Now
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
             </button>
             <button
-              onClick={() => navigate('/login')}
-              className="px-10 py-4 rounded-full font-semibold text-white border transition-all hover:bg-white/10"
-              style={{ borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.05)' }}
+              onClick={() => navigate("/login")}
+              className="px-10 py-4 rounded-full font-bold text-lg text-white border-2 border-white/30 hover:bg-white/10 transition-all hover:scale-105 active:scale-95"
+              style={{ fontFamily: "'Fredoka', sans-serif" }}
             >
               Login
             </button>
@@ -326,64 +525,67 @@ const Landing_page = () => {
         </div>
       </section>
 
-      {/* Emoji Bar */}
-      <div className="relative z-10 py-12 flex justify-center gap-12 border-t border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-        <span className="text-4xl" style={{ animation: 'float 3s ease-in-out infinite' }}>🪘</span>
-        <span className="text-4xl" style={{ animation: 'float 4s ease-in-out infinite 0.5s' }}>🎵</span>
-        <span className="text-4xl" style={{ animation: 'float 3.5s ease-in-out infinite 0.4s' }}>✨</span>
-        <span className="text-4xl" style={{ animation: 'float 4.5s ease-in-out infinite 0.7s' }}>🎶</span>
-        <span className="text-4xl" style={{ animation: 'float 3s ease-in-out infinite 0.4s' }}>🎨</span>
-      </div>
-
-      {/* Footer */}
-      <footer className="relative z-10 py-16 px-8">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 mb-12">
-          <div className="max-w-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>🪘</div>
-              <span className="text-2xl font-bold text-white">Djembe</span>
+      {/* ═══════════════════════════════════════════ */}
+      {/* FOOTER */}
+      {/* ═══════════════════════════════════════════ */}
+      <footer style={{ background: "#FAFAFE" }}>
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Footer Links */}
+            <div className="flex items-center gap-8">
+              <a
+                href="#about"
+                className="text-sm font-bold tracking-wide hover:opacity-70 transition-opacity"
+                style={{ color: "#2D2040", fontFamily: "'Fredoka', sans-serif" }}
+              >
+                ABOUT US
+              </a>
+              <a
+                href="#features"
+                className="text-sm font-bold tracking-wide hover:opacity-70 transition-opacity"
+                style={{ color: "#2D2040", fontFamily: "'Fredoka', sans-serif" }}
+              >
+                HELP
+              </a>
             </div>
-            <p className="text-white/60 leading-relaxed mb-4">Bringing the joy of African music education to life through immersive technology.</p>
-            <p className="text-white/50 text-sm">Made with <span style={{ color: '#D97746' }}>❤️</span> in Ghana</p>
+
+            {/* Social */}
+            <div className="flex items-center gap-4">
+              <a
+                href="#"
+                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-all"
+                style={{ color: "#2D2040" }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+            </div>
           </div>
 
-          <div className="flex gap-20 justify-end">
-            <div>
-              <h4 className="font-bold text-white mb-4">Product</h4>
-              <div className="flex flex-col gap-3">
-                <a href="#" className="footer-link text-white/60 transition-colors">How it Works</a>
-                <a href="#" className="footer-link text-white/60 transition-colors">Features</a>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-bold text-white mb-4">Resources</h4>
-              <div className="flex flex-col gap-3">
-                <a href="#teachers" className="footer-link text-white/60 transition-colors">Teachers</a>
-                <a href="#" className="footer-link text-white/60 transition-colors">Schools</a>
-                <a href="#" className="footer-link text-white/60 transition-colors">Support</a>
-                <a href="#" className="footer-link text-white/60 transition-colors">Contact Us</a>
-              </div>
+          {/* Divider */}
+          <div className="my-6 h-px" style={{ background: "rgba(45, 32, 64, 0.1)" }} />
+
+          {/* Copyright */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs" style={{ color: "#6B5F7A" }}>
+            <span>&copy; {new Date().getFullYear()} Djembe. All rights reserved.</span>
+            <div className="flex gap-6">
+              <a href="#" className="hover:opacity-70 transition-opacity">Privacy Policy</a>
+              <a href="#" className="hover:opacity-70 transition-opacity">Terms of Service</a>
             </div>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto pt-8 border-t flex justify-between items-center flex-wrap gap-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-          <span className="text-white/50 text-sm">© 2024 Djembe. All rights reserved.</span>
-          <div className="flex gap-8">
-            <a href="#" className="footer-link text-white/50 text-sm transition-colors">Privacy Policy</a>
-            <a href="#" className="footer-link text-white/50 text-sm transition-colors">Terms of Service</a>
+        {/* Decorative sparkle */}
+        <div className="relative">
+          <div
+            className="absolute bottom-4 right-6 text-2xl opacity-30"
+            style={{ animation: "floatSlow 4s ease-in-out infinite", color: "#C4B5E3" }}
+          >
+            &#10022;
           </div>
         </div>
       </footer>
-
-      {/* Help Button */}
-      <button
-        className="help-btn fixed bottom-7 right-7 w-14 h-14 rounded-full text-white text-2xl font-bold z-50 transition-transform"
-        style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)', boxShadow: '0 4px 20px rgba(217, 119, 70, 0.4)' }}
-        title="Get Help"
-      >
-        ?
-      </button>
     </div>
   );
 };
