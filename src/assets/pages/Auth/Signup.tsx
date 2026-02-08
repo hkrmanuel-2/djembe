@@ -1,18 +1,42 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import CloudShader from "@/components/ui/cloud-shader";
 import { useAuthStore } from "@/store/useAuthStore";
 import { supabase } from "@/lib/supabase";
 import { validateEmailDomain } from "@/lib/emailValidation";
-import { Mail, Lock, User, Building2, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, Building2, ArrowRight, ArrowLeft } from "lucide-react";
 
 interface School {
   school_id: string;
   name: string;
   allowed_domains?: string[] | null;
 }
+
+// Sprite sheet face positions (row, col) for the 3x3 grid
+const STEP_FACES: Record<number, { row: number; col: number }> = {
+  1: { row: 0, col: 0 },  // Happy/smiling
+  2: { row: 0, col: 1 },  // Surprised
+  3: { row: 2, col: 2 },  // Music/sleepy
+  4: { row: 1, col: 1 },  // Angry/determined
+  5: { row: 0, col: 0 },  // Happy/smiling (success)
+};
+
+const STEP_COLORS = ["#42C9C9", "#F2C94C", "#4ABA6E", "#D97746", "#7B5BA8"];
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 300 : -300,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -300 : 300,
+    opacity: 0,
+  }),
+};
 
 export default function SignupNew() {
   const [email, setEmail] = useState("");
@@ -26,10 +50,11 @@ export default function SignupNew() {
   const [isLoadingSchools, setIsLoadingSchools] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [rememberDevice, setRememberDevice] = useState(true);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const navigate = useNavigate();
   const { signUp, error, clearError } = useAuthStore();
 
-  // Load schools on mount
   useEffect(() => {
     loadSchools();
   }, []);
@@ -98,7 +123,6 @@ export default function SignupNew() {
     return [];
   }, [selectedSchool]);
 
-  // Validate email domain when email or school changes
   useEffect(() => {
     if (!email || !schoolId) {
       setEmailError(null);
@@ -113,8 +137,34 @@ export default function SignupNew() {
     }
   }, [email, schoolId, allowedDomains]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    return () => clearError();
+  }, [clearError]);
+
+  // --- Carousel navigation ---
+  const goNext = () => {
+    setDirection(1);
+    setCurrentStep((prev) => Math.min(prev + 1, 5));
+  };
+
+  const goBack = () => {
+    setDirection(-1);
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const canAdvance = (): boolean => {
+    switch (currentStep) {
+      case 1: return !!userType;
+      case 2: return !!firstName.trim() && !!lastName.trim();
+      case 3: return !!schoolId;
+      case 4: return !!email && !!password && password.length >= 6 && !emailError;
+      default: return false;
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    setDirection(1);
+    setCurrentStep(5);
     setIsSubmitting(true);
     clearError();
     setEmailError(null);
@@ -122,6 +172,7 @@ export default function SignupNew() {
     if (!schoolId) {
       useAuthStore.setState({ error: "Please select a school" });
       setIsSubmitting(false);
+      setCurrentStep(3);
       return;
     }
 
@@ -131,6 +182,7 @@ export default function SignupNew() {
         setEmailError(validation.error || "Invalid email domain");
         useAuthStore.setState({ error: validation.error || "Invalid email domain" });
         setIsSubmitting(false);
+        setCurrentStep(4);
         return;
       }
     }
@@ -146,377 +198,587 @@ export default function SignupNew() {
     );
 
     if (result.success) {
-      navigate("/");
+      setIsSubmitting(false);
+      setTimeout(() => navigate("/"), 1200);
+    } else {
+      setIsSubmitting(false);
+      setDirection(-1);
+      setCurrentStep(4);
     }
-
-    setIsSubmitting(false);
   };
 
-  useEffect(() => {
-    return () => clearError();
-  }, [clearError]);
+  // --- Drum face helper ---
+  const DrumFace = ({ step, size }: { step: number; size?: string }) => {
+    const face = STEP_FACES[step] || { row: 0, col: 0 };
+    return (
+      <motion.div
+        key={`face-${step}`}
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        className={`${size || "w-28 h-28 sm:w-32 sm:h-32"} mx-auto`}
+        style={{
+          backgroundImage: `url('/ui assets/djembe_faces.png')`,
+          backgroundSize: "300% 300%",
+          backgroundPosition: `${face.col * 50}% ${face.row * 50}%`,
+          backgroundRepeat: "no-repeat",
+          filter: "drop-shadow(0 6px 20px rgba(62, 36, 104, 0.25))",
+        }}
+      />
+    );
+  };
 
+  // --- Navigation buttons ---
+  const NavButtons = ({ onNext, nextLabel = "Next", nextDisabled = false }: {
+    onNext: () => void;
+    nextLabel?: string;
+    nextDisabled?: boolean;
+  }) => (
+    <div className="flex gap-3 pt-2">
+      {currentStep > 1 && (
+        <button
+          type="button"
+          onClick={goBack}
+          className="flex-shrink-0 w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all hover:bg-white/10"
+          style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.6)" }}
+        >
+          <ArrowLeft size={22} />
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={nextDisabled}
+        className="group relative flex-1 rounded-2xl font-semibold py-4 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden text-white text-lg"
+        style={{
+          background: nextDisabled
+            ? "#ccc"
+            : "linear-gradient(135deg, #D97746 0%, #E6B84D 100%)",
+          fontFamily: "'Fredoka', sans-serif",
+        }}
+      >
+        <span className="relative z-10 flex items-center justify-center gap-2">
+          {nextLabel}
+          <ArrowRight
+            size={20}
+            className="transform group-hover:translate-x-1 transition-transform"
+          />
+        </span>
+        {!nextDisabled && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+        )}
+      </button>
+    </div>
+  );
+
+  // --- Step renderers ---
+  const renderStep1 = () => (
+    <div className="space-y-6 text-center">
+      <div className="space-y-1">
+        <h2
+          className="text-2xl sm:text-3xl font-bold"
+          style={{ color: "white", fontFamily: "'Fredoka', sans-serif" }}
+        >
+          Who are you?
+        </h2>
+        <p className="text-white/60 text-sm sm:text-base">Pick your role to get started!</p>
+      </div>
+
+      <DrumFace step={1} />
+
+      <div className="grid grid-cols-2 gap-4">
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => {
+            setUserType("student");
+            setTimeout(goNext, 300);
+          }}
+          className="flex flex-col items-center gap-2 p-5 sm:p-6 rounded-2xl border-[3px] transition-all"
+          style={{
+            borderColor: userType === "student" ? "#42C9C9" : "rgba(255,255,255,0.15)",
+            background: userType === "student"
+              ? "linear-gradient(135deg, rgba(66,201,201,0.25) 0%, rgba(66,201,201,0.1) 100%)"
+              : "rgba(255,255,255,0.08)",
+          }}
+        >
+          <span className="text-4xl">🎵</span>
+          <span
+            className="text-lg font-bold"
+            style={{ fontFamily: "'Fredoka', sans-serif", color: "white" }}
+          >
+            Student
+          </span>
+          <span className="text-xs text-white/50">I'm here to learn!</span>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => {
+            setUserType("teacher");
+            setTimeout(goNext, 300);
+          }}
+          className="flex flex-col items-center gap-2 p-5 sm:p-6 rounded-2xl border-[3px] transition-all"
+          style={{
+            borderColor: userType === "teacher" ? "#D97746" : "rgba(255,255,255,0.15)",
+            background: userType === "teacher"
+              ? "linear-gradient(135deg, rgba(217,119,70,0.25) 0%, rgba(217,119,70,0.1) 100%)"
+              : "rgba(255,255,255,0.08)",
+          }}
+        >
+          <span className="text-4xl">🎓</span>
+          <span
+            className="text-lg font-bold"
+            style={{ fontFamily: "'Fredoka', sans-serif", color: "white" }}
+          >
+            Teacher
+          </span>
+          <span className="text-xs text-white/50">I'm here to teach!</span>
+        </motion.button>
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6 text-center">
+      <div className="space-y-1">
+        <h2
+          className="text-2xl sm:text-3xl font-bold"
+          style={{ color: "white", fontFamily: "'Fredoka', sans-serif" }}
+        >
+          What's your name?
+        </h2>
+        <p className="text-white/60 text-sm sm:text-base">Tell us about yourself!</p>
+      </div>
+
+      <DrumFace step={2} />
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canAdvance()) goNext();
+        }}
+        className="space-y-4 text-left"
+      >
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <User size={20} />
+          </div>
+          <input
+            type="text"
+            placeholder="First name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all placeholder:text-gray-300"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "white", backgroundColor: "rgba(255,255,255,0.08)" }}
+            onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.4)")}
+            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.2)")}
+            autoFocus
+          />
+        </div>
+
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <User size={20} />
+          </div>
+          <input
+            type="text"
+            placeholder="Last name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all placeholder:text-gray-300"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "white", backgroundColor: "rgba(255,255,255,0.08)" }}
+            onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.4)")}
+            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.2)")}
+          />
+        </div>
+
+        <NavButtons onNext={goNext} nextDisabled={!canAdvance()} />
+      </form>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-6 text-center">
+      <div className="space-y-1">
+        <h2
+          className="text-2xl sm:text-3xl font-bold"
+          style={{ color: "white", fontFamily: "'Fredoka', sans-serif" }}
+        >
+          Where do you learn?
+        </h2>
+        <p className="text-white/60 text-sm sm:text-base">Find your school!</p>
+      </div>
+
+      <DrumFace step={3} />
+
+      <div className="space-y-4 text-left">
+        <div className="relative">
+          <div
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+          >
+            <Building2 size={22} />
+          </div>
+          <select
+            value={schoolId}
+            onChange={(e) => {
+              setSchoolId(e.target.value);
+              setEmailError(null);
+            }}
+            className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all appearance-none cursor-pointer"
+            style={{
+              borderColor: "rgba(255,255,255,0.2)",
+              color: schoolId ? "white" : "rgba(255,255,255,0.4)",
+              backgroundColor: "rgba(255,255,255,0.08)",
+            }}
+            disabled={isLoadingSchools}
+          >
+            <option value="">
+              {isLoadingSchools ? "Loading schools..." : "Select your school"}
+            </option>
+            {schools.map((school) => (
+              <option key={school.school_id} value={school.school_id}>
+                {school.name}
+              </option>
+            ))}
+          </select>
+          {selectedSchool && allowedDomains.length > 0 && (
+            <p className="text-xs mt-2 px-1 text-white/40">
+              Allowed domains: {allowedDomains.join(", ")}
+            </p>
+          )}
+        </div>
+
+        <NavButtons onNext={goNext} nextDisabled={!canAdvance()} />
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-5 text-center">
+      <div className="space-y-1">
+        <h2
+          className="text-2xl sm:text-3xl font-bold"
+          style={{ color: "white", fontFamily: "'Fredoka', sans-serif" }}
+        >
+          Almost there!
+        </h2>
+        <p className="text-white/60 text-sm sm:text-base">Set up your login</p>
+      </div>
+
+      <DrumFace step={4} />
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="border px-4 py-3 rounded-xl text-sm text-left"
+          style={{
+            backgroundColor: "rgba(232, 98, 122, 0.1)",
+            borderColor: "rgba(232, 98, 122, 0.3)",
+            color: "#E8627A",
+          }}
+        >
+          {error}
+        </motion.div>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canAdvance()) handleFinalSubmit();
+        }}
+        className="space-y-4 text-left"
+      >
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <Mail size={20} />
+          </div>
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all placeholder:text-gray-300"
+            style={{
+              borderColor: emailError ? "#E8627A" : "rgba(255,255,255,0.2)",
+              color: "white",
+              backgroundColor: "rgba(255,255,255,0.08)",
+            }}
+            onFocus={(e) =>
+              (e.target.style.borderColor = emailError ? "#E8627A" : "rgba(255,255,255,0.4)")
+            }
+            onBlur={(e) =>
+              (e.target.style.borderColor = emailError ? "#E8627A" : "rgba(255,255,255,0.2)")
+            }
+            autoFocus
+          />
+          {emailError && (
+            <p className="text-xs mt-1.5 px-1" style={{ color: "#E8627A" }}>
+              {emailError}
+            </p>
+          )}
+          {schoolId && allowedDomains.length > 0 && !emailError && email && (
+            <p className="text-xs mt-1.5 px-1" style={{ color: "#4ABA6E" }}>
+              Email verified for {selectedSchool?.name}
+            </p>
+          )}
+        </div>
+
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <Lock size={20} />
+          </div>
+          <input
+            type="password"
+            placeholder="Password (min. 6 characters)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-lg focus:outline-none transition-all placeholder:text-gray-300"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "white", backgroundColor: "rgba(255,255,255,0.08)" }}
+            onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.4)")}
+            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.2)")}
+            minLength={6}
+          />
+        </div>
+
+        <div className="flex items-center px-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rememberDevice}
+              onChange={(e) => setRememberDevice(e.target.checked)}
+              className="w-5 h-5 rounded cursor-pointer accent-[#7B5BA8]"
+            />
+            <span className="text-sm text-white/60">Remember this device</span>
+          </label>
+        </div>
+
+        <NavButtons
+          onNext={handleFinalSubmit}
+          nextLabel="Create Account"
+          nextDisabled={!canAdvance()}
+        />
+      </form>
+    </div>
+  );
+
+  const renderStep5 = () => (
+    <div className="space-y-6 text-center py-6">
+      <motion.div
+        animate={{ y: [0, -12, 0] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <DrumFace step={5} size="w-32 h-32 sm:w-40 sm:h-40" />
+      </motion.div>
+
+      <div className="space-y-2">
+        <h2
+          className="text-2xl sm:text-3xl font-bold"
+          style={{ color: "white", fontFamily: "'Fredoka', sans-serif" }}
+        >
+          {isSubmitting ? "Creating your account..." : "You're all set!"}
+        </h2>
+        <p className="text-white/60">
+          {isSubmitting ? "This will just take a moment" : "Welcome to Djembe!"}
+        </p>
+      </div>
+
+      {isSubmitting && (
+        <div className="flex justify-center gap-2">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: "#7B5BA8" }}
+              animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
+        </div>
+      )}
+
+      {!isSubmitting && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg, #4ABA6E 0%, #42C9C9 100%)",
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 13l4 4L19 7"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </motion.div>
+      )}
+    </div>
+  );
+
+  // --- Main render ---
   return (
-    <div className="flex w-full flex-col min-h-screen relative overflow-hidden" style={{ backgroundColor: '#1A2B4A', fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div
+      className="flex w-full flex-col min-h-screen relative overflow-hidden"
+      style={{
+        background: "linear-gradient(180deg, #3E2468 0%, #5B3D8F 50%, #7B5BA8 100%)",
+        fontFamily: "'Outfit', sans-serif",
+      }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
         }
       `}</style>
 
-      {/* CloudShader Background with warm tint */}
-      <div className="absolute inset-0 z-0">
-        <CloudShader
-          speed={0.3}
-          octaves={5}
-          scale={2.5}
-          className="w-full h-full opacity-40"
-        />
-        {/* Warm gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2B4A]/90 via-[#1A2B4A]/70 to-[#4A9B9B]/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A2B4A]/80 via-transparent to-[#D97746]/10" />
-      </div>
-
-      {/* Fun Floating Doodles */}
-      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
-        <div className="absolute top-32 left-20 text-3xl opacity-15" style={{ animation: 'float 4s ease-in-out infinite 0.5s' }}>🎶</div>
-        <div className="absolute bottom-48 right-24 text-4xl opacity-20" style={{ animation: 'float 3.5s ease-in-out infinite 1.5s' }}>⭐</div>
-        <div className="absolute top-2/3 right-16 text-2xl opacity-10" style={{ animation: 'float 5s ease-in-out infinite' }}>✨</div>
-        <div className="absolute top-24 right-32 text-3xl opacity-15" style={{ animation: 'float 4.5s ease-in-out infinite 1s' }}>🪘</div>
+      {/* Floating Doodles */}
+      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden hidden sm:block">
+        <div className="absolute top-32 left-20 text-3xl opacity-20" style={{ animation: "float 4s ease-in-out infinite 0.5s" }}>🎶</div>
+        <div className="absolute bottom-48 right-24 text-4xl opacity-25" style={{ animation: "float 3.5s ease-in-out infinite 1.5s" }}>⭐</div>
+        <div className="absolute top-2/3 right-16 text-2xl opacity-15" style={{ animation: "float 5s ease-in-out infinite" }}>✨</div>
+        <div className="absolute top-24 right-32 text-3xl opacity-20" style={{ animation: "float 4.5s ease-in-out infinite 1s" }}>🪘</div>
       </div>
 
       {/* Content Layer */}
       <div className="relative z-10 flex flex-col flex-1">
-        {/* Navigation - Matching NavBarDark style */}
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 pt-6">
-          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md py-2 px-3 rounded-full border border-white/10">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 px-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg" style={{ background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)' }}>🪘</div>
-              <span className="text-lg font-bold text-white">Djembe</span>
-            </Link>
-
-            <div className="w-px h-6 bg-white/20" />
-
-            {/* Nav Links */}
-            <Link
-              to="/"
-              className="px-4 py-2 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all"
-            >
-              Home
-            </Link>
-
-            <div className="w-px h-6 bg-white/20" />
-
-            {/* Auth Buttons */}
-            <Link to="/login">
-              <button className="px-5 py-2 rounded-full text-sm font-semibold text-black bg-white hover:bg-white/90 transition-all">
-                Log In
-              </button>
+        {/* Navigation */}
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 pt-4 sm:pt-6 px-4 w-full sm:w-auto">
+          <div
+            className="flex items-center justify-center gap-2 sm:gap-3 py-2 px-2 sm:px-3 rounded-full border shadow-lg max-w-full"
+            style={{
+              background: "linear-gradient(135deg, #3E2468 0%, #5B3D8F 100%)",
+              borderColor: "rgba(155, 125, 200, 0.3)",
+            }}
+          >
+            <Link to="/" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3">
+              <div
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-base sm:text-lg"
+                style={{ background: "linear-gradient(135deg, #D97746 0%, #E6B84D 100%)" }}
+              >
+                🪘
+              </div>
+              <span className="text-base sm:text-lg font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+                <span style={{ color: "#D97746" }}>D</span>
+                <span style={{ color: "#42C9C9" }}>J</span>
+                <span style={{ color: "#F2C94C" }}>E</span>
+                <span style={{ color: "#E8627A" }}>M</span>
+                <span style={{ color: "#9B7DC8" }}>B</span>
+                <span style={{ color: "#4ABA6E" }}>E</span>
+              </span>
             </Link>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-1 flex-col justify-center items-center px-6 py-24">
-          <div className="w-full mt-[60px] max-w-lg">
-            <AnimatePresence mode="wait">
+        <div className="flex flex-1 flex-col justify-center items-center px-4 sm:px-6 py-16 sm:py-24">
+          <div className="w-full mt-[60px] sm:mt-[60px] max-w-lg">
+            {/* Progress Dots */}
+            {currentStep <= 4 && (
+              <div className="flex justify-center gap-2.5 mb-6">
+                {[1, 2, 3, 4].map((step) => (
+                  <motion.div
+                    key={step}
+                    className="rounded-full h-2.5"
+                    animate={{
+                      width: step === currentStep ? 32 : 10,
+                      backgroundColor:
+                        step <= currentStep
+                          ? STEP_COLORS[currentStep - 1]
+                          : "rgba(255,255,255,0.25)",
+                    }}
+                    transition={{ duration: 0.3 }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Carousel */}
+            <AnimatePresence mode="wait" custom={direction}>
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="space-y-8 text-center"
+                key={currentStep}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: "easeInOut" }}
               >
-                {/* Header */}
-                <div className="space-y-2">
-                  <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight text-white">
-                    Join <span style={{ color: '#D97746' }}>Djembe</span>
-                  </h1>
-                  <p className="text-lg font-light" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Create your account and start making music
-                  </p>
+                {/* Card */}
+                <div
+                  className="rounded-3xl shadow-2xl p-7 sm:p-10 border border-white/10 relative overflow-hidden"
+                  style={{
+                    background: "linear-gradient(145deg, rgba(91,61,143,0.85) 0%, rgba(62,36,104,0.92) 100%)",
+                    backdropFilter: "blur(20px)",
+                  }}
+                >
+                  {currentStep === 1 && renderStep1()}
+                  {currentStep === 2 && renderStep2()}
+                  {currentStep === 3 && renderStep3()}
+                  {currentStep === 4 && renderStep4()}
+                  {currentStep === 5 && renderStep5()}
                 </div>
 
-                {/* Error Message */}
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="backdrop-blur-md border px-4 py-3 rounded-xl text-sm"
-                    style={{ backgroundColor: 'rgba(220, 38, 38, 0.15)', borderColor: 'rgba(220, 38, 38, 0.3)', color: '#FCA5A5' }}
-                  >
-                    {error}
-                  </motion.div>
+                {/* Below-card: Google Sign In (step 4 only) */}
+                {currentStep === 4 && (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-4">
+                      <div className="h-px flex-1 bg-white/20" />
+                      <span className="text-sm text-white/50">or</span>
+                      <div className="h-px flex-1 bg-white/20" />
+                    </div>
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-center gap-3 border-2 rounded-xl py-3.5 bg-white/10 backdrop-blur transition-all hover:bg-white/20"
+                      style={{ borderColor: "rgba(255,255,255,0.2)", color: "white" }}
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
+                      <span className="font-medium">Continue with Google</span>
+                    </button>
+                  </div>
                 )}
 
-                {/* Signup Form */}
-                <form onSubmit={handleSubmit} className="space-y-5 text-left">
-                  {/* User Type Selection */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-center" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                      I am a
-                    </label>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setUserType("student")}
-                        disabled={isSubmitting}
-                        className={cn(
-                          "flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border backdrop-blur-md",
-                          userType === "student"
-                            ? "text-white"
-                            : "text-white/70 hover:bg-white/10"
-                        )}
-                        style={{
-                          backgroundColor: userType === "student" ? 'rgba(74, 155, 155, 0.4)' : 'rgba(255,255,255,0.08)',
-                          borderColor: userType === "student" ? '#4A9B9B' : 'rgba(255,255,255,0.15)',
-                        }}
-                      >
-                        Student
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setUserType("teacher")}
-                        disabled={isSubmitting}
-                        className={cn(
-                          "flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 border backdrop-blur-md",
-                          userType === "teacher"
-                            ? "text-white"
-                            : "text-white/70 hover:bg-white/10"
-                        )}
-                        style={{
-                          backgroundColor: userType === "teacher" ? 'rgba(217, 119, 70, 0.4)' : 'rgba(255,255,255,0.08)',
-                          borderColor: userType === "teacher" ? '#D97746' : 'rgba(255,255,255,0.15)',
-                        }}
-                      >
-                        Teacher
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Name Fields */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        <User size={18} />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="First name"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full backdrop-blur-md border rounded-xl py-3 pl-11 pr-4 focus:outline-none transition-all placeholder:text-white/40 text-sm"
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.08)',
-                          borderColor: 'rgba(255,255,255,0.15)',
-                          color: 'white',
-                        }}
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Last name"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="w-full backdrop-blur-md border rounded-xl py-3 px-4 focus:outline-none transition-all placeholder:text-white/40 text-sm"
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.08)',
-                          borderColor: 'rgba(255,255,255,0.15)',
-                          color: 'white',
-                        }}
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-
-                  {/* School Selection */}
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      <Building2 size={20} />
-                    </div>
-                    <select
-                      value={schoolId}
-                      onChange={(e) => {
-                        setSchoolId(e.target.value);
-                        setEmailError(null);
-                      }}
-                      className="w-full backdrop-blur-md border rounded-xl py-3 pl-12 pr-4 focus:outline-none transition-all appearance-none cursor-pointer"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderColor: 'rgba(255,255,255,0.15)',
-                        color: 'white',
-                      }}
-                      required
-                      disabled={isSubmitting || isLoadingSchools}
+                {/* Login link */}
+                {(currentStep === 1 || currentStep === 4) && (
+                  <p className="text-sm text-center mt-4 text-white/70">
+                    Already have an account?{" "}
+                    <Link
+                      to="/login"
+                      className="font-semibold underline underline-offset-2 transition-colors hover:text-white"
+                      style={{ color: "#F2C94C" }}
                     >
-                      <option value="" style={{ backgroundColor: '#1A2B4A', color: 'white' }}>
-                        {isLoadingSchools ? "Loading schools..." : "Select your school"}
-                      </option>
-                      {schools.map((school) => (
-                        <option key={school.school_id} value={school.school_id} style={{ backgroundColor: '#1A2B4A', color: 'white' }}>
-                          {school.name}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedSchool && allowedDomains.length > 0 && (
-                      <p className="text-xs mt-1.5 px-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                        Allowed domains: {allowedDomains.join(", ")}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Email Input */}
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      <Mail size={20} />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={cn(
-                        "w-full backdrop-blur-md border rounded-xl py-3 pl-12 pr-4 focus:outline-none transition-all placeholder:text-white/40"
-                      )}
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderColor: emailError ? 'rgba(220, 38, 38, 0.5)' : 'rgba(255,255,255,0.15)',
-                        color: 'white',
-                      }}
-                      required
-                      disabled={isSubmitting}
-                    />
-                    {emailError && (
-                      <p className="text-xs mt-1.5 px-1" style={{ color: '#FCA5A5' }}>{emailError}</p>
-                    )}
-                    {schoolId && allowedDomains.length > 0 && !emailError && email && (
-                      <p className="text-xs mt-1.5 px-1" style={{ color: '#4ADE80' }}>
-                        ✓ Email verified for {selectedSchool?.name}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Password Input */}
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      <Lock size={20} />
-                    </div>
-                    <input
-                      type="password"
-                      placeholder="Password (min. 6 characters)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full backdrop-blur-md border rounded-xl py-3 pl-12 pr-4 focus:outline-none transition-all placeholder:text-white/40"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderColor: 'rgba(255,255,255,0.15)',
-                        color: 'white',
-                      }}
-                      required
-                      disabled={isSubmitting}
-                      minLength={6}
-                    />
-                  </div>
-
-                  {/* Remember Device */}
-                  <div className="flex items-center px-1">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={rememberDevice}
-                        onChange={(e) => setRememberDevice(e.target.checked)}
-                        className="w-4 h-4 rounded cursor-pointer accent-[#D97746]"
-                        disabled={isSubmitting}
-                      />
-                      <span className="text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                        Remember this device
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="group relative w-full rounded-xl font-semibold py-3.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden mt-6"
-                    style={{
-                      background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
-                      color: 'white',
-                    }}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      {isSubmitting ? "Creating account..." : "Create Account"}
-                      {!isSubmitting && (
-                        <ArrowRight
-                          size={20}
-                          className="transform group-hover:translate-x-1 transition-transform"
-                        />
-                      )}
-                    </span>
-                    {!isSubmitting && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                    )}
-                  </button>
-
-                  {/* Divider */}
-                  <div className="flex items-center gap-4 py-2">
-                    <div className="h-px flex-1" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                    <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>or</span>
-                    <div className="h-px flex-1" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                  </div>
-
-                  {/* Google Sign In */}
-                  <button
-                    type="button"
-                    className="w-full flex items-center justify-center gap-3 backdrop-blur-md border rounded-xl py-3.5 transition-all hover:bg-white/10"
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      borderColor: 'rgba(255,255,255,0.15)',
-                      color: 'white'
-                    }}
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    <span className="font-medium">Continue with Google</span>
-                  </button>
-                </form>
-
-                {/* Login Link */}
-                <p className="text-sm pt-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Already have an account?{" "}
-                  <Link
-                    to="/login"
-                    className="font-semibold underline underline-offset-2 transition-colors hover:opacity-80"
-                    style={{ color: '#E6B84D' }}
-                  >
-                    Log in
-                  </Link>
-                </p>
+                      Log in
+                    </Link>
+                  </p>
+                )}
 
                 {/* Terms */}
-                <p className="text-xs pt-4 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  By creating an account, you agree to our{" "}
-                  <Link to="#" className="underline hover:text-white/50 transition-colors">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="#" className="underline hover:text-white/50 transition-colors">
-                    Privacy Policy
-                  </Link>
-                  .
-                </p>
+                {currentStep <= 4 && (
+                  <p className="text-xs text-center pt-4 max-w-md mx-auto text-white/50">
+                    By creating an account, you agree to our{" "}
+                    <Link to="#" className="underline hover:text-white/70 transition-colors">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="#" className="underline hover:text-white/70 transition-colors">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>

@@ -1,11 +1,12 @@
 import { supabase } from "./supabase";
+import { notifyStudentsNewAssignment, notifyStudentFeedback } from "./notificationApi";
 
 // ============================================
 // CLASS MANAGEMENT
 // ============================================
 
 /**
- * Get all classes for a teacher
+ * Get all classes assigned to a specific teacher
  */
 export async function getTeacherClasses(teacherId) {
   try {
@@ -106,6 +107,7 @@ export async function createAssignment(teacherId, schoolId, data) {
         {
           teacher_id: teacherId,
           school_id: schoolId,
+          class_id: data.class_id,
           title: data.title,
           description: data.description,
           due_date: data.due_date,
@@ -118,6 +120,16 @@ export async function createAssignment(teacherId, schoolId, data) {
       .single();
 
     if (error) throw error;
+
+    // Notify all students in the school about the new assignment
+    notifyStudentsNewAssignment({
+      schoolId,
+      assignmentId: assignment.id,
+      assignmentTitle: data.title,
+      dueDate: data.due_date,
+      description: data.description,
+    }).catch((err) => console.error("Failed to send assignment notifications:", err));
+
     return { data: assignment, error: null };
   } catch (error) {
     console.error("Create assignment error:", error);
@@ -218,7 +230,7 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
 
     // Get submissions for this assignment
     const { data: submissions, error: submissionsError } = await supabase
-      .from("assignment_submissions")
+      .from("submissions")
       .select("*")
       .eq("assignment_id", assignmentId);
 
@@ -330,7 +342,7 @@ export async function getStudentDifficulties(schoolId, classId = null) {
     if (assignmentsError) throw assignmentsError;
 
     const { data: submissions, error: submissionsError } = await supabase
-      .from("assignment_submissions")
+      .from("submissions")
       .select("student_id, assignment_id, submitted_at");
 
     if (submissionsError) throw submissionsError;
@@ -598,6 +610,28 @@ export async function createFeedback(teacherId, data) {
       .single();
 
     if (error) throw error;
+
+    // Get submission details to notify the student
+    const { data: submission } = await supabase
+      .from("submissions")
+      .select(`
+        student_id,
+        assignment_id,
+        assignments (title)
+      `)
+      .eq("id", data.submission_id)
+      .single();
+
+    if (submission) {
+      notifyStudentFeedback({
+        studentId: submission.student_id,
+        assignmentId: submission.assignment_id,
+        assignmentTitle: submission.assignments?.title || "Assignment",
+        score: data.score,
+        feedbackPreview: data.comment?.substring(0, 100),
+      }).catch((err) => console.error("Failed to send feedback notification:", err));
+    }
+
     return { data: feedback, error: null };
   } catch (error) {
     console.error("Create feedback error:", error);
@@ -666,7 +700,7 @@ export async function getTeacherFeedback(teacherId) {
       .select(
         `
         *,
-        assignment_submissions (
+        submissions (
           student_id,
           assignment_id,
           file_name

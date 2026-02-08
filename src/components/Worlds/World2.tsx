@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { Info, Maximize2, Minimize2, RotateCcw, Home, Music } from "lucide-react";
+import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 
 const World2New: React.FC = () => {
@@ -14,9 +14,30 @@ const World2New: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVoicesPanel, setShowVoicesPanel] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const navigate = useNavigate();
+
+  // Check orientation for mobile devices
+  useEffect(() => {
+    const checkOrientation = () => {
+      const portrait = window.innerHeight > window.innerWidth;
+      const mobile = window.innerWidth < 1024;
+      setIsPortrait(portrait);
+      setIsMobile(mobile);
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
@@ -141,6 +162,60 @@ const World2New: React.FC = () => {
     };
   }, []);
 
+  // Show portrait mode overlay on mobile
+  if (isMobile && isPortrait) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#1A2B4A] flex flex-col items-center justify-center p-8">
+        <style>{`
+          @keyframes pulse-rotate {
+            0%, 100% { transform: rotate(-15deg) scale(1); }
+            50% { transform: rotate(15deg) scale(1.05); }
+          }
+        `}</style>
+        <div className="text-center max-w-sm">
+          {/* Rotating phone icon */}
+          <div className="mb-6 relative">
+            <Smartphone
+              size={80}
+              className="text-[#E6B84D] mx-auto"
+              style={{ animation: 'pulse-rotate 2s ease-in-out infinite' }}
+            />
+            <RotateCcw
+              size={32}
+              className="text-[#4A9B9B] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            />
+          </div>
+
+          <h2 className="text-2xl font-bold text-white mb-3">
+            Rotate Your Device
+          </h2>
+
+          <p className="text-white/70 mb-6">
+            Auditorium World works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
+            Please rotate your device horizontally to continue.
+          </p>
+
+          <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
+            <div className="w-12 h-8 border-2 border-white/30 rounded-md flex items-center justify-center">
+              <div className="w-8 h-4 bg-white/20 rounded-sm"></div>
+            </div>
+            <span>→</span>
+            <div className="w-16 h-10 border-2 border-[#E6B84D] rounded-md flex items-center justify-center">
+              <div className="w-10 h-6 bg-[#E6B84D]/20 rounded-sm"></div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/home')}
+            className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-full text-white text-sm hover:bg-white/20 transition-colors"
+          >
+            ← Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black">
       {/* 3D Canvas */}
@@ -172,19 +247,19 @@ const World2New: React.FC = () => {
       </AnimatePresence>
 
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-6">
+      <div className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-6">
         <div className="flex items-center justify-between">
           {/* Title */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="px-6 py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
+            className="px-3 sm:px-6 py-2 sm:py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
           >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🎭</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-xl sm:text-2xl">🎭</span>
               <div>
-                <h1 className="text-white font-bold text-lg">Auditorium World</h1>
-                <p className="text-white/60 text-xs">Interactive 3D Environment</p>
+                <h1 className="text-white font-bold text-sm sm:text-lg">Auditorium World</h1>
+                <p className="text-white/60 text-[10px] sm:text-xs hidden sm:block">Interactive 3D Environment</p>
               </div>
             </div>
           </motion.div>
@@ -193,46 +268,46 @@ const World2New: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2"
           >
             <button
               onClick={() => navigate('/home')}
-              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+              className="p-2 sm:p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
               title="Go to Home"
             >
-              <Home size={20} style={{ color: '#E6B84D' }} />
+              <Home size={16} className="sm:w-5 sm:h-5" style={{ color: '#E6B84D' }} />
             </button>
             <button
               onClick={() => setShowVoicesPanel(!showVoicesPanel)}
-              className={`p-3 rounded-full backdrop-blur-md border transition-colors ${
+              className={`p-2 sm:p-3 rounded-full backdrop-blur-md border transition-colors ${
                 showVoicesPanel
                   ? "bg-purple-500/30 border-purple-400/50"
                   : "bg-black/40 border-white/10 hover:bg-black/60"
               }`}
               title="Voices Panel"
             >
-              <Music size={20} className={showVoicesPanel ? "text-purple-300" : "text-white"} />
+              <Music size={16} className={`sm:w-5 sm:h-5 ${showVoicesPanel ? "text-purple-300" : "text-white"}`} />
             </button>
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+              className="p-2 sm:p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
             >
-              <Info size={20} className="text-white" />
+              <Info size={16} className="sm:w-5 sm:h-5 text-white" />
             </button>
             <button
               onClick={resetCamera}
-              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+              className="p-2 sm:p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
             >
-              <RotateCcw size={20} className="text-white" />
+              <RotateCcw size={16} className="sm:w-5 sm:h-5 text-white" />
             </button>
             <button
               onClick={toggleFullscreen}
-              className="p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+              className="hidden sm:block p-2 sm:p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
             >
               {isFullscreen ? (
-                <Minimize2 size={20} className="text-white" />
+                <Minimize2 size={16} className="sm:w-5 sm:h-5 text-white" />
               ) : (
-                <Maximize2 size={20} className="text-white" />
+                <Maximize2 size={16} className="sm:w-5 sm:h-5 text-white" />
               )}
             </button>
           </motion.div>

@@ -23,7 +23,7 @@ export const useStore = create(
         try {
           const audio = new Audio(loop.url);
           audio.loop = false; // Play once, don't loop
-          audio.volume = 0.7;
+          audio.volume = 1.0; // Full volume for clear playback
           audio.play().catch((err) => {
             console.warn("Audio play error:", err);
           });
@@ -155,11 +155,29 @@ export const useStore = create(
 
             if (error) throw error;
 
+            // Helper to proxy external URLs that have CORS issues
+            const proxyUrlIfNeeded = (url) => {
+              if (!url) return url;
+              // URLs that need proxying due to CORS
+              const needsProxy = [
+                "musicfile.api.box",
+                "cdn.suno.ai",
+                "cdn1.suno.ai",
+                "cdn2.suno.ai",
+                "mvsep.com",
+              ];
+              const urlNeedsProxy = needsProxy.some(domain => url.includes(domain));
+              if (urlNeedsProxy) {
+                return `/api/proxy-audio?url=${encodeURIComponent(url)}`;
+              }
+              return url;
+            };
+
             // Map database fields to app format
             const loops = data.map((loop) => ({
               id: loop.loop_id || loop.id,
               name: loop.name,
-              url: loop.url,
+              url: proxyUrlIfNeeded(loop.url),
               color: loop.color || "bg-purple-400",
               hoverColor: loop.hover_color || "hover:bg-purple-500",
               border: loop.border || "border-purple-600",
