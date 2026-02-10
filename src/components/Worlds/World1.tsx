@@ -119,7 +119,7 @@ const World1: React.FC = () => {
       0.1,
       1000
     );
-    camera.position.set(-8, 1.5, -10);
+    camera.position.set(7.32, 2.27, -0.88);
     camera.lookAt(5, 1.5, -15);
     cameraRef.current = camera;
 
@@ -315,8 +315,8 @@ const World1: React.FC = () => {
     loadAnimatedModel(
       "/models/Black_Student_Boy/Black_boy_drum.glb",
       "drummer",
-      new THREE.Vector3(22, 1, 8),
-      new THREE.Vector3(3, 3, 3),
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(1, 1, 1),
       -Math.PI * 0.75
     )
 
@@ -325,7 +325,7 @@ const World1: React.FC = () => {
       "/models/Black_Student_Boy/pianist_black_boy.glb",
       "pianist",
       new THREE.Vector3(16, 1, 18),
-      new THREE.Vector3(3, 3, 3),
+      new THREE.Vector3(1, 1, 1),
       Math.PI * 0.5
     );
 
@@ -334,7 +334,7 @@ const World1: React.FC = () => {
       "/models/Black_Student_Boy/tambourinist.glb",
       "tambourinist",
       new THREE.Vector3(25, 1, 12),
-      new THREE.Vector3(3, 3, 3),
+      new THREE.Vector3(1, 1, 1),
       -Math.PI * 0.5
     );
 
@@ -342,7 +342,7 @@ const World1: React.FC = () => {
       "/models/nany-wheeler/source/djembe_flutist.glb",
       "flutist",
       new THREE.Vector3(17, 1, -10),
-      new THREE.Vector3(3, 3, 3),
+      new THREE.Vector3(1, 1, 1),
       Math.PI
     );
 
@@ -350,7 +350,7 @@ const World1: React.FC = () => {
       "/models/nany-wheeler/source/guitarist.glb",
       "guitarist",
       new THREE.Vector3(14, 1, 18),
-      new THREE.Vector3(3, 3, 3),
+      new THREE.Vector3(1, 1, 1),
       Math.PI * 0.25
     );
 
@@ -359,7 +359,7 @@ const World1: React.FC = () => {
     loadStaticModel(
       "/models/Black_Student_Boy/djembe.glb",
       "djembe",
-      new THREE.Vector3(22, 1, 8),
+      new THREE.Vector3(0, 0, 1),
       new THREE.Vector3(10, 10, 10),
       Math.PI
     );
@@ -388,7 +388,7 @@ const World1: React.FC = () => {
       "flute",
       new THREE.Vector3(17, 1, -10),
       new THREE.Vector3(0.05, 0.05, 0.05),
-      Math.PI * 0.25
+      Math.PI
     );
 
     // Guitar - back right
