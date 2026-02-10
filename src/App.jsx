@@ -23,6 +23,7 @@ import Tutorials from './assets/pages/Tutorials';
 import StudentDifficulties from './assets/pages/teacher/StudentDifficulties';
 import StudentProjects from './assets/pages/teacher/StudentProjects';
 import WorldsSettings from './assets/pages/teacher/WorldsSettings';
+import AdminDashboard from './assets/pages/AdminDashboard';
 import { useSessionTracker } from './hooks/useSessionTracker';
 import OnboardingTour from './components/onboarding/OnboardingTour';
 import { useOnboarding } from './hooks/useOnboarding';
@@ -118,13 +119,31 @@ function AppContent() {
           <Routes>
         {/* Landing page - public route */}
         <Route path="/" element={
-          isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Landing_page />
+          isAuthenticated ? (
+            <Navigate to={
+              userType === 'admin' ? '/admin' :
+              userType === 'teacher' ? '/students' :
+              '/home'
+            } replace />
+          ) : <Landing_page />
         } />
         <Route path="/login" element={
-          isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Login />
+          isAuthenticated ? (
+            <Navigate to={
+              userType === 'admin' ? '/admin' :
+              userType === 'teacher' ? '/students' :
+              '/home'
+            } replace />
+          ) : <Login />
         } />
         <Route path="/signup" element={
-          isAuthenticated ? <Navigate to={userType === 'teacher' ? '/students' : '/home'} replace /> : <Signup />
+          isAuthenticated ? (
+            <Navigate to={
+              userType === 'admin' ? '/admin' :
+              userType === 'teacher' ? '/students' :
+              '/home'
+            } replace />
+          ) : <Signup />
         } />
         <Route path="/home" element={
           <ProtectedRoute>
@@ -190,6 +209,13 @@ function AppContent() {
         <Route path="/teacher/worlds" element={
           <ProtectedRoute>
             <WorldsSettings />
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Dashboard Route */}
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminDashboard />
           </ProtectedRoute>
         } />
 

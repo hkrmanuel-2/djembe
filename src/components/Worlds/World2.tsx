@@ -7,7 +7,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 
-const World2New: React.FC = () => {
+const World2: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -19,6 +19,16 @@ const World2New: React.FC = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const navigate = useNavigate();
+
+  // Animation references
+  const mixersRef = useRef<THREE.AnimationMixer[]>([]);
+  const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
+  const clockRef = useRef(new THREE.Clock());
+
+  // Raycasting references
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef = useRef(new THREE.Vector2());
+  const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
   // Check orientation for mobile devices
   useEffect(() => {
@@ -64,7 +74,7 @@ const World2New: React.FC = () => {
 
     // Scene & Camera
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
+    scene.background = new THREE.Color(0x1a1a1a);
 
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -101,7 +111,130 @@ const World2New: React.FC = () => {
     controls.dampingFactor = 0.05;
     controlsRef.current = controls;
 
-    // Load GLTF
+    // Track loading progress
+    let modelsLoaded = 0;
+    const totalModels = 9; // auditorium + 3 musicians + 5 instruments
+
+    const updateLoadingProgress = () => {
+      modelsLoaded++;
+      const progress = (modelsLoaded / totalModels) * 100;
+      setLoadingProgress(progress);
+      if (modelsLoaded >= totalModels) {
+        setLoading(false);
+      }
+    };
+
+    // Helper function to setup model materials
+    const setupModelMaterials = (model: THREE.Object3D) => {
+      model.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          const materials = Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material];
+          materials.forEach((material: THREE.Material) => {
+            if ((material as any).map) {
+              ((material as any).map as THREE.Texture).colorSpace =
+                THREE.SRGBColorSpace;
+            }
+            material.needsUpdate = true;
+          });
+        }
+      });
+    };
+
+    // Helper function to load static model (instruments/props)
+    const loadStaticModel = (
+      path: string,
+      name: string,
+      position: THREE.Vector3,
+      scale: THREE.Vector3,
+      rotationY: number = 0
+    ) => {
+      const loader = new GLTFLoader();
+      loader.load(
+        path,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.copy(scale);
+          model.position.copy(position);
+          model.rotation.y = rotationY;
+          model.name = name;
+
+          setupModelMaterials(model);
+          scene.add(model);
+
+          updateLoadingProgress();
+          console.log(`${name} loaded successfully`);
+        },
+        (xhr) => {
+          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+        },
+        (error) => {
+          console.error(`Error loading ${name}:`, error);
+          updateLoadingProgress();
+        }
+      );
+    };
+
+    // Helper function to load animated model
+    const loadAnimatedModel = (
+      path: string,
+      name: string,
+      position: THREE.Vector3,
+      scale: THREE.Vector3,
+      rotationY: number = 0
+    ) => {
+      const loader = new GLTFLoader();
+      loader.load(
+        path,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.copy(scale);
+          model.position.copy(position);
+          model.rotation.y = rotationY;
+          model.name = name;
+
+          setupModelMaterials(model);
+
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = name;
+            }
+          });
+
+          scene.add(model);
+          clickableModelsRef.current.set(name, model);
+
+          // Setup animation if available
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(model);
+            mixersRef.current.push(mixer);
+
+            const clip = gltf.animations[0];
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            actionsRef.current.set(name, action);
+
+            console.log(`${name} animation ready - click to play!`);
+          }
+
+          updateLoadingProgress();
+          console.log(`${name} loaded successfully`);
+        },
+        (xhr) => {
+          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+        },
+        (error) => {
+          console.error(`Error loading ${name}:`, error);
+          updateLoadingProgress();
+        }
+      );
+    };
+
+    // Load main auditorium model
     const audiLoader = new GLTFLoader();
     audiLoader.load(
       "/models/viola_desmond_the_roseland_theatre.glb",
@@ -109,35 +242,124 @@ const World2New: React.FC = () => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, 0, 1);
         gltf.scene.rotation.y = Math.PI / 4;
-
-        gltf.scene.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            const materials = Array.isArray(mesh.material)
-              ? mesh.material
-              : [mesh.material];
-            materials.forEach((material) => {
-              if ((material as any).map) {
-                ((material as any).map as THREE.Texture).colorSpace =
-                  THREE.SRGBColorSpace;
-              }
-              material.needsUpdate = true;
-            });
-          }
-        });
-
+        setupModelMaterials(gltf.scene);
         scene.add(gltf.scene);
-        setLoading(false);
+        updateLoadingProgress();
       },
       (xhr) => {
         const progress = (xhr.loaded / xhr.total) * 100;
-        setLoadingProgress(progress);
+        console.log(`Auditorium loading: ${progress}%`);
       },
       (error) => {
-        console.error("Error loading GLTF model:", error);
-        setLoading(false);
+        console.error("Error loading auditorium:", error);
+        updateLoadingProgress();
       }
     );
+
+    // Load all musician models with different positions
+    // Drummer - center stage
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/Black_boy_drum.glb",
+      "drummer",
+      new THREE.Vector3(0, -1, 0),
+      new THREE.Vector3(1, 1, 1),
+      Math.PI
+    );
+
+    // Pianist - left side
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/pianist_black_boy.glb",
+      "pianist",
+      new THREE.Vector3(-4, -1, -2),
+      new THREE.Vector3(1, 1, 1),
+      Math.PI * 0.75
+    );
+
+    // Tambourinist - right side
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/tambourinist.glb",
+      "tambourinist",
+      new THREE.Vector3(4, -1, -2),
+      new THREE.Vector3(1, 1, 1),
+      -Math.PI * 0.75
+    );
+
+    // Load static instrument props
+    // Djembe drum - front left
+    loadStaticModel(
+      "/models/Black_Student_Boy/djembe.glb",
+      "djembe",
+      new THREE.Vector3(-3, -1, 2),
+      new THREE.Vector3(1, 1, 1),
+      Math.PI * 0.25
+    );
+
+    // Piano - far left
+    loadStaticModel(
+      "/models/Black_Student_Boy/piano.glb",
+      "piano",
+      new THREE.Vector3(-6, -1, 0),
+      new THREE.Vector3(1, 1, 1),
+      Math.PI * 0.5
+    );
+
+    // Tambourine - front right
+    loadStaticModel(
+      "/models/Black_Student_Boy/tambourine.glb",
+      "tambourine",
+      new THREE.Vector3(3, -1, 2),
+      new THREE.Vector3(1, 1, 1),
+      -Math.PI * 0.25
+    );
+
+    // Flute - back left
+    loadStaticModel(
+      "/models/Black_Student_Boy/flute (1).glb",
+      "flute",
+      new THREE.Vector3(-2, -1, -4),
+      new THREE.Vector3(1, 1, 1),
+      Math.PI * 0.5
+    );
+
+    // Guitar - back right
+    loadStaticModel(
+      "/models/Black_Student_Boy/low_poly_guitar..glb",
+      "guitar",
+      new THREE.Vector3(2, -1, -4),
+      new THREE.Vector3(1, 1, 1),
+      -Math.PI * 0.5
+    );
+
+    // Click handler for playing animations
+    const handleClick = (event: MouseEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+
+      // Check intersections with all clickable models
+      clickableModelsRef.current.forEach((model, name) => {
+        const intersects = raycasterRef.current.intersectObject(model, true);
+
+        if (intersects.length > 0) {
+          console.log(`${name} clicked!`);
+
+          const action = actionsRef.current.get(name);
+          if (action) {
+            if (action.isRunning()) {
+              action.fadeOut(0.3);
+              console.log(`${name} animation stopped`);
+            } else {
+              action.reset().fadeIn(0.3).play();
+              console.log(`${name} animation playing`);
+            }
+          }
+        }
+      });
+    };
+
+    renderer.domElement.addEventListener("click", handleClick);
 
     // Resize handler
     const handleResize = () => {
@@ -150,6 +372,13 @@ const World2New: React.FC = () => {
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
+
+      // Update all animation mixers
+      const delta = clockRef.current.getDelta();
+      mixersRef.current.forEach((mixer) => {
+        mixer.update(delta);
+      });
+
       controls.update();
       renderer.render(scene, camera);
     };
@@ -157,6 +386,10 @@ const World2New: React.FC = () => {
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      renderer.domElement.removeEventListener("click", handleClick);
+      mixersRef.current.forEach((mixer) => {
+        mixer.stopAllAction();
+      });
       renderer.dispose();
       scene.clear();
     };
@@ -326,10 +559,13 @@ const World2New: React.FC = () => {
             <div className="p-6 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10">
               <h3 className="text-xl font-bold text-white mb-3">About This World</h3>
               <p className="text-white/80 text-sm leading-relaxed mb-4">
-                Step into a grand auditorium designed for spectacular performances. Perfect for concerts,
-                recitals, and large ensemble presentations.
+                Step into a grand auditorium with a full band! Click on any musician to start/stop their animation.
               </p>
               <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Click musicians to toggle animation</span>
+                </div>
                 <div className="flex items-center gap-2 text-white/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
                   <span>Drag to rotate the camera</span>
@@ -358,7 +594,7 @@ const World2New: React.FC = () => {
         >
           <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
             <p className="text-white/60 text-xs">
-              Drag to explore • Scroll to zoom
+              Click musicians to animate • Drag to explore • Scroll to zoom
             </p>
           </div>
         </motion.div>
@@ -374,4 +610,4 @@ const World2New: React.FC = () => {
   );
 };
 
-export default World2New;
+export default World2;

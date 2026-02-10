@@ -7,7 +7,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 
-const World1New: React.FC = () => {
+const World1: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -19,6 +19,16 @@ const World1New: React.FC = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const navigate = useNavigate();
+
+  // Animation references
+  const mixersRef = useRef<THREE.AnimationMixer[]>([]);
+  const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
+  const clockRef = useRef(new THREE.Clock());
+
+  // Raycasting references
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef = useRef(new THREE.Vector2());
+  const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
   // Check orientation for mobile devices
   useEffect(() => {
@@ -42,10 +52,11 @@ const World1New: React.FC = () => {
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
       cameraRef.current.position.set(-8, 1.5, -10);
-      cameraRef.current.lookAt(5, 1.5, -15);
+      cameraRef.current.lookAt(0, 0.93, 0);
       controlsRef.current.reset();
     }
   };
+
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -117,21 +128,19 @@ const World1New: React.FC = () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.8; // Slightly darker for night
+    renderer.toneMappingExposure = 0.8;
 
-    // Lights - moonlit night atmosphere
-    const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.4); // Dark blue ambient
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.4);
     scene.add(ambientLight);
 
-    // Moonlight - soft blue-white light from moon direction
-    const moonLight = new THREE.DirectionalLight(0x8899bb, 0.6);
-    moonLight.position.set(50, 80, -100);
-    scene.add(moonLight);
+    const directionalLight = new THREE.DirectionalLight(0x8899bb, 0.6);
+    directionalLight.position.set(50, 80, -100);
+    scene.add(directionalLight);
 
-    // Subtle fill light
-    const fillLight = new THREE.DirectionalLight(0x2a2a4a, 0.2);
-    fillLight.position.set(-5, 5, -5);
-    scene.add(fillLight);
+    const directionalLight2 = new THREE.DirectionalLight(0x2a2a4a, 0.2);
+    directionalLight2.position.set(-5, 5, -5);
+    scene.add(directionalLight2);
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -139,11 +148,136 @@ const World1New: React.FC = () => {
     controls.dampingFactor = 0.05;
     controlsRef.current = controls;
 
-    // Animation mixer for GLB animations
+    // Track loading progress
+    let modelsLoaded = 0;
+    const totalModels = 11; // campfire + 5 musicians + 5 instruments
+
+    const updateLoadingProgress = () => {
+      modelsLoaded++;
+      const progress = (modelsLoaded / totalModels) * 100;
+      setLoadingProgress(progress);
+      if (modelsLoaded >= totalModels) {
+        setLoading(false);
+      }
+    };
+
+    // Helper function to setup model materials
+    const setupModelMaterials = (model: THREE.Object3D) => {
+      model.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          const materials = Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material];
+          materials.forEach((material: THREE.Material) => {
+            if ((material as any).map) {
+              ((material as any).map as THREE.Texture).colorSpace =
+                THREE.SRGBColorSpace;
+            }
+            material.needsUpdate = true;
+          });
+        }
+      });
+    };
+
+    // Helper function to load static model (instruments/props)
+    const loadStaticModel = (
+      path: string,
+      name: string,
+      position: THREE.Vector3,
+      scale: THREE.Vector3,
+      rotationY: number = 0
+    ) => {
+      const loader = new GLTFLoader();
+      loader.load(
+        path,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.copy(scale);
+          model.position.copy(position);
+          model.rotation.y = rotationY;
+          model.name = name;
+
+          setupModelMaterials(model);
+          scene.add(model);
+
+          updateLoadingProgress();
+          console.log(`${name} loaded successfully`);
+        },
+        (xhr) => {
+          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+        },
+        (error) => {
+          console.error(`Error loading ${name}:`, error);
+          updateLoadingProgress();
+        }
+      );
+    };
+
+    // Helper function to load animated model
+    const loadAnimatedModel = (
+      path: string,
+      name: string,
+      position: THREE.Vector3,
+      scale: THREE.Vector3,
+      rotationY: number = 0
+    ) => {
+      const loader = new GLTFLoader();
+      loader.load(
+        path,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.copy(scale);
+          model.position.copy(position);
+          model.rotation.y = rotationY;
+          model.name = name;
+
+          setupModelMaterials(model);
+
+          // Mark as clickable
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = name;
+            }
+          });
+
+          scene.add(model);
+          clickableModelsRef.current.set(name, model);
+
+          // Setup animation if available
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(model);
+            mixersRef.current.push(mixer);
+
+            const clip = gltf.animations[0];
+            const action = mixer!.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            actionsRef.current.set(name, action);
+            action.play();
+
+            console.log(`${name} animation ready - click to play!`);
+          }
+
+          updateLoadingProgress();
+          console.log(`${name} loaded successfully`);
+        },
+        (xhr) => {
+          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+        },
+        (error) => {
+          console.error(`Error loading ${name}:`, error);
+          updateLoadingProgress();
+        }
+      );
+    };
+
+        // Animation mixer for GLB animations
     let mixer: THREE.AnimationMixer | null = null;
     const clock = new THREE.Clock();
 
-    // Load GLTF
+    // Load campfire environment
     const forestLoader = new GLTFLoader();
     forestLoader.load(
       "/models/camping_buscraft_ambience.glb",
@@ -152,44 +286,150 @@ const World1New: React.FC = () => {
         gltf.scene.position.set(0, 0, 1);
         gltf.scene.rotation.y = Math.PI / 4;
 
-        gltf.scene.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            const materials = Array.isArray(mesh.material)
-              ? mesh.material
-              : [mesh.material];
-            materials.forEach((material) => {
-              if ((material as any).map) {
-                ((material as any).map as THREE.Texture).colorSpace =
-                  THREE.SRGBColorSpace;
-              }
-              material.needsUpdate = true;
-            });
-          }
-        });
 
+        setupModelMaterials(gltf.scene);
         scene.add(gltf.scene);
-
-        // Play all animations if they exist
+        // Play campfire animations if they exist (from World1New)
         if (gltf.animations && gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(gltf.scene);
+          const campfireMixer = new THREE.AnimationMixer(gltf.scene);
+          mixersRef.current.push(campfireMixer);
           gltf.animations.forEach((clip) => {
-            const action = mixer!.clipAction(clip);
+            const action = campfireMixer.clipAction(clip);
             action.play();
           });
-        }
-
-        setLoading(false);
+}
+        updateLoadingProgress();
       },
       (xhr) => {
         const progress = (xhr.loaded / xhr.total) * 100;
-        setLoadingProgress(progress);
+        console.log(`Campfire loading: ${progress}%`);
       },
       (error) => {
-        console.error("Error loading GLTF model:", error);
-        setLoading(false);
+        console.error("Error loading campfire:", error);
+        updateLoadingProgress();
       }
     );
+
+    // Load all musician models arranged around the campfire
+    // Drummer - near the fire
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/Black_boy_drum.glb",
+      "drummer",
+      new THREE.Vector3(22, 1, 8),
+      new THREE.Vector3(3, 3, 3),
+      -Math.PI * 0.75
+    )
+
+    // Pianist - left side
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/pianist_black_boy.glb",
+      "pianist",
+      new THREE.Vector3(16, 1, 18),
+      new THREE.Vector3(3, 3, 3),
+      Math.PI * 0.5
+    );
+
+    // Tambourinist - right side
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/tambourinist.glb",
+      "tambourinist",
+      new THREE.Vector3(25, 1, 12),
+      new THREE.Vector3(3, 3, 3),
+      -Math.PI * 0.5
+    );
+
+    loadAnimatedModel(
+      "/models/nany-wheeler/source/djembe_flutist.glb",
+      "flutist",
+      new THREE.Vector3(17, 1, -10),
+      new THREE.Vector3(3, 3, 3),
+      Math.PI
+    );
+
+    loadAnimatedModel(
+      "/models/nany-wheeler/source/guitarist.glb",
+      "guitarist",
+      new THREE.Vector3(14, 1, 18),
+      new THREE.Vector3(3, 3, 3),
+      Math.PI * 0.25
+    );
+
+    // Load static instrument props around the campfire
+    // Djembe drum - near fire
+    loadStaticModel(
+      "/models/Black_Student_Boy/djembe.glb",
+      "djembe",
+      new THREE.Vector3(22, 1, 8),
+      new THREE.Vector3(10, 10, 10),
+      Math.PI
+    );
+
+    // Piano - side area
+    loadStaticModel(
+      "/models/Black_Student_Boy/piano.glb",
+      "piano",
+      new THREE.Vector3(16, 1, 18),
+      new THREE.Vector3(100, 100, 100),
+      Math.PI * 0.5
+    );
+
+    // Tambourine - near campfire
+    loadStaticModel(
+      "/models/Black_Student_Boy/tambourine.glb",
+      "tambourine",
+      new THREE.Vector3(25, 1, 12),
+      new THREE.Vector3(100, 100, 100),
+      -Math.PI * 0.5
+    );
+
+    // Flute - back left
+    loadStaticModel(
+      "/models/Black_Student_Boy/flute.glb",
+      "flute",
+      new THREE.Vector3(17, 1, -10),
+      new THREE.Vector3(0.05, 0.05, 0.05),
+      Math.PI * 0.25
+    );
+
+    // Guitar - back right
+    loadStaticModel(
+      "/models/Black_Student_Boy/low_poly_guitar.glb",
+      "guitar",
+      new THREE.Vector3(14, 1, 18),
+      new THREE.Vector3(6, 6, 6),
+      -Math.PI * 0.25
+    );
+
+    // Click handler for playing animations
+    const handleClick = (event: MouseEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+
+      // Check intersections with all clickable models
+      clickableModelsRef.current.forEach((model, name) => {
+        const intersects = raycasterRef.current.intersectObject(model, true);
+
+        if (intersects.length > 0) {
+          console.log(`${name} clicked!`);
+
+          const action = actionsRef.current.get(name);
+          if (action) {
+            if (action.isRunning()) {
+              action.fadeOut(0.3);
+              console.log(`${name} animation stopped`);
+            } else {
+              action.reset().fadeIn(0.3).play();
+              console.log(`${name} animation playing`);
+            }
+          }
+        }
+      });
+    };
+
+    renderer.domElement.addEventListener("click", handleClick);
 
     // Resize handler
     const handleResize = () => {
@@ -199,11 +439,28 @@ const World1New: React.FC = () => {
     };
     window.addEventListener("resize", handleResize);
 
+    // Log camera position on 'C' key press
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'c' || event.key === 'C') {
+        console.log('Camera Position:', {
+          x: camera.position.x.toFixed(2),
+          y: camera.position.y.toFixed(2),
+          z: camera.position.z.toFixed(2)
+        });
+      }
+    };
+    window.addEventListener("keydown", handleKeyPress);
+
     // Animation loop
     const animate = () => {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      if (mixer) mixer.update(delta);
+
+      // Update all animation mixers
+      const delta = clockRef.current.getDelta();
+      mixersRef.current.forEach((mixer) => {
+        mixer.update(delta);
+      });
+
       controls.update();
       renderer.render(scene, camera);
     };
@@ -211,6 +468,11 @@ const World1New: React.FC = () => {
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("keydown", handleKeyPress);
+      renderer.domElement.removeEventListener("click", handleClick);
+      mixersRef.current.forEach((mixer) => {
+        mixer.stopAllAction();
+      });
       renderer.dispose();
       scene.clear();
     };
@@ -380,10 +642,13 @@ const World1New: React.FC = () => {
             <div className="p-6 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10">
               <h3 className="text-xl font-bold text-white mb-3">About This World</h3>
               <p className="text-white/80 text-sm leading-relaxed mb-4">
-                Gather around the campfire in this cozy forest environment. Perfect for storytelling,
-                acoustic sessions, and intimate musical performances.
+                Gather around the campfire with a full band! Click on any musician to start/stop their animation.
               </p>
               <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Click musicians to toggle animation</span>
+                </div>
                 <div className="flex items-center gap-2 text-white/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
                   <span>Drag to rotate the camera</span>
@@ -403,7 +668,7 @@ const World1New: React.FC = () => {
       </AnimatePresence>
 
       {/* Bottom Controls Hint */}
-      {!showInfo && !showVoicesPanel && (
+      {!showInfo && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -412,7 +677,7 @@ const World1New: React.FC = () => {
         >
           <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
             <p className="text-white/60 text-xs">
-              Drag to explore • Scroll to zoom
+              Click musicians to animate • Drag to explore • Scroll to zoom
             </p>
           </div>
         </motion.div>
@@ -428,4 +693,4 @@ const World1New: React.FC = () => {
   );
 };
 
-export default World1New;
+export default World1;
