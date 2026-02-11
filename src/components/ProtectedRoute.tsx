@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect } from "react";
+import CubeLoader from "@/components/ui/cube-loader";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, initAuth } = useAuthStore();
@@ -13,12 +14,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
+      <CubeLoader 
+        message="Getting Ready"
+        subMessage="Setting up your adventure..."
+        className="min-h-screen"
+      />
     );
   }
 

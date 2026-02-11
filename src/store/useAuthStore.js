@@ -1,14 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
+import { useProgressStore } from "./useProgressStore";
 
 export const useAuthStore = create(
   persist(
     (set, get) => ({
       // Auth state
       user: null,
-      userType: null, // 'teacher' or 'student'
-      userProfile: null, // Teacher or Student record
+      userType: null, // 'admin', 'teacher', or 'student'
+      userProfile: null, // Admin, Teacher, or Student record
       isLoading: false,
       error: null,
       isAuthenticated: false,
@@ -23,6 +24,8 @@ export const useAuthStore = create(
 
           if (session?.user) {
             await get().loadUserProfile(session.user);
+            // Check for dev override after loading profile
+            get().checkUserTypeOverride();
           } else {
             set({
               user: null,
@@ -42,10 +45,29 @@ export const useAuthStore = create(
         }
       },
 
-      // Load user profile from Teachers or Students table
+      // Load user profile from Admins, Teachers or Students table
       loadUserProfile: async (authUser) => {
         try {
           const email = authUser.email;
+
+          // Check if user is an admin
+          const { data: adminData, error: adminError } = await supabase
+            .from("admins")
+            .select("*")
+            .eq("email", email)
+            .single();
+
+          if (adminData && !adminError) {
+            set({
+              user: authUser,
+              userType: "admin",
+              userProfile: adminData,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            return;
+          }
 
           // Check if user is a teacher
           const { data: teacherData, error: teacherError } = await supabase
@@ -55,6 +77,19 @@ export const useAuthStore = create(
             .single();
 
           if (teacherData && !teacherError) {
+            // Check if teacher is approved
+            if (teacherData.approval_status !== 'approved') {
+              set({
+                user: authUser,
+                userType: null,
+                userProfile: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: "Your account is pending approval by your school administrator.",
+              });
+              return;
+            }
+
             set({
               user: authUser,
               userType: "teacher",
@@ -74,6 +109,19 @@ export const useAuthStore = create(
             .single();
 
           if (studentData && !studentError) {
+            // Check if student is approved
+            if (studentData.approval_status !== 'approved') {
+              set({
+                user: authUser,
+                userType: null,
+                userProfile: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: "Your account is pending approval by your school administrator.",
+              });
+              return;
+            }
+
             set({
               user: authUser,
               userType: "student",
@@ -82,10 +130,15 @@ export const useAuthStore = create(
               isLoading: false,
               error: null,
             });
+
+            // Load progress and record daily login for students
+            const progressStore = useProgressStore.getState();
+            progressStore.loadProgress(studentData.student_id);
+            progressStore.recordDailyLogin(studentData.student_id);
             return;
           }
 
-          // User authenticated but not found in Teachers or Students
+          // User authenticated but not found in Admins, Teachers or Students
           set({
             user: authUser,
             userType: null,
@@ -129,8 +182,7 @@ export const useAuthStore = create(
             last_name: lastName,
             email: email,
             school_id: schoolId,
-            // If password_hash is required and not nullable, you may need to adjust your schema
-            // password_hash: '', // Placeholder - Supabase Auth handles passwords
+
           };
 
           let profileResult;
@@ -228,6 +280,31 @@ export const useAuthStore = create(
 
       // Clear error
       clearError: () => set({ error: null }),
+
+      // Override user type for testing (dev only)
+      setUserTypeOverride: (newType) => {
+        const currentProfile = get().userProfile;
+        if (currentProfile) {
+          set({ userType: newType });
+          // Store in localStorage so it persists across refreshes
+          localStorage.setItem('userTypeOverride', newType);
+        }
+      },
+
+      // Check for userType override on init
+      checkUserTypeOverride: () => {
+        const override = localStorage.getItem('userTypeOverride');
+        if (override && (override === 'admin' || override === 'teacher' || override === 'student')) {
+          set({ userType: override });
+        }
+      },
+
+      // Clear the override
+      clearUserTypeOverride: () => {
+        localStorage.removeItem('userTypeOverride');
+        // Reload the actual user type from profile
+        get().initAuth();
+      },
     }),
     {
       name: "auth-storage",
@@ -244,10 +321,17 @@ export const useAuthStore = create(
 
 // Set up auth state listener
 supabase.auth.onAuthStateChange((event, session) => {
-  const store = useAuthStore.getState();
   if (event === "SIGNED_IN" && session?.user) {
-    store.loadUserProfile(session.user);
+    useAuthStore.getState().loadUserProfile(session.user);
   } else if (event === "SIGNED_OUT") {
-    store.signOut();
+    // Directly reset state instead of calling signOut() to avoid infinite loop
+    useAuthStore.setState({
+      user: null,
+      userType: null,
+      userProfile: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    });
   }
 });

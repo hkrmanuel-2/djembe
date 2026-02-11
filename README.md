@@ -1,16 +1,135 @@
-# React + Vite
+# Djembe - Music Education Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive music education platform for children aged 5-12 that teaches rhythm through 3D immersive worlds and AI-generated music.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 3D Worlds
+Students can explore interactive 3D environments:
+- **Fireside World** (`world1`) - A cozy campfire setting
+- **Auditorium World** (`world2`) - A grand performance space
 
-## React Compiler
+### Voices Panel
+Each world includes a Voices Panel for interactive music:
+- AI-generated music stems (rhythm, bass, harmony, melody)
+- Beat-synced voice switching using Tone.js
+- Per-world settings configured by teachers
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Teacher Dashboard
+Teachers can configure music generation settings per world:
+- **Genre**: afrobeat, jazz, electronic, hip-hop, classical, rock, reggae, funk, world, ambient
+- **Style**: upbeat, relaxed, energetic, chill, intense, groovy, melodic, rhythmic
+- **Mood**: happy, calm, intense, dreamy, playful, focused, inspiring, mysterious
+- **BPM**: 60-200 (tempo)
+- **Custom Prompt**: Additional instructions for music generation
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React + Vite + TypeScript
+- **3D Graphics**: Three.js with React Three Fiber
+- **Audio**: Tone.js for beat-synchronized playback
+- **State Management**: Zustand
+- **Database**: Supabase (PostgreSQL)
+- **Music Generation**: Suno API
+- **Stem Separation**: Replicate Demucs
+
+## Setup
+
+### 1. Install dependencies
+```bash
+npm install
+```
+
+### 2. Environment Variables
+Create a `.env.local` file with:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUNO_API_KEY=your_suno_api_key
+REPLICATE_API_TOKEN=your_replicate_token
+```
+
+### 3. Database Setup
+Run the SQL in `database/voice_settings_setup.sql` in your Supabase SQL editor.
+
+If you have an existing `voice_settings` table, run the migration:
+```sql
+ALTER TABLE voice_settings ADD COLUMN IF NOT EXISTS world_id VARCHAR(50) NOT NULL DEFAULT 'world1';
+ALTER TABLE voice_settings DROP CONSTRAINT IF EXISTS voice_settings_school_id_key;
+ALTER TABLE voice_settings ADD CONSTRAINT voice_settings_school_world_unique UNIQUE(school_id, world_id);
+```
+
+### 4. Run Development Server
+```bash
+npm run dev
+```
+
+## Project Structure
+
+```
+src/
+├── assets/pages/
+│   ├── teacher/
+│   │   └── WorldsSettings.tsx    # Teacher settings for world music
+│   └── ...
+├── components/
+│   ├── Voices/
+│   │   ├── VoicesPanel.tsx       # Music control panel in worlds
+│   │   ├── VoiceButton.tsx       # Individual voice toggle
+│   │   ├── VoiceCategory.tsx     # Category container
+│   │   └── VoicesGlobalControls.tsx
+│   └── Worlds/
+│       ├── World1.tsx            # Fireside World
+│       └── World2.tsx            # Auditorium World
+├── lib/
+│   ├── voicesApi.js              # Suno + Demucs API integration
+│   └── teacherApi.js             # Database API functions
+├── store/
+│   ├── useVoicesStore.js         # Voices state management
+│   └── useAuthStore.js           # Auth state management
+└── ...
+
+api/
+├── separate.ts                   # Stem separation API route
+└── ...
+
+database/
+└── voice_settings_setup.sql      # Database schema
+```
+
+## Music Generation Prompt
+
+The platform generates kid-friendly music using the following template:
+
+```
+Create a kid-friendly, instrumental music track for children aged 5-12
+that teaches rhythm through listening and movement.
+
+STRICT PARAMETERS:
+- Genre: {teacher's selected genre}
+- Tempo: {BPM} BPM
+- Style: {teacher's selected style}
+- Mood: {teacher's selected mood}
+
+Instrumentation:
+- Use instruments typical of the selected genre
+- Supporting instruments: light percussion
+- No vocals, no lyrics, no chanting
+
+Guidelines:
+- Child-safe and positive
+- Simple, repetitive rhythmic patterns
+- Clear rhythmic loop, predictable patterns
+- Clean and warm mix
+```
+
+## Audio Timing
+
+The Voices system uses BPM-quantized playback:
+- All stems start synchronized at transport position 0
+- Voice switches are queued for the next bar boundary
+- Seamless transitions without audio glitches
+
+## License
+
+Private - All rights reserved
