@@ -27,26 +27,13 @@ ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'pending' CHECK (ap
 ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES admins(admin_id),
 ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP WITH TIME ZONE;
 
--- 3. CREATE CLASSES TABLE (if not exists)
-CREATE TABLE IF NOT EXISTS classes (
-  class_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  class_name VARCHAR(255) NOT NULL,
-  school_id UUID REFERENCES schools(school_id) ON DELETE CASCADE,
-  grade_level VARCHAR(50),
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+ALTER TABLE classes
+ADD COLUMN IF NOT EXISTS grade_level VARCHAR(50),
+ADD COLUMN IF NOT EXISTS description TEXT;
 
--- 4. CREATE CLASS ASSIGNMENTS TABLE (Teacher-Class relationships)
-CREATE TABLE IF NOT EXISTS class_assignments (
-  assignment_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  teacher_id UUID REFERENCES teachers(teacher_id) ON DELETE CASCADE,
-  class_id UUID REFERENCES classes(class_id) ON DELETE CASCADE,
-  assigned_by UUID REFERENCES admins(admin_id),
-  assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(teacher_id, class_id)
-);
+ALTER TABLE assignments
+ADD COLUMN IF NOT EXISTS assigned_by UUID REFERENCES admins(admin_id),
+ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- 5. CREATE STUDENT CLASS ENROLLMENTS (if not exists)
 CREATE TABLE IF NOT EXISTS student_enrollments (
@@ -76,7 +63,7 @@ CREATE TABLE IF NOT EXISTS access_controls (
 
 -- 7. ENABLE ROW LEVEL SECURITY
 ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
-ALTER TABLE class_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE access_controls ENABLE ROW LEVEL SECURITY;
@@ -106,14 +93,14 @@ CREATE POLICY "Admins can update classes" ON classes
 CREATE POLICY "Admins can delete classes" ON classes
   FOR DELETE USING (true);
 
--- Class assignments policies
-CREATE POLICY "Anyone can view class assignments" ON class_assignments
+-- Assignments policies
+CREATE POLICY "Anyone can view assignments" ON assignments
   FOR SELECT USING (true);
 
-CREATE POLICY "Admins can create class assignments" ON class_assignments
+CREATE POLICY "Admins can create assignments" ON assignments
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Admins can delete class assignments" ON class_assignments
+CREATE POLICY "Admins can delete assignments" ON assignments
   FOR DELETE USING (true);
 
 -- Student enrollments policies
@@ -216,9 +203,3 @@ FROM students
 WHERE approval_status = 'pending'
 ORDER BY created_at DESC;
 
--- NOTES:
--- 1. Run this script in your Supabase SQL Editor
--- 2. Make sure the schools table exists before running this
--- 3. Update existing users' approval_status if needed:
---    UPDATE teachers SET approval_status = 'approved' WHERE approval_status IS NULL;
---    UPDATE students SET approval_status = 'approved' WHERE approval_status IS NULL;

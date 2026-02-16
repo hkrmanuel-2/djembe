@@ -14,6 +14,7 @@ const World2: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVoicesPanel, setShowVoicesPanel] = useState(false);
+  const [showWorldPicker, setShowWorldPicker] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -486,15 +487,59 @@ const World2: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="px-3 sm:px-6 py-2 sm:py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
+            className="relative"
           >
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-xl sm:text-2xl">🎭</span>
-              <div>
-                <h1 className="text-white font-bold text-sm sm:text-lg">Auditorium World</h1>
-                <p className="text-white/60 text-[10px] sm:text-xs hidden sm:block">Interactive 3D Environment</p>
+            <button
+              onClick={() => setShowWorldPicker(!showWorldPicker)}
+              className="px-3 sm:px-6 py-2 sm:py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xl sm:text-2xl">🎭</span>
+                <div className="text-left">
+                  <h1 className="text-white font-bold text-sm sm:text-lg">Auditorium World</h1>
+                  <p className="text-white/60 text-[10px] sm:text-xs hidden sm:block">Interactive 3D Environment</p>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-white/60 transition-transform ${showWorldPicker ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-            </div>
+            </button>
+
+            {/* World Picker Dropdown */}
+            <AnimatePresence>
+              {showWorldPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-black/70 backdrop-blur-md border border-white/10 overflow-hidden shadow-2xl"
+                >
+                  <button
+                    onClick={() => navigate('/world1')}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors"
+                  >
+                    <span className="text-xl">🔥</span>
+                    <div className="text-left">
+                      <p className="text-white/80 font-semibold text-sm">Fireside World</p>
+                      <p className="text-white/40 text-[10px]">Switch world</p>
+                    </div>
+                  </button>
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 bg-white/10 cursor-default"
+                  >
+                    <span className="text-xl">🎭</span>
+                    <div>
+                      <p className="text-white font-semibold text-sm">Auditorium World</p>
+                      <p className="text-white/40 text-[10px]">Currently viewing</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
           {/* Controls */}
@@ -512,11 +557,10 @@ const World2: React.FC = () => {
             </button>
             <button
               onClick={() => setShowVoicesPanel(!showVoicesPanel)}
-              className={`p-2 sm:p-3 rounded-full backdrop-blur-md border transition-colors ${
-                showVoicesPanel
+              className={`p-2 sm:p-3 rounded-full backdrop-blur-md border transition-colors ${showVoicesPanel
                   ? "bg-purple-500/30 border-purple-400/50"
                   : "bg-black/40 border-white/10 hover:bg-black/60"
-              }`}
+                }`}
               title="Voices Panel"
             >
               <Music size={16} className={`sm:w-5 sm:h-5 ${showVoicesPanel ? "text-purple-300" : "text-white"}`} />

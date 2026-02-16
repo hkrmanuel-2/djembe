@@ -14,10 +14,8 @@ const World1: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVoicesPanel, setShowVoicesPanel] = useState(false);
-  const [showWorldPicker, setShowWorldPicker] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const navigate = useNavigate();
@@ -27,13 +25,10 @@ const World1: React.FC = () => {
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
   const clockRef = useRef(new THREE.Clock());
 
-  // Raycasting and Dragging references
+  // Raycasting references
   const raycasterRef = useRef(new THREE.Raycaster());
   const mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
-
-
-
 
   // Check orientation for mobile devices
   useEffect(() => {
@@ -56,12 +51,12 @@ const World1: React.FC = () => {
 
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.set(13.19, 2.51, -1.94);
-      cameraRef.current.rotation.set(-2.23, 1.33, 2.24);
+      // Updated camera position from World1New
+      cameraRef.current.position.set(-8, 1.5, -10);
+      cameraRef.current.lookAt(5, 1.5, -15);
       controlsRef.current.reset();
     }
   };
-
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -72,8 +67,6 @@ const World1: React.FC = () => {
       setIsFullscreen(false);
     }
   };
-
-
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -126,8 +119,9 @@ const World1: React.FC = () => {
       0.1,
       1000
     );
-    camera.position.set(13.19, 2.51, -1.94);
-    camera.rotation.set(-2.23, 1.33, 2.24);
+    // Updated camera position from World1New
+    camera.position.set(-8, 1.5, -10);
+    camera.lookAt(5, 1.5, -15);
     cameraRef.current = camera;
 
     // Renderer
@@ -135,26 +129,26 @@ const World1: React.FC = () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1;
+    renderer.toneMappingExposure = 0.8; // Slightly darker for night (from World1New)
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // Lights - moonlit night atmosphere (from World1New)
+    const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.4); // Dark blue ambient
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    directionalLight.position.set(50, 80, -100);
-    scene.add(directionalLight);
+    // Moonlight - soft blue-white light from moon direction
+    const moonLight = new THREE.DirectionalLight(0x8899bb, 0.6);
+    moonLight.position.set(50, 80, -100);
+    scene.add(moonLight);
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-    directionalLight2.position.set(-5, 5, -5);
-    scene.add(directionalLight2);
+    // Subtle fill light
+    const fillLight = new THREE.DirectionalLight(0x2a2a4a, 0.2);
+    fillLight.position.set(-5, 5, -5);
+    scene.add(fillLight);
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.enableZoom = false;
-    controls.enableRotate = false;
     controlsRef.current = controls;
 
     // Track loading progress
@@ -195,9 +189,7 @@ const World1: React.FC = () => {
       name: string,
       position: THREE.Vector3,
       scale: THREE.Vector3,
-      rotationY: number = 0,
-      rotationX: number = 0,
-      rotationZ: number = 0
+      rotationY: number = 0
     ) => {
       const loader = new GLTFLoader();
       loader.load(
@@ -206,21 +198,11 @@ const World1: React.FC = () => {
           const model = gltf.scene;
           model.scale.copy(scale);
           model.position.copy(position);
-          model.rotation.set(rotationX, rotationY, rotationZ);
+          model.rotation.y = rotationY;
           model.name = name;
 
           setupModelMaterials(model);
-
-          // Mark as clickable
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = name;
-            }
-          });
-
           scene.add(model);
-          clickableModelsRef.current.set(name, model);
 
           updateLoadingProgress();
           console.log(`${name} loaded successfully`);
@@ -250,9 +232,7 @@ const World1: React.FC = () => {
           const model = gltf.scene;
           model.scale.copy(scale);
           model.position.copy(position);
-
           model.rotation.y = rotationY;
-
           model.name = name;
 
           setupModelMaterials(model);
@@ -296,22 +276,18 @@ const World1: React.FC = () => {
       );
     };
 
-    // Animation mixer for GLB animations
-    let mixer: THREE.AnimationMixer | null = null;
-    const clock = new THREE.Clock();
-
     // Load campfire environment
     const forestLoader = new GLTFLoader();
     forestLoader.load(
       "/models/camping_buscraft_ambience.glb",
       (gltf) => {
-        gltf.scene.scale.set(2, 2, 2);
+        gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, 0, 1);
         gltf.scene.rotation.y = Math.PI / 4;
 
-
         setupModelMaterials(gltf.scene);
         scene.add(gltf.scene);
+
         // Play campfire animations if they exist (from World1New)
         if (gltf.animations && gltf.animations.length > 0) {
           const campfireMixer = new THREE.AnimationMixer(gltf.scene);
@@ -321,6 +297,7 @@ const World1: React.FC = () => {
             action.play();
           });
         }
+
         updateLoadingProgress();
       },
       (xhr) => {
@@ -338,83 +315,42 @@ const World1: React.FC = () => {
     loadAnimatedModel(
       "/models/Black_Student_Boy/Black_boy_drum.glb",
       "drummer",
-      new THREE.Vector3(10.44, 0, -0.05),
-      new THREE.Vector3(1, 1, 1),
+      new THREE.Vector3(22, 1, 8),
+      new THREE.Vector3(3, 3, 3),
       -Math.PI * 0.75
     );
 
     // Pianist - left side
-    // Pianist - left side (custom loading for mesh rotation)
-    {
-      const pianistLoader = new GLTFLoader();
-      pianistLoader.load(
-        "/models/Black_Student_Boy/pianist_black_boy.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(1, 1, 1);
-          model.position.set(8.35, 0, -2.77);
-          model.name = "pianist";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "pianist";
-              // Apply rotation to mesh directly
-              child.rotation.set(0, Math.PI, 0);
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("pianist", model);
-
-          // Setup animation if available
-          if (gltf.animations && gltf.animations.length > 0) {
-            const mixer = new THREE.AnimationMixer(model);
-            mixersRef.current.push(mixer);
-
-            const clip = gltf.animations[0];
-            const action = mixer!.clipAction(clip);
-            action.setLoop(THREE.LoopRepeat, Infinity);
-            action.clampWhenFinished = false;
-            actionsRef.current.set("pianist", action);
-            action.play();
-          }
-
-          updateLoadingProgress();
-          console.log("pianist loaded successfully");
-        },
-        (xhr) => { },
-        (error) => {
-          console.error("Error loading pianist:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
+    loadAnimatedModel(
+      "/models/Black_Student_Boy/pianist_black_boy.glb",
+      "pianist",
+      new THREE.Vector3(16, 1, 18),
+      new THREE.Vector3(3, 3, 3),
+      Math.PI * 0.5
+    );
 
     // Tambourinist - right side
     loadAnimatedModel(
       "/models/Black_Student_Boy/tambourinist.glb",
       "tambourinist",
-      new THREE.Vector3(7.97, 0, 3.96),
-      new THREE.Vector3(1, 1, 1),
+      new THREE.Vector3(25, 1, 12),
+      new THREE.Vector3(3, 3, 3),
       -Math.PI * 0.5
     );
 
     loadAnimatedModel(
       "/models/nany-wheeler/source/djembe_flutist.glb",
       "flutist",
-      new THREE.Vector3(9.24, 0, 1.95),
-      new THREE.Vector3(1.8, 1.8, 1.8),
+      new THREE.Vector3(17, 1, -10),
+      new THREE.Vector3(3, 3, 3),
       Math.PI
     );
 
     loadAnimatedModel(
       "/models/nany-wheeler/source/guitarist.glb",
       "guitarist",
-      new THREE.Vector3(3.2, 0, -4.99),
-      new THREE.Vector3(1.8, 1.8, 1.8),
+      new THREE.Vector3(14, 1, 18),
+      new THREE.Vector3(3, 3, 3),
       Math.PI * 0.25
     );
 
@@ -423,230 +359,77 @@ const World1: React.FC = () => {
     loadStaticModel(
       "/models/Black_Student_Boy/djembe.glb",
       "djembe",
-      new THREE.Vector3(10.44, 0, -0.05),
-      new THREE.Vector3(2.7, 2.7, 2.7),
+      new THREE.Vector3(22, 1, 8),
+      new THREE.Vector3(10, 10, 10),
       Math.PI
     );
 
     // Piano - side area
-    // Piano - side area (inline for rotation control)
-    {
-      const pianoLoader = new GLTFLoader();
-      pianoLoader.load(
-        "/models/Black_Student_Boy/piano.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(42, 42, 42);
-          model.position.set(8.23, 0, -9.14);
-          model.name = "piano";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "piano";
-              // Apply rotation to mesh directly
-              child.rotation.set(
-                0,
-                360 * (Math.PI / 180),
-                201 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("piano", model);
-          updateLoadingProgress();
-          console.log("piano loaded successfully");
-        },
-        (xhr) => { },
-        (error) => {
-          console.error("Error loading piano:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
+    loadStaticModel(
+      "/models/Black_Student_Boy/piano.glb",
+      "piano",
+      new THREE.Vector3(16, 1, 18),
+      new THREE.Vector3(100, 100, 100),
+      Math.PI * 0.5
+    );
 
     // Tambourine - near campfire
-    // Tambourine - near campfire (inline for rotation control)
-    {
-      const tambourineLoader = new GLTFLoader();
-      tambourineLoader.load(
-        "/models/Black_Student_Boy/tambourine.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(50, 50, 50);
-          model.position.set(7.8, 2.3, 13.8);
-          model.name = "tambourine";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              const mesh = child as THREE.Mesh;
-              mesh.userData.clickable = true;
-              mesh.userData.modelName = "tambourine";
-
-              // Center geometry to fix pivot
-              if (mesh.geometry) {
-                mesh.geometry.computeBoundingBox();
-                if (mesh.geometry.boundingBox) {
-                  const center = new THREE.Vector3();
-                  mesh.geometry.boundingBox.getCenter(center);
-                  mesh.geometry.translate(-center.x, -center.y, -center.z);
-                }
-              }
-
-              // Apply rotation to mesh directly
-              mesh.rotation.set(
-                115 * (Math.PI / 180),
-                213 * (Math.PI / 180),
-                130 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("tambourine", model);
-          updateLoadingProgress();
-          console.log("tambourine loaded successfully");
-        },
-        (xhr) => { },
-        (error) => {
-          console.error("Error loading tambourine:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
+    loadStaticModel(
+      "/models/Black_Student_Boy/tambourine.glb",
+      "tambourine",
+      new THREE.Vector3(25, 1, 12),
+      new THREE.Vector3(100, 100, 100),
+      -Math.PI * 0.5
+    );
 
     // Flute - back left
-    // Flute - back left (custom loading)
-    {
-      const fluteLoader = new GLTFLoader();
-      fluteLoader.load(
-        "/models/Black_Student_Boy/flute.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(0.02, 0.02, 0.02);
-          model.position.set(8.98, 2.5, 1.28);
-          model.name = "flute";
+    loadStaticModel(
+      "/models/Black_Student_Boy/flute.glb",
+      "flute",
+      new THREE.Vector3(17, 1, -10),
+      new THREE.Vector3(0.05, 0.05, 0.05),
+      Math.PI * 0.25
+    );
 
-          setupModelMaterials(model);
+    // Guitar - back right
+    loadStaticModel(
+      "/models/Black_Student_Boy/low_poly_guitar.glb",
+      "guitar",
+      new THREE.Vector3(14, 1, 18),
+      new THREE.Vector3(6, 6, 6),
+      -Math.PI * 0.25
+    );
 
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "flute";
-              // Apply rotation to mesh directly (Group rotation is ignored for some reason)
-              child.rotation.set(
-                234 * (Math.PI / 180),
-                104 * (Math.PI / 180),
-                90 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("flute", model);
-          updateLoadingProgress();
-          console.log("flute loaded successfully");
-        },
-        (xhr) => {
-          console.log(`flute loading: ${(xhr.loaded / xhr.total) * 100}%`);
-        },
-        (error) => {
-          console.error("Error loading flute:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
-
-    // Guitar - back right (custom loading to face camera)
-    {
-      const guitarLoader = new GLTFLoader();
-      guitarLoader.load(
-        "/models/Black_Student_Boy/low_poly_guitar.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(1.5, 1.5, 1.5);
-          // Position at guitarist location, offset for arm holding position
-          model.position.set(6.01, 4, -5.83);
-          model.name = "guitar";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "guitar";
-              // Apply rotation to mesh directly
-              child.rotation.set(
-                212 * (Math.PI / 180),
-                198 * (Math.PI / 180),
-                355 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("guitar", model);
-          updateLoadingProgress();
-          console.log("guitar loaded successfully");
-        },
-        (xhr) => {
-          console.log(`guitar loading: ${(xhr.loaded / xhr.total) * 100}%`);
-        },
-        (error) => {
-          console.error("Error loading guitar:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
-
-    // Mouse event handlers for interacting (Drag & Click)
-    const handleMouseClick = (event: MouseEvent) => {
-      event.preventDefault();
-
+    // Click handler for playing animations
+    const handleClick = (event: MouseEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
-      const mouse = new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-      );
+      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-      raycasterRef.current.setFromCamera(mouse, camera);
-      const intersects = raycasterRef.current.intersectObjects(
-        Array.from(clickableModelsRef.current.values()),
-        true
-      );
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
 
-      if (intersects.length > 0) {
-        let target: THREE.Object3D | null = intersects[0].object;
-        let modelName: string | null = null;
+      // Check intersections with all clickable models
+      clickableModelsRef.current.forEach((model, name) => {
+        const intersects = raycasterRef.current.intersectObject(model, true);
 
-        while (target) {
-          if (target.userData.modelName && clickableModelsRef.current.has(target.userData.modelName)) {
-            modelName = target.userData.modelName;
-            break;
-          }
-          target = target.parent;
-        }
+        if (intersects.length > 0) {
+          console.log(`${name} clicked!`);
 
-        if (modelName) {
-          console.log(`${modelName} clicked!`);
-          const action = actionsRef.current.get(modelName);
+          const action = actionsRef.current.get(name);
           if (action) {
             if (action.isRunning()) {
               action.fadeOut(0.3);
+              console.log(`${name} animation stopped`);
             } else {
               action.reset().fadeIn(0.3).play();
+              console.log(`${name} animation playing`);
             }
           }
         }
-      }
+      });
     };
 
-    renderer.domElement.addEventListener("click", handleMouseClick);
+    renderer.domElement.addEventListener("click", handleClick);
 
     // Resize handler
     const handleResize = () => {
@@ -656,56 +439,21 @@ const World1: React.FC = () => {
     };
     window.addEventListener("resize", handleResize);
 
+    // Log camera position on 'C' key press
     const handleKeyPress = (event: KeyboardEvent) => {
-      // Log camera position
       if (event.key === 'c' || event.key === 'C') {
-        const pos = camera.position;
-        const rot = camera.rotation;
         console.log('Camera Position:', {
-          x: Number(pos.x.toFixed(2)),
-          y: Number(pos.y.toFixed(2)),
-          z: Number(pos.z.toFixed(2))
+          x: camera.position.x.toFixed(2),
+          y: camera.position.y.toFixed(2),
+          z: camera.position.z.toFixed(2)
         });
-        console.log('Camera Rotation:', {
-          x: Number(rot.x.toFixed(2)),
-          y: Number(rot.y.toFixed(2)),
-          z: Number(rot.z.toFixed(2))
-        });
-      }
-
-      // Log model positions
-      if (event.key === 'm' || event.key === 'M') {
-        const modelsData = Array.from(clickableModelsRef.current.entries()).map(([name, model]) => {
-          return {
-            name,
-            position: {
-              x: Number(model.position.x.toFixed(2)),
-              y: Number(model.position.y.toFixed(2)),
-              z: Number(model.position.z.toFixed(2))
-            },
-            rotation: {
-              x: Number(model.rotation.x.toFixed(2)),
-              y: Number(model.rotation.y.toFixed(2)),
-              z: Number(model.rotation.z.toFixed(2))
-            },
-            scale: {
-              x: Number(model.scale.x.toFixed(2)),
-              y: Number(model.scale.y.toFixed(2)),
-              z: Number(model.scale.z.toFixed(2))
-            }
-          };
-        });
-        console.log('--- Model Positions ---');
-        console.log(JSON.stringify(modelsData, null, 2));
       }
     };
     window.addEventListener("keydown", handleKeyPress);
 
-    let rafId: number;
-
     // Animation loop
     const animate = () => {
-      rafId = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
 
       // Update all animation mixers
       const delta = clockRef.current.getDelta();
@@ -719,10 +467,9 @@ const World1: React.FC = () => {
     animate();
 
     return () => {
-      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyPress);
-      renderer.domElement.removeEventListener("click", handleMouseClick);
+      renderer.domElement.removeEventListener("click", handleClick);
       mixersRef.current.forEach((mixer) => {
         mixer.stopAllAction();
       });
@@ -822,59 +569,15 @@ const World1: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="relative"
+            className="px-3 sm:px-6 py-2 sm:py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10"
           >
-            <button
-              onClick={() => setShowWorldPicker(!showWorldPicker)}
-              className="px-3 sm:px-6 py-2 sm:py-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/50 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-2xl">🔥</span>
-                <div className="text-left">
-                  <h1 className="text-white font-bold text-sm sm:text-lg">Fireside World</h1>
-                  <p className="text-white/60 text-[10px] sm:text-xs hidden sm:block">Interactive 3D Environment</p>
-                </div>
-                <svg
-                  className={`w-4 h-4 text-white/60 transition-transform ${showWorldPicker ? 'rotate-180' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-xl sm:text-2xl">🔥</span>
+              <div>
+                <h1 className="text-white font-bold text-sm sm:text-lg">Fireside World</h1>
+                <p className="text-white/60 text-[10px] sm:text-xs hidden sm:block">Interactive 3D Environment</p>
               </div>
-            </button>
-
-            {/* World Picker Dropdown */}
-            <AnimatePresence>
-              {showWorldPicker && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-black/70 backdrop-blur-md border border-white/10 overflow-hidden shadow-2xl"
-                >
-                  <div
-                    className="flex items-center gap-3 px-4 py-3 bg-white/10 cursor-default"
-                  >
-                    <span className="text-xl">🔥</span>
-                    <div>
-                      <p className="text-white font-semibold text-sm">Fireside World</p>
-                      <p className="text-white/40 text-[10px]">Currently viewing</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate('/world2')}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors"
-                  >
-                    <span className="text-xl">🎭</span>
-                    <div className="text-left">
-                      <p className="text-white/80 font-semibold text-sm">Auditorium World</p>
-                      <p className="text-white/40 text-[10px]">Switch world</p>
-                    </div>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            </div>
           </motion.div>
 
           {/* Controls */}
@@ -892,10 +595,11 @@ const World1: React.FC = () => {
             </button>
             <button
               onClick={() => setShowVoicesPanel(!showVoicesPanel)}
-              className={`p-2 sm:p-3 rounded-full backdrop-blur-md border transition-colors ${showVoicesPanel
-                ? "bg-purple-500/30 border-purple-400/50"
-                : "bg-black/40 border-white/10 hover:bg-black/60"
-                }`}
+              className={`p-2 sm:p-3 rounded-full backdrop-blur-md border transition-colors ${
+                showVoicesPanel
+                  ? "bg-purple-500/30 border-purple-400/50"
+                  : "bg-black/40 border-white/10 hover:bg-black/60"
+              }`}
               title="Voices Panel"
             >
               <Music size={16} className={`sm:w-5 sm:h-5 ${showVoicesPanel ? "text-purple-300" : "text-white"}`} />
@@ -906,7 +610,12 @@ const World1: React.FC = () => {
             >
               <Info size={16} className="sm:w-5 sm:h-5 text-white" />
             </button>
-
+            <button
+              onClick={resetCamera}
+              className="p-2 sm:p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
+            >
+              <RotateCcw size={16} className="sm:w-5 sm:h-5 text-white" />
+            </button>
             <button
               onClick={toggleFullscreen}
               className="hidden sm:block p-2 sm:p-3 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-black/60 transition-colors"
@@ -940,15 +649,26 @@ const World1: React.FC = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
                   <span>Click musicians to toggle animation</span>
                 </div>
-
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Drag to rotate the camera</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Scroll to zoom in/out</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/60">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                  <span>Right-click drag to pan</span>
+                </div>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Bottom Controls Hint */}
-      {!showInfo && (
+      {/* Bottom Controls Hint - Updated condition from World1New */}
+      {!showInfo && !showVoicesPanel && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -957,7 +677,7 @@ const World1: React.FC = () => {
         >
           <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
             <p className="text-white/60 text-xs">
-              Click musicians to animate
+              Click musicians to animate • Drag to explore • Scroll to zoom
             </p>
           </div>
         </motion.div>
@@ -969,11 +689,8 @@ const World1: React.FC = () => {
         onClose={() => setShowVoicesPanel(false)}
         worldId="world1"
       />
-
-
     </div>
   );
 };
 
 export default World1;
-

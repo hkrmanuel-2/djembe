@@ -117,133 +117,133 @@ function AppContent() {
           className={`flex-1 min-w-0 ${isAuthenticated && !shouldHideNavbar ? 'ml-[60px] md:ml-[220px]' : ''}`}
         >
           <Routes>
-        {/* Landing page - public route */}
-        <Route path="/" element={
-          isAuthenticated ? (
-            <Navigate to={
-              userType === 'admin' ? '/admin' :
-              userType === 'teacher' ? '/students' :
-              '/home'
-            } replace />
-          ) : <Landing_page />
-        } />
-        <Route path="/login" element={
-          isAuthenticated ? (
-            <Navigate to={
-              userType === 'admin' ? '/admin' :
-              userType === 'teacher' ? '/students' :
-              '/home'
-            } replace />
-          ) : <Login />
-        } />
-        <Route path="/signup" element={
-          isAuthenticated ? (
-            <Navigate to={
-              userType === 'admin' ? '/admin' :
-              userType === 'teacher' ? '/students' :
-              '/home'
-            } replace />
-          ) : <Signup />
-        } />
-        <Route path="/home" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/daw" element={
-          <ProtectedRoute>
-            <DAWLite />
-          </ProtectedRoute>
-        } />
+            {/* Landing page - public route */}
+            <Route path="/" element={
+              isAuthenticated ? (
+                <Navigate to={
+                  userType === 'admin' ? '/admin' :
+                    userType === 'teacher' ? '/students' :
+                      '/home'
+                } replace />
+              ) : <Landing_page />
+            } />
+            <Route path="/login" element={
+              isAuthenticated ? (
+                <Navigate to={
+                  userType === 'admin' ? '/admin' :
+                    userType === 'teacher' ? '/students' :
+                      '/home'
+                } replace />
+              ) : <Login />
+            } />
+            <Route path="/signup" element={
+              isAuthenticated ? (
+                <Navigate to={
+                  userType === 'admin' ? '/admin' :
+                    userType === 'teacher' ? '/students' :
+                      '/home'
+                } replace />
+              ) : <Signup />
+            } />
+            <Route path="/home" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/daw" element={
+              <ProtectedRoute>
+                <DAWLite />
+              </ProtectedRoute>
+            } />
 
-        {/* Assignments Route */}
-        <Route path="/assignments" element={
-          <ProtectedRoute>
-            <Assignments />
-          </ProtectedRoute>
-        } />
+            {/* Assignments Route */}
+            <Route path="/assignments" element={
+              <ProtectedRoute>
+                <Assignments />
+              </ProtectedRoute>
+            } />
 
-        {/* Student Progress Route */}
-        <Route path="/progress" element={
-          <ProtectedRoute>
-            <StudentProgress />
-          </ProtectedRoute>
-        } />
+            {/* Student Progress Route */}
+            <Route path="/progress" element={
+              <ProtectedRoute>
+                <StudentProgress />
+              </ProtectedRoute>
+            } />
 
-        {/* Teacher Dashboard Route */}
-        <Route path="/students" element={
-          <ProtectedRoute>
-            <TeacherDashboard />
-          </ProtectedRoute>
-        } />
+            {/* Teacher Dashboard Route */}
+            <Route path="/students" element={
+              <ProtectedRoute>
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
 
-        {/* Teacher Assignments Route */}
-        <Route path="/teacher/assignments" element={
-          <ProtectedRoute>
-            <TeacherAssignments />
-          </ProtectedRoute>
-        } />
+            {/* Teacher Assignments Route */}
+            <Route path="/teacher/assignments" element={
+              <ProtectedRoute>
+                <TeacherAssignments />
+              </ProtectedRoute>
+            } />
 
-        {/* Teacher Submissions Route */}
-        <Route path="/teacher/submissions" element={
-          <ProtectedRoute>
-            <TeacherSubmissions />
-          </ProtectedRoute>
-        } />
+            {/* Teacher Submissions Route */}
+            <Route path="/teacher/submissions" element={
+              <ProtectedRoute>
+                <TeacherSubmissions />
+              </ProtectedRoute>
+            } />
 
-        {/* Teacher Analytics Route */}
-        <Route path="/teacher/analytics" element={
-          <ProtectedRoute>
-            <StudentDifficulties />
-          </ProtectedRoute>
-        } />
+            {/* Teacher Analytics Route */}
+            <Route path="/teacher/analytics" element={
+              <ProtectedRoute>
+                <StudentDifficulties />
+              </ProtectedRoute>
+            } />
 
-        {/* Teacher Projects Route */}
-        <Route path="/teacher/projects" element={
-          <ProtectedRoute>
-            <StudentProjects />
-          </ProtectedRoute>
-        } />
+            {/* Teacher Projects Route */}
+            <Route path="/teacher/projects" element={
+              <ProtectedRoute>
+                <StudentProjects />
+              </ProtectedRoute>
+            } />
 
-        {/* Teacher Worlds Settings Route */}
-        <Route path="/teacher/worlds" element={
-          <ProtectedRoute>
-            <WorldsSettings />
-          </ProtectedRoute>
-        } />
+            {/* Teacher Worlds Settings Route */}
+            <Route path="/teacher/worlds" element={
+              <ProtectedRoute>
+                <WorldsSettings />
+              </ProtectedRoute>
+            } />
 
-        {/* Admin Dashboard Route */}
-        <Route path="/admin" element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
+            {/* Admin Dashboard Route */}
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
 
-        {/* Tutorials Route - for both students and teachers */}
-        <Route path="/tutorials" element={
-          <ProtectedRoute>
-            <Tutorials />
-          </ProtectedRoute>
-        } />
+            {/* Tutorials Route - for both students and teachers */}
+            <Route path="/tutorials" element={
+              <ProtectedRoute>
+                <Tutorials />
+              </ProtectedRoute>
+            } />
 
-        {/* Settings Route */}
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } />
+            {/* Settings Route */}
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
 
-        {/* Worlds Routes */}
-        <Route path="/world1" element={
-          <ProtectedRoute>
-            <World1 />
-          </ProtectedRoute>
-        } />
-        <Route path="/world2" element={
-          <ProtectedRoute>
-            <World2 />
-          </ProtectedRoute>
-        } />
+            {/* Worlds Routes */}
+            <Route path="/world1" element={
+              <ProtectedRoute>
+                <World1 />
+              </ProtectedRoute>
+            } />
+            <Route path="/world2" element={
+              <ProtectedRoute>
+                <World2 />
+              </ProtectedRoute>
+            } />
           </Routes>
         </main>
       </div>

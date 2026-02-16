@@ -80,11 +80,19 @@ export async function approveUser(userType, userId, adminId) {
         approved_at: new Date().toISOString()
       })
       .eq(idColumn, userId)
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    return { data, error: null };
+
+    if (!data || data.length === 0) {
+      // Just return success if no rows updated, or throw if strict
+      // For now, let's treat it as a success but maybe log it?
+      // Or throw to let valid error handling catch it.
+      // Based on plan: "User not found or permission denied"
+      throw new Error('User not found or permission denied (RLS policy missing?)');
+    }
+
+    return { data: data[0], error: null };
   } catch (error) {
     console.error('Error approving user:', error);
     return { data: null, error };
@@ -107,11 +115,15 @@ export async function rejectUser(userType, userId, adminId) {
         approved_at: new Date().toISOString()
       })
       .eq(idColumn, userId)
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    return { data, error: null };
+
+    if (!data || data.length === 0) {
+      throw new Error('User not found or permission denied (RLS policy missing?)');
+    }
+
+    return { data: data[0], error: null };
   } catch (error) {
     console.error('Error rejecting user:', error);
     return { data: null, error };
