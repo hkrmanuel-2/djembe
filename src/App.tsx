@@ -77,7 +77,7 @@ function AppContent() {
       { name: 'Settings', url: '/settings', icon: SettingsIcon },
     ] : [
       // Student navigation
-      { name: 'Home', url: '/home', icon: HomeIcon },
+      { name: 'Dashboard', url: '/home', icon: HomeIcon },
       { name: 'DAW', url: '/daw', icon: Music },
       { name: 'Assignments', url: '/assignments', icon: FileText },
       { name: 'Progress', url: '/progress', icon: Trophy },
