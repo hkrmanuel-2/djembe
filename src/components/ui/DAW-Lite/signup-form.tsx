@@ -172,7 +172,7 @@ export function SignupForm({
     );
 
     if (result.success) {
-      navigate("/");
+      navigate("/home");
     }
 
     setIsSubmitting(false);
@@ -180,10 +180,10 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)', boxShadow: '0 4px 24px rgba(26, 43, 74, 0.08)' }}>
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#1A2B4A' }}>Create an account</CardTitle>
+          <CardDescription style={{ color: '#5A6B7D' }}>
             Enter your information to create your account
           </CardDescription>
         </CardHeader>
@@ -205,6 +205,7 @@ export function SignupForm({
                     onClick={() => setUserType("student")}
                     disabled={isSubmitting}
                     className="flex-1"
+                    style={userType === "student" ? { backgroundColor: '#1A2B4A', color: '#FFFFFF' } : { borderColor: 'rgba(26, 43, 74, 0.2)', color: '#1A2B4A' }}
                   >
                     Student
                   </Button>
@@ -214,6 +215,7 @@ export function SignupForm({
                     onClick={() => setUserType("teacher")}
                     disabled={isSubmitting}
                     className="flex-1"
+                    style={userType === "teacher" ? { backgroundColor: '#1A2B4A', color: '#FFFFFF' } : { borderColor: 'rgba(26, 43, 74, 0.2)', color: '#1A2B4A' }}
                   >
                     Teacher
                   </Button>
@@ -353,12 +355,12 @@ export function SignupForm({
                 </div>
               </Field>
               <Field>
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button type="submit" disabled={isSubmitting} className="w-full" style={{ backgroundColor: '#1A2B4A', color: '#FFFFFF' }}>
                   {isSubmitting ? "Creating account..." : "Create account"}
                 </Button>
-                <FieldDescription className="text-center">
+                <FieldDescription className="text-center" style={{ color: '#5A6B7D' }}>
                   Already have an account?{" "}
-                  <Link to="/login" className="underline hover:no-underline">
+                  <Link to="/login" className="underline hover:no-underline" style={{ color: '#D97746' }}>
                     Login
                   </Link>
                 </FieldDescription>
