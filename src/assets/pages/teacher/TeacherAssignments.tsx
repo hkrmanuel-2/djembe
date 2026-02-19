@@ -47,7 +47,7 @@ type StudentSubmission = {
   last_name: string;
   email: string;
   submission: {
-    id: string;
+    submission_id: string;
     file_url: string;
     file_name: string;
     submitted_at: string;
@@ -301,10 +301,9 @@ export default function TeacherAssignments() {
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${
-                              (assignmentDetail.submittedCount / assignmentDetail.totalStudents) *
+                            width: `${(assignmentDetail.submittedCount / assignmentDetail.totalStudents) *
                               100
-                            }%`,
+                              }%`,
                             backgroundColor: "#4ABA6E",
                           }}
                         />
@@ -381,11 +380,10 @@ export default function TeacherAssignments() {
                     {assignmentDetail.students.map((student, index) => (
                       <div
                         key={student.student_id}
-                        className={`grid grid-cols-12 gap-4 px-6 py-4 items-center ${
-                          index !== assignmentDetail.students.length - 1
-                            ? "border-b"
-                            : ""
-                        }`}
+                        className={`grid grid-cols-12 gap-4 px-6 py-4 items-center ${index !== assignmentDetail.students.length - 1
+                          ? "border-b"
+                          : ""
+                          }`}
                         style={{ borderColor: '#E8DFFF' }}
                       >
                         <div className="col-span-4 flex items-center gap-3">
@@ -500,7 +498,7 @@ export default function TeacherAssignments() {
           {feedbackStudent && feedbackStudent.submission && selectedAssignment && (
             <FeedbackModal
               student={feedbackStudent}
-              submissionId={feedbackStudent.submission.id}
+              submissionId={feedbackStudent.submission.submission_id || ""}
               existingFeedback={feedbackStudent.feedback}
               onClose={() => setFeedbackStudent(null)}
               onSuccess={() => {

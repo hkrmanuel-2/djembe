@@ -9,9 +9,9 @@ type FeedbackModalProps = {
     student_id: string;
     first_name: string;
     last_name: string;
-    submission?: { id: string } | null; // ensure submission object exists
+    submission?: { submission_id: string } | null;
   };
-  submissionId: string; // <-- must come from student.submission.id
+  submissionId: string; // comes from student.submission.submission_id
   existingFeedback?: {
     feedback_id: string;
     comment: string;
@@ -55,9 +55,16 @@ export default function FeedbackModal({
       return;
     }
 
+    if (!submissionId || submissionId.trim() === "") {
+      console.error("Submission ID is missing!");
+      alert("Error: Submission ID is missing. Please refresh the page and try again.");
+      return;
+    }
+
     console.log("Submitting feedback...");
     console.log("Teacher ID:", userProfile.teacher_id);
-    console.log("Submission ID:", submissionId); // <- fixed: ensure this is student.submission.id
+    console.log("Submission ID:", submissionId);
+    console.log("Submission object:", student.submission);
     console.log("Comment:", formData.comment);
     console.log("Score:", scoreValue);
     console.log("Existing Feedback:", existingFeedback);
@@ -69,7 +76,7 @@ export default function FeedbackModal({
         await updateFeedback(existingFeedback.feedback_id, {
           comment: formData.comment,
           score: scoreValue,
-          submission_id: submissionId, // <-- pass submissionId if update needs it
+          submission_id: submissionId,
         });
       } else {
         console.log("Creating new feedback");
@@ -173,11 +180,10 @@ export default function FeedbackModal({
                       score: formData.score === score.toString() ? "" : score.toString(),
                     })
                   }
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    formData.score === score.toString()
-                      ? "bg-[#E6B84D]/30 text-[#E6B84D] border border-[#E6B84D]/50"
-                      : "bg-white/10 text-white/70 border border-white/15 hover:bg-white/15"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${formData.score === score.toString()
+                    ? "bg-[#E6B84D]/30 text-[#E6B84D] border border-[#E6B84D]/50"
+                    : "bg-white/10 text-white/70 border border-white/15 hover:bg-white/15"
+                    }`}
                 >
                   {score}
                 </button>
