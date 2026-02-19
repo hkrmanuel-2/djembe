@@ -634,7 +634,11 @@ export async function createFeedback(teacherId, data) {
 
     if (error) {
       console.error("[TEACHER API] Create feedback error:", error);
-      console.error("[TEACHER API] Submission ID used:", data.submission_id);
+      console.error("[TEACHER API] Error code:", error.code, "| Message:", error.message);
+      console.error("[TEACHER API] Submission ID used:", data.submission_id, "| Teacher ID:", teacherId);
+      if (error.code === "42501") {
+        throw new Error("Permission denied (RLS). Run database/fix_feedback_rls_only.sql in Supabase SQL Editor.");
+      }
       throw error;
     }
 
