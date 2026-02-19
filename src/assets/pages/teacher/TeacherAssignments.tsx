@@ -34,6 +34,8 @@ type ClassType = {
 
 type Assignment = {
   id: string;
+  // Some APIs may return assignment_id instead of id; keep optional for compatibility
+  assignment_id?: string;
   title: string;
   description: string;
   due_date: string;
@@ -128,7 +130,11 @@ export default function TeacherAssignments() {
     setDetailLoading(true);
     try {
       const classFilter = selectedClass || null;
-      const result = await getAssignmentWithSubmissions(assignment.id, userProfile.school_id, classFilter);
+      const result = await getAssignmentWithSubmissions(
+        assignment.id || assignment.assignment_id,
+        userProfile.school_id,
+        classFilter
+      );
       if (result.data) {
         setAssignmentDetail(result.data);
       }
@@ -580,7 +586,7 @@ export default function TeacherAssignments() {
             <motion.div variants={itemVariants} className="space-y-4">
               {assignments.map((assignment) => (
                 <div
-                  key={assignment.id}
+                  key={assignment.id || assignment.assignment_id}
                   className="rounded-2xl bg-white shadow-md border-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all"
                   style={{ borderColor: '#E8DFFF' }}
                   onClick={() => handleAssignmentClick(assignment)}
@@ -651,7 +657,7 @@ export default function TeacherAssignments() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(assignment.id);
+                            handleDelete(assignment.id || assignment.assignment_id);
                           }}
                           className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                           title="Delete"

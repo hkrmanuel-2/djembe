@@ -40,10 +40,14 @@ export async function createNotification({
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[NOTIFICATION API] Create error:", error);
+      throw error;
+    }
+    console.log("[NOTIFICATION API] Created notification for", recipientType, recipientId);
     return { data: notification, error: null };
   } catch (error) {
-    console.error("Create notification error:", error);
+    console.error("[NOTIFICATION API] Create notification error:", error);
     return { data: null, error };
   }
 }
