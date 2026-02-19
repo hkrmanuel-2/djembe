@@ -205,14 +205,16 @@ export async function getTeacherAssignments(schoolId) {
  */
 export async function getAssignmentWithSubmissions(assignmentId, schoolId, classId = null) {
   try {
-    // Get assignment details
+    // Get assignment details using assignment_id
+    console.log("[TEACHER API] Getting assignment with ID:", assignmentId);
     const { data: assignment, error: assignmentError } = await supabase
       .from("assignments")
       .select("*")
-      .eq("id", assignmentId)
+      .eq("assignment_id", assignmentId)
       .single();
 
     if (assignmentError) throw assignmentError;
+    console.log("[TEACHER API] Found assignment:", assignment);
 
     // Get all students in the school (optionally filtered by class)
     let studentsQuery = supabase
@@ -229,10 +231,17 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
     if (studentsError) throw studentsError;
 
     // Get submissions for this assignment
+    console.log("[TEACHER API] Querying submissions for assignment:", assignmentId);
     const { data: submissions, error: submissionsError } = await supabase
       .from("submissions")
       .select("*")
       .eq("assignment_id", assignmentId);
+
+    console.log("[TEACHER API] Submissions query result:", {
+      count: submissions?.length || 0,
+      submissions: submissions,
+      error: submissionsError
+    });
 
     if (submissionsError) throw submissionsError;
 
@@ -616,17 +625,29 @@ export async function createFeedback(teacherId, data) {
       .from("submissions")
       .select(`
         student_id,
-        assignment_id,
-        assignments (title)
+        assignment_id
       `)
       .eq("id", data.submission_id)
       .single();
+
+    // Get assignment title separately (using assignment_id)
+    let assignmentTitle = "Assignment";
+    if (submission?.assignment_id) {
+      const { data: assignment } = await supabase
+        .from("assignments")
+        .select("title")
+        .eq("assignment_id", submission.assignment_id)
+        .single();
+      if (assignment) {
+        assignmentTitle = assignment.title;
+      }
+    }
 
     if (submission) {
       notifyStudentFeedback({
         studentId: submission.student_id,
         assignmentId: submission.assignment_id,
-        assignmentTitle: submission.assignments?.title || "Assignment",
+        assignmentTitle: assignmentTitle,
         score: data.score,
         feedbackPreview: data.comment?.substring(0, 100),
       }).catch((err) => console.error("Failed to send feedback notification:", err));
@@ -656,6 +677,41 @@ export async function updateFeedback(feedbackId, data) {
       .single();
 
     if (error) throw error;
+
+    // Get submission details to notify the student
+    const { data: submission } = await supabase
+      .from("submissions")
+      .select(`
+        student_id,
+        assignment_id
+      `)
+      .eq("id", data.submission_id)
+      .single();
+
+    // Get assignment title
+    let assignmentTitle = "Assignment";
+    if (submission?.assignment_id) {
+      const { data: assignment } = await supabase
+        .from("assignments")
+        .select("title")
+        .eq("assignment_id", submission.assignment_id)
+        .single();
+      if (assignment) {
+        assignmentTitle = assignment.title;
+      }
+    }
+
+    // Notify student of updated feedback
+    if (submission) {
+      notifyStudentFeedback({
+        studentId: submission.student_id,
+        assignmentId: submission.assignment_id,
+        assignmentTitle: assignmentTitle,
+        score: data.score,
+        feedbackPreview: data.comment?.substring(0, 100),
+      }).catch((err) => console.error("Failed to send feedback notification:", err));
+    }
+
     return { data: feedback, error: null };
   } catch (error) {
     console.error("Update feedback error:", error);
