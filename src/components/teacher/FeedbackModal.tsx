@@ -9,8 +9,9 @@ type FeedbackModalProps = {
     student_id: string;
     first_name: string;
     last_name: string;
+    submission?: { id: string } | null; // ensure submission object exists
   };
-  submissionId: string;
+  submissionId: string; // <-- must come from student.submission.id
   existingFeedback?: {
     feedback_id: string;
     comment: string;
@@ -29,6 +30,7 @@ export default function FeedbackModal({
 }: FeedbackModalProps) {
   const { userProfile } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     comment: existingFeedback?.comment || "",
     score: existingFeedback?.score?.toString() || "",
@@ -36,7 +38,11 @@ export default function FeedbackModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userProfile?.teacher_id) return;
+    if (!userProfile?.teacher_id) {
+      console.error("No teacher ID found!");
+      alert("Teacher not authenticated");
+      return;
+    }
 
     if (!formData.comment.trim()) {
       alert("Please enter a comment");
@@ -49,20 +55,32 @@ export default function FeedbackModal({
       return;
     }
 
+    console.log("Submitting feedback...");
+    console.log("Teacher ID:", userProfile.teacher_id);
+    console.log("Submission ID:", submissionId); // <- fixed: ensure this is student.submission.id
+    console.log("Comment:", formData.comment);
+    console.log("Score:", scoreValue);
+    console.log("Existing Feedback:", existingFeedback);
+
     setIsSubmitting(true);
     try {
       if (existingFeedback) {
+        console.log("Updating existing feedback with ID:", existingFeedback.feedback_id);
         await updateFeedback(existingFeedback.feedback_id, {
           comment: formData.comment,
           score: scoreValue,
+          submission_id: submissionId, // <-- pass submissionId if update needs it
         });
       } else {
+        console.log("Creating new feedback");
         await createFeedback(userProfile.teacher_id, {
           submission_id: submissionId,
           comment: formData.comment,
           score: scoreValue,
         });
       }
+
+      console.log("Feedback submitted successfully!");
       onSuccess();
     } catch (error) {
       console.error("Error saving feedback:", error);

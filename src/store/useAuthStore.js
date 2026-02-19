@@ -8,8 +8,8 @@ export const useAuthStore = create(
     (set, get) => ({
       // Auth state
       user: null,
-      userType: null, // 'teacher' or 'student'
-      userProfile: null, // Teacher or Student record
+      userType: null, // 'admin', 'teacher', or 'student'
+      userProfile: null, // Admin, Teacher, or Student record
       isLoading: false,
       error: null,
       isAuthenticated: false,
@@ -45,10 +45,29 @@ export const useAuthStore = create(
         }
       },
 
-      // Load user profile from Teachers or Students table
+      // Load user profile from Admins, Teachers or Students table
       loadUserProfile: async (authUser) => {
         try {
           const email = authUser.email;
+
+          // Check if user is an admin
+          const { data: adminData, error: adminError } = await supabase
+            .from("admins")
+            .select("*")
+            .eq("email", email)
+            .single();
+
+          if (adminData && !adminError) {
+            set({
+              user: authUser,
+              userType: "admin",
+              userProfile: adminData,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            return;
+          }
 
           // Check if user is a teacher
           const { data: teacherData, error: teacherError } = await supabase
@@ -58,6 +77,19 @@ export const useAuthStore = create(
             .single();
 
           if (teacherData && !teacherError) {
+            // Check if teacher is approved
+            if (teacherData.approval_status !== 'approved') {
+              set({
+                user: authUser,
+                userType: null,
+                userProfile: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: "Your account is pending approval by your school administrator.",
+              });
+              return;
+            }
+
             set({
               user: authUser,
               userType: "teacher",
@@ -77,6 +109,19 @@ export const useAuthStore = create(
             .single();
 
           if (studentData && !studentError) {
+            // Check if student is approved
+            if (studentData.approval_status !== 'approved') {
+              set({
+                user: authUser,
+                userType: null,
+                userProfile: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: "Your account is pending approval by your school administrator.",
+              });
+              return;
+            }
+
             set({
               user: authUser,
               userType: "student",
@@ -93,7 +138,7 @@ export const useAuthStore = create(
             return;
           }
 
-          // User authenticated but not found in Teachers or Students
+          // User authenticated but not found in Admins, Teachers or Students
           set({
             user: authUser,
             userType: null,
@@ -249,7 +294,7 @@ export const useAuthStore = create(
       // Check for userType override on init
       checkUserTypeOverride: () => {
         const override = localStorage.getItem('userTypeOverride');
-        if (override && (override === 'teacher' || override === 'student')) {
+        if (override && (override === 'admin' || override === 'teacher' || override === 'student')) {
           set({ userType: override });
         }
       },

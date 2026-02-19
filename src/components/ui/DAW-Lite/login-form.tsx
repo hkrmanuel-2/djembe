@@ -36,20 +36,20 @@ export function LoginForm({
     clearError();
 
     const result = await signIn(email, password, rememberDevice);
-    
+
     if (result.success) {
-      navigate("/");
+      navigate("/home");
     }
-    
+
     setIsSubmitting(false);
   };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card style={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(26, 43, 74, 0.1)', boxShadow: '0 4px 24px rgba(26, 43, 74, 0.08)' }}>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#1A2B4A' }}>Login to your account</CardTitle>
+          <CardDescription style={{ color: '#5A6B7D' }}>
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
@@ -79,6 +79,7 @@ export function LoginForm({
                   <a
                     href="#"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                    style={{ color: '#D97746' }}
                   >
                     Forgot your password?
                   </a>
@@ -109,12 +110,12 @@ export function LoginForm({
                 </div>
               </Field>
               <Field>
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button type="submit" disabled={isSubmitting} className="w-full" style={{ backgroundColor: '#1A2B4A', color: '#FFFFFF' }}>
                   {isSubmitting ? "Logging in..." : "Login"}
                 </Button>
-                <FieldDescription className="text-center">
+                <FieldDescription className="text-center" style={{ color: '#5A6B7D' }}>
                   Don&apos;t have an account?{" "}
-                  <Link to="/signup" className="underline hover:no-underline">
+                  <Link to="/signup" className="underline hover:no-underline" style={{ color: '#D97746' }}>
                     Sign up
                   </Link>
                 </FieldDescription>
