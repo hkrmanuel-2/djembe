@@ -38,7 +38,7 @@ type Student = {
 };
 
 type Assignment = {
-  id: string;
+  assignment_id: string;
   title: string;
   description: string;
   due_date: string;
@@ -104,7 +104,7 @@ export default function TeacherSubmissions() {
 
     try {
       const result = await getAssignmentWithSubmissions(
-        assignment.id,
+        assignment.assignment_id,
         userProfile.school_id,
         selectedClass || null
       );
@@ -136,7 +136,7 @@ export default function TeacherSubmissions() {
     setSubmittingFeedback(true);
     try {
       const feedbackData = {
-        submissionId: selectedStudent.submission.id,
+        submissionId: selectedStudent.submission,
         comment: feedbackText,
         score: score,
       };
@@ -303,7 +303,7 @@ export default function TeacherSubmissions() {
             ) : (
               assignments.map((assignment) => (
                 <motion.div
-                  key={assignment.id}
+                  key={assignment.assignment_id}
                   whileHover={{ scale: 1.02 }}
                   className="bg-white shadow-md rounded-2xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all"
                   style={{ borderColor: '#E8DFFF' }}
