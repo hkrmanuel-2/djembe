@@ -67,7 +67,7 @@ export default function AssignmentsNew() {
       if (submissionsError) throw submissionsError;
 
       // Load feedback for all submissions
-      const submissionIds = submissionsData?.map(s => s.id) || [];
+      const submissionIds = submissionsData?.map(s => s.submission_id) || [];
       let feedbackData = [];
 
       if (submissionIds.length > 0) {
@@ -84,7 +84,7 @@ export default function AssignmentsNew() {
       // Combine submissions with their feedback
       const submissionsWithFeedback = submissionsData?.map(submission => ({
         ...submission,
-        feedback: feedbackData.find(fb => fb.submission_id === submission.id) || null
+        feedback: feedbackData.find(fb => fb.submission_id === submission.submission_id) || null
       })) || [];
 
       setSubmissions(submissionsWithFeedback);
