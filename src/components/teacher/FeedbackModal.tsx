@@ -89,9 +89,11 @@ export default function FeedbackModal({
 
       console.log("Feedback submitted successfully!");
       onSuccess();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error saving feedback:", error);
-      alert("Failed to save feedback. Please try again.");
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const details = error && typeof error === "object" && "message" in error ? (error as { message?: string }).message : errMsg;
+      alert(`Failed to save feedback: ${details}\n\nCheck the browser console for details.`);
     } finally {
       setIsSubmitting(false);
     }
