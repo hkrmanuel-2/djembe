@@ -9,8 +9,9 @@ type FeedbackModalProps = {
     student_id: string;
     first_name: string;
     last_name: string;
+    submission?: { submission_id: string } | null;
   };
-  submissionId: string;
+  submissionId: string; // comes from student.submission.submission_id
   existingFeedback?: {
     feedback_id: string;
     comment: string;
@@ -29,6 +30,7 @@ export default function FeedbackModal({
 }: FeedbackModalProps) {
   const { userProfile } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     comment: existingFeedback?.comment || "",
     score: existingFeedback?.score?.toString() || "",
@@ -36,7 +38,11 @@ export default function FeedbackModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userProfile?.teacher_id) return;
+    if (!userProfile?.teacher_id) {
+      console.error("No teacher ID found!");
+      alert("Teacher not authenticated");
+      return;
+    }
 
     if (!formData.comment.trim()) {
       alert("Please enter a comment");
@@ -49,24 +55,45 @@ export default function FeedbackModal({
       return;
     }
 
+    if (!submissionId || submissionId.trim() === "") {
+      console.error("Submission ID is missing!");
+      alert("Error: Submission ID is missing. Please refresh the page and try again.");
+      return;
+    }
+
+    console.log("Submitting feedback...");
+    console.log("Teacher ID:", userProfile.teacher_id);
+    console.log("Submission ID:", submissionId);
+    console.log("Submission object:", student.submission);
+    console.log("Comment:", formData.comment);
+    console.log("Score:", scoreValue);
+    console.log("Existing Feedback:", existingFeedback);
+
     setIsSubmitting(true);
     try {
       if (existingFeedback) {
+        console.log("Updating existing feedback with ID:", existingFeedback.feedback_id);
         await updateFeedback(existingFeedback.feedback_id, {
           comment: formData.comment,
           score: scoreValue,
+          submission_id: submissionId,
         });
       } else {
+        console.log("Creating new feedback");
         await createFeedback(userProfile.teacher_id, {
           submission_id: submissionId,
           comment: formData.comment,
           score: scoreValue,
         });
       }
+
+      console.log("Feedback submitted successfully!");
       onSuccess();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error saving feedback:", error);
-      alert("Failed to save feedback. Please try again.");
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const details = error && typeof error === "object" && "message" in error ? (error as { message?: string }).message : errMsg;
+      alert(`Failed to save feedback: ${details}\n\nCheck the browser console for details.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -155,11 +182,10 @@ export default function FeedbackModal({
                       score: formData.score === score.toString() ? "" : score.toString(),
                     })
                   }
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    formData.score === score.toString()
-                      ? "bg-[#E6B84D]/30 text-[#E6B84D] border border-[#E6B84D]/50"
-                      : "bg-white/10 text-white/70 border border-white/15 hover:bg-white/15"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${formData.score === score.toString()
+                    ? "bg-[#E6B84D]/30 text-[#E6B84D] border border-[#E6B84D]/50"
+                    : "bg-white/10 text-white/70 border border-white/15 hover:bg-white/15"
+                    }`}
                 >
                   {score}
                 </button>

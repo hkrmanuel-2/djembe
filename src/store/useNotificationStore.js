@@ -10,8 +10,12 @@ export const useNotificationStore = create((set, get) => ({
 
   // Load notifications for current user
   loadNotifications: async (userId, userType) => {
-    if (!userId || !userType) return;
+    if (!userId || !userType) {
+      console.log("[NOTIFICATIONS] Skipped load - missing userId or userType:", { userId, userType });
+      return;
+    }
 
+    console.log("[NOTIFICATIONS] Loading for:", { userId, userType });
     set({ isLoading: true, error: null });
     try {
       const { data, error } = await supabase
@@ -22,8 +26,12 @@ export const useNotificationStore = create((set, get) => ({
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[NOTIFICATIONS] Load error:", error);
+        throw error;
+      }
 
+      console.log("[NOTIFICATIONS] Loaded:", data?.length ?? 0, "notifications");
       const unreadCount = data?.filter((n) => !n.read).length || 0;
 
       set({
@@ -32,7 +40,7 @@ export const useNotificationStore = create((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      console.error("Load notifications error:", error);
+      console.error("[NOTIFICATIONS] Load notifications error:", error);
       set({ error: error.message, isLoading: false });
     }
   },

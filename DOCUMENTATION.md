@@ -238,9 +238,9 @@ See [Version History](#version-history) for complete details.
    # Suno API (optional - for AI music generation)
    VITE_SUNO_API_KEY=your_suno_api_key
 
-   # Cloudinary (required - for assignment file uploads)
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+   # Assignment uploads (Supabase Storage)
+   # No additional env vars required beyond Supabase keys.
+   # See SUPABASE_STORAGE_SETUP.md to create the `assignment-submissions` bucket + policies.
 
    # MVSEP (required - for audio stem separation)
    MVSEP_API_KEY=your_mvsep_api_key
@@ -445,7 +445,6 @@ djembe/
 │   │   │   ├── field.tsx
 │   │   │   ├── input.tsx
 │   │   │   ├── Sidebar.tsx                # Persistent sidebar navigation
-│   │   │   ├── cube-loader-dark.tsx       # 3D cube loading animation
 │   │   │   ├── tubelight-navbar-dark.tsx  # Bottom navigation bar (legacy)
 │   │   │   ├── NotificationBell.tsx       # Notification bell icon
 │   │   │   ├── NotificationPanel.tsx      # Notification slide-out panel
@@ -1450,118 +1449,37 @@ export async function separateStems(audioUrl) {
 }
 ```
 
-### Cloudinary API
+### Supabase Storage API (Assignment Uploads)
 
-**Purpose:** Cloud storage for assignment submission files
+**Purpose:** Store assignment submission files in **Supabase Storage** (current implementation).
 
-**Configuration:**
-- Cloud Name: `dlvdj0xir`
-- Upload Preset: `djembe_assignments` (unsigned upload)
-- Base Folder: "Djembe Assignment Submissions"
-
-**Client Library** (`src/lib/cloudinaryApi.js`):
+**Client Library** (`src/lib/storageApi.js`):
 
 **Core Functions:**
 
-1. **uploadToCloudinary(file, options)**
-   ```javascript
-   const result = await uploadToCloudinary(file, {
-     folder: "Djembe Assignment Submissions",
-     public_id: "custom_id",
-     onProgress: (percent) => console.log(`${percent}%`)
-   });
-   ```
-   - Generic upload function
-   - Progress tracking support
-   - Returns `{ success, data: { secure_url, public_id, ... } }`
+1. **validateFile(file, options?)**
+   - **Parameters**
+     - `file: File`
+     - `options?: { maxSizeMB?: number, allowedTypes?: string[] }`
+   - **Returns**: `{ valid: boolean, errors: string[] }`
 
-2. **uploadAssignmentSubmission(file, studentId, assignmentId, onProgress)**
-   ```javascript
-   const result = await uploadAssignmentSubmission(
-     file,
-     studentId,
-     assignmentId,
-     (progress) => console.log(`Upload: ${progress}%`)
-   );
-   // Returns Cloudinary secure_url for database storage
-   ```
-   - Specialized for assignment uploads
-   - Auto-generates organized file path
-   - Structure: `student_{id}/assignment_{id}/{timestamp}_{filename}`
+2. **uploadAssignmentSubmission(file, studentId, assignmentId, onProgress?)**
+   - **Parameters**
+     - `file: File`
+     - `studentId: string` (UUID)
+     - `assignmentId: string` (UUID)
+     - `onProgress?: Function` *(currently not used by Supabase client upload)*
+   - **Returns**: `{ success: boolean, data?: { secure_url, public_url, path, file_name }, error?: string }`
+   - **Storage path structure:** `student_{studentId}/assignment_{assignmentId}/{timestamp}_{safeFileName}`
 
-3. **validateFile(file, options)**
-   ```javascript
-   const validation = validateFile(file, {
-     maxSizeMB: 10,
-     allowedTypes: ['application/pdf', 'image/jpeg', ...]
-   });
+3. **getFileTypeDisplay(mimeType)**
+   - Human-readable labels for supported MIME types.
 
-   if (!validation.valid) {
-     console.error(validation.errors);
-   }
-   ```
-   - Pre-upload validation
-   - Default 10MB size limit
-   - Checks allowed file types
-
-4. **getFileTypeDisplay(mimeType)**
-   ```javascript
-   const displayName = getFileTypeDisplay('application/pdf');
-   // Returns: "PDF Document"
-   ```
-   - Human-readable file type names
-
-**Supported File Types:**
-- **Images:** JPEG, JPG, PNG, GIF
-- **Documents:** PDF, DOC, DOCX, PPT, PPTX
-- **Audio:** MP3, WAV, MPEG
-- **Video:** MP4, QuickTime
-
-**File Organization Structure:**
-```
-Djembe Assignment Submissions/
-├── student_uuid-abc123/
-│   ├── assignment_uuid-xyz789/
-│   │   ├── 1738000000000_Essay.pdf
-│   │   └── 1738000001000_Presentation.pptx
-│   └── assignment_uuid-def456/
-│       └── 1738000002000_Audio.mp3
-└── student_uuid-def456/
-    └── assignment_uuid-xyz789/
-        └── 1738000003000_Video.mp4
-```
-
-**Cloudinary Setup Instructions:**
-
-To enable uploads, create an unsigned upload preset:
-
-1. Log in to [Cloudinary Dashboard](https://cloudinary.com/console)
-2. Navigate to **Settings → Upload → Upload presets**
-3. Click **"Add upload preset"**
-4. Configure:
-   - **Upload preset name:** `djembe_assignments`
-   - **Signing Mode:** **Unsigned** (allows client-side uploads)
-   - **Folder:** `Djembe Assignment Submissions`
-   - **Resource type:** Auto
-5. Click **Save**
-
-**Environment Variables:**
-```env
-# Required for Cloudinary integration
-CLOUDINARY_API_KEY=your_api_key_here
-CLOUDINARY_API_SECRET=your_api_secret_here
-```
-
-**Security Notes:**
-- Unsigned uploads allow direct browser-to-Cloudinary transfers
-- Files are public but not indexed (security through obscurity)
-- 10MB size limit enforced client-side
-- File type validation prevents malicious uploads
-- For production, consider implementing signed uploads
+**Setup Instructions:** See `SUPABASE_STORAGE_SETUP.md` (create bucket `assignment-submissions` + storage policies).
 
 **Usage in Assignment Submission:**
 ```javascript
-import { uploadAssignmentSubmission, validateFile } from '@/lib/cloudinaryApi';
+import { uploadAssignmentSubmission, validateFile } from '@/lib/storageApi';
 
 // 1. Validate file
 const validation = validateFile(file);
@@ -1570,24 +1488,24 @@ if (!validation.valid) {
   return;
 }
 
-// 2. Upload to Cloudinary
-const uploadResult = await uploadAssignmentSubmission(
-  file,
-  studentId,
-  assignmentId,
-  (progress) => setUploadProgress(progress)
-);
+// 2. Upload to Supabase Storage
+const uploadResult = await uploadAssignmentSubmission(file, studentId, assignmentId);
 
 // 3. Save URL to database
 if (uploadResult.success) {
-  await supabase.from('submissions').insert({
+  await supabase.from('submissions').upsert({
     assignment_id: assignmentId,
     student_id: studentId,
     file_url: uploadResult.data.secure_url,
-    file_name: file.name
+    file_name: file.name,
+    submitted_at: new Date().toISOString(),
   });
 }
 ```
+
+### Cloudinary API (Legacy / Optional)
+
+`src/lib/cloudinaryApi.js` remains in the repo for historical/testing purposes, but assignment submissions are now uploaded via **Supabase Storage** (`src/lib/storageApi.js`).
 
 ---
 
@@ -3231,7 +3149,7 @@ newAction: (param) => {
 
 **Loading Experience**
 - ~~Added new [LoadingContext](src/contexts/LoadingContext.tsx) for global loading state management~~ *(Removed in v3.1)*
-- ~~Implemented [CubeLoaderDark](src/components/ui/cube-loader-dark.tsx) component with 3D cube animation~~ *(Removed in v3.1)*
+- ~~Implemented cube loader components~~ *(Removed in v3.1; `ProtectedRoute` now shows a simple inline spinner while auth initializes)*
 - Loading overlay removed in favor of direct page rendering for faster perceived load times
 
 **User Profile Display**
@@ -3318,6 +3236,36 @@ newAction: (param) => {
 **Enhanced App Component** ([App.jsx](src/App.jsx))
 - Integrated LoadingProvider for global loading states
 - Enhanced navigation with user profile display
+
+### February 2026
+
+#### Assignments, Submissions, Feedback & Notifications Stabilization
+
+**Submissions table ID consistency**
+- Standardized around `submissions.submission_id` (UUID PK) across teacher + student flows
+- Fixed places that incorrectly assumed `submissions.id` (caused `undefined` submission IDs and broken feedback queries)
+
+**Teacher feedback persistence (DB writes)**
+- Fixed feedback creation payload mismatch in [TeacherSubmissions.tsx](src/assets/pages/TeacherSubmissions.tsx) (`submission_id` was `undefined`)
+- Improved logging + guardrails in [teacherApi.js](src/lib/teacherApi.js) and feedback UI
+
+**Notifications (RLS)**
+- Added/updated RLS fix script for notifications inserts and reads: `database/fix_notifications_rls.sql`
+- Added debugging logs in:
+  - [notificationApi.js](src/lib/notificationApi.js)
+  - [useNotificationStore.js](src/store/useNotificationStore.js)
+
+**Auth 406 noise reduction**
+- Replaced `.single()` with `.maybeSingle()` for role detection queries in [useAuthStore.js](src/store/useAuthStore.js) to avoid PostgREST 406 spam when a role row doesn’t exist
+
+#### Security & Repo Hygiene
+
+**Secret leakage remediation**
+- Removed `env.download` from git tracking and ignored `env.download` / `*.download` going forward
+- Added guidance/scripts to avoid committing environment pulls
+
+**Loader cleanup**
+- Removed cube loader components entirely and replaced `ProtectedRoute` loading UI with a minimal inline spinner
 - Improved route protection logic
 - Added conditional Worlds navigation (visible to all authenticated users)
 - Student-specific assignment routing
@@ -3763,8 +3711,8 @@ CREATE TABLE assignments (
 *Submissions:*
 ```sql
 CREATE TABLE submissions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+  submission_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id UUID NOT NULL REFERENCES assignments(assignment_id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
   file_url VARCHAR(500),
   file_name VARCHAR(255),
@@ -3776,7 +3724,7 @@ CREATE TABLE submissions (
 ```sql
 CREATE TABLE feedback (
   feedback_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  submission_id UUID REFERENCES submissions(submission_id) ON DELETE CASCADE,
   teacher_id UUID NOT NULL REFERENCES teachers(teacher_id),
   comment TEXT,
   score INT CHECK (score >= 0 AND score <= 100),
@@ -3795,8 +3743,8 @@ getTeacherAssignments(schoolId)
 getAssignmentWithSubmissions(assignmentId, schoolId, classId?)
 
 // Feedback/Grading
-createFeedback(teacherId, { submissionId, comment, score })
-updateFeedback(feedbackId, { comment, score })
+createFeedback(teacherId, { submission_id, comment, score })
+updateFeedback(feedbackId, { submission_id?, comment, score })
 getFeedbackForSubmission(submissionId)
 getTeacherFeedback(teacherId)
 ```
@@ -3807,9 +3755,8 @@ getTeacherFeedback(teacherId)
 - Updates `assignments_completed` counter
 - Tracks streak continuity
 
-**File Storage - Cloudinary Integration:**
-- All assignment submissions stored in Cloudinary cloud storage
-- Files organized in "Djembe Assignment Submissions" folder
+**File Storage - Supabase Storage Integration:**
+- All assignment submissions stored in Supabase Storage bucket `assignment-submissions`
 - Hierarchical structure: `student_{id}/assignment_{id}/{timestamp}_{filename}`
 - Supported file types:
   - Images: JPEG, PNG, GIF
@@ -3818,7 +3765,7 @@ getTeacherFeedback(teacherId)
   - Video: MP4, QuickTime
 - Maximum file size: 10MB
 - Client-side file validation
-- Cloudinary secure URLs saved to database
+- Public URLs saved to database (`submissions.file_url`)
 - Direct file access from teacher dashboard
 
 ---
@@ -4323,7 +4270,7 @@ ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_name VARCHAR(255);
 -- Feedback table
 CREATE TABLE IF NOT EXISTS feedback (
   feedback_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE,
+  submission_id UUID REFERENCES submissions(submission_id) ON DELETE CASCADE,
   teacher_id UUID NOT NULL REFERENCES teachers(teacher_id),
   comment TEXT,
   score INT CHECK (score >= 0 AND score <= 100),
@@ -4595,9 +4542,9 @@ const itemColors = {
 #### Loading Overlay Removal
 
 **Files Modified:**
-- [App.jsx](src/App.jsx) — Removed `LoadingOverlay` component, `CubeLoaderDark` import, `useLoading` import
+- [App.jsx](src/App.jsx) — Removed `LoadingOverlay` component and related loading UI imports
 
-**Reason:** The cube loader was unnecessary and created a jarring experience. Pages now render directly.
+**Reason:** The cube loader was unnecessary and created a jarring experience. Pages now render directly, with a minimal spinner during auth initialization.
 
 ---
 

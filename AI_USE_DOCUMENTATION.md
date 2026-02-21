@@ -24,7 +24,7 @@
 
 ## Overview
 
-This document provides a transparent account of how artificial intelligence was used during the development of the Djembe educational music platform. The AI assistant (Claude by Anthropic) was used as a development aid through the Claude Code command-line interface, functioning as a pair programming partner and technical consultant.
+This document provides a transparent account of how artificial intelligence was used during the development of the Djembe educational music platform. AI assistance occurred across multiple sessions and tools (Claude via Claude Code CLI, and Cursor AI via Cursor Chat), functioning as pair programming support and technical consulting.
 
 ### AI Tool Details
 
@@ -35,6 +35,15 @@ This document provides a transparent account of how artificial intelligence was 
 | **Interface** | Claude Code CLI (VS Code Extension) |
 | **Provider** | Anthropic |
 | **Usage Period** | Development phase (2025–2026) |
+
+**Additional AI Tool (Feb 19, 2026 session):**
+
+| Attribute | Details |
+|-----------|---------|
+| **AI Model** | OpenAI GPT (Cursor AI) |
+| **Interface** | Cursor Chat (in-editor) |
+| **Provider** | OpenAI |
+| **Usage Period** | February 2026 (debugging + stabilization) |
 
 ### Scope of AI Use
 
@@ -99,9 +108,14 @@ AI was **NOT** used for:
 | `src/components/onboarding/OnboardingTour.tsx` | High | Interactive onboarding tour |
 | `src/assets/pages/Tutorials.tsx` | High | Tutorials page with filtering |
 | `src/assets/pages/TeacherSubmissions.tsx` | High | Teacher submissions review page |
+| `src/components/ProtectedRoute.tsx` | Medium | Auth gating + loading state (inline spinner; removed cube loader) |
+| `src/assets/pages/teacher/TeacherAssignments.tsx` | Medium | Assignment list/detail fixes (IDs + keys) |
 | `src/components/tutorials/TutorialCard.tsx` | High | Tutorial card component |
 | `src/components/tutorials/VideoPlayerModal.tsx` | High | Video player modal |
 | `DOCUMENTATION.md` | High | Technical documentation |
+| `database/fix_feedback_table.sql` | Medium | Feedback table/RLS remediation script |
+| `database/fix_feedback_rls_only.sql` | Medium | Feedback RLS-only remediation script |
+| `database/fix_notifications_rls.sql` | Medium | Notifications RLS remediation script |
 
 ---
 
@@ -338,6 +352,37 @@ git commit -m "Remove .env from tracking"
 ## Recent AI Contributions (Jan–Feb 2026)
 
 The following features were developed with AI assistance in the final phase of the project. These represent significant new functionality added after the initial AI documentation was written.
+
+### 9.5. Assignments/Feedback/Notifications Stabilization (Feb 19, 2026 — Cursor AI)
+
+**Primary goal:** Fix assignment submission/feedback visibility issues and ensure teacher feedback persists and notifications can be created/read under Supabase RLS.
+
+**AI-assisted outcomes (high-level):**
+- **Feedback saving fixed** by correcting `submission_id` wiring in `src/assets/pages/TeacherSubmissions.tsx` and aligning submission identifier usage to `submissions.submission_id`.
+- **Teacher/student visibility fixes** by updating mapping/query logic to use `submission_id` consistently (avoid `undefined` IDs).
+- **Notifications RLS fix** by adding `database/fix_notifications_rls.sql` and improving runtime logging in `src/lib/notificationApi.js` and `src/store/useNotificationStore.js`.
+- **Auth role lookup noise reduced** by switching role-detection lookups from `.single()` to `.maybeSingle()` in `src/store/useAuthStore.js` (prevents PostgREST 406 spam when a role row doesn’t exist).
+- **Security hygiene** by removing an accidentally committed secret file (`env.download`) from git tracking and preventing future commits via `.gitignore`.
+- **UI cleanup** by removing cube loader components entirely and using a minimal inline spinner in `src/components/ProtectedRoute.tsx`.
+
+**Representative files changed/added:**
+- `src/assets/pages/TeacherSubmissions.tsx`
+- `src/lib/teacherApi.js`
+- `src/lib/notificationApi.js`
+- `src/store/useNotificationStore.js`
+- `src/store/useAuthStore.js`
+- `src/components/ProtectedRoute.tsx`
+- `database/fix_feedback_table.sql`
+- `database/fix_feedback_rls_only.sql`
+- `database/fix_notifications_rls.sql`
+- `DOCUMENTATION.md`
+
+#### Chat History / Transcript References
+
+Cursor Chat sessions do not always have a stable public URL. For academic review, export the Cursor chat transcript and attach it to the repo (or store it in a shared drive) and link it here:
+
+- **Cursor Chat transcript (Feb 19, 2026)**: [docs/chat_transcripts/2026-02-19-cursor-chat.md](docs/chat_transcripts/2026-02-19-cursor-chat.md)
+- **Related PR / issue thread**: `<<ADD_LINK_IF_APPLICABLE>>`
 
 ### 10. Notification System
 
