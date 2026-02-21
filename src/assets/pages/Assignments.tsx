@@ -476,7 +476,7 @@ export default function AssignmentsNew() {
               className="text-3xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight mb-2"
               style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
             >
-              My <span style={{ color: '#D97746' }}>Assignments</span>
+              My <span style={{ color: '#D97746' }}>Challenges</span>
             </h1>
 
             {userProfile && (
@@ -630,7 +630,7 @@ export default function AssignmentsNew() {
                                 className="px-4 py-2 rounded-full font-semibold text-xs"
                                 style={{ backgroundColor: '#D4F5F5', color: '#2D7A7A' }}
                               >
-                                Submitted
+                                Turned In
                               </span>
                               {(() => {
                                 const submission = getSubmissionWithFeedback(assignmentId);
@@ -650,7 +650,7 @@ export default function AssignmentsNew() {
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                       </svg>
-                                      View Feedback
+                                      Teacher's Comments
                                       {submission.feedback.score !== null && (
                                         <span className="font-bold">({submission.feedback.score}/100)</span>
                                       )}
@@ -720,7 +720,7 @@ export default function AssignmentsNew() {
                         className="text-xl sm:text-2xl font-bold"
                         style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
                       >
-                        Teacher Feedback
+                        Teacher's Comments
                       </h2>
                       <button
                         onClick={() => setSelectedAssignment(null)}
@@ -763,7 +763,7 @@ export default function AssignmentsNew() {
                               className="p-4 rounded-xl text-center"
                               style={{ backgroundColor: 'rgba(230, 184, 77, 0.1)' }}
                             >
-                              <div className="text-sm text-gray-600 mb-1">Your Score</div>
+                              <div className="text-sm text-gray-600 mb-1">Your Points</div>
                               <div
                                 className="text-4xl font-bold"
                                 style={{ color: '#E6B84D', fontFamily: "'Fredoka', sans-serif" }}
@@ -802,7 +802,7 @@ export default function AssignmentsNew() {
                         className="text-xl sm:text-2xl font-bold"
                         style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
                       >
-                        Submit Assignment
+                        Turn In My Work
                       </h2>
                       <button
                         onClick={() => !uploading && setSelectedAssignment(null)}

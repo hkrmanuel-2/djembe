@@ -50,10 +50,10 @@ export default function OnboardingTour({
       target: '[href="/daw"]',
       content: (
         <div>
-          <h3 className="text-lg font-semibold mb-2">DAW-Lite</h3>
+          <h3 className="text-lg font-semibold mb-2">Music Studio</h3>
           <p>
-            Create your own music using our Digital Audio Workstation. Drag
-            loops, arrange beats, and export your creations!
+            Create your own music! Drag loops, arrange beats, and save
+            your songs!
           </p>
         </div>
       ),
@@ -198,7 +198,7 @@ export default function OnboardingTour({
       content: (
         <div>
           <h3 className="text-lg font-semibold mb-2">Student Projects</h3>
-          <p>View and review all student projects created in the DAW-Lite.</p>
+          <p>View and review all student projects created in the Music Studio.</p>
         </div>
       ),
       placement: "top",

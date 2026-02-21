@@ -149,7 +149,7 @@ export default function TeacherAssignments() {
     if (!confirm("Are you sure you want to delete this assignment?")) return;
     try {
       await deleteAssignment(assignmentId);
-      setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
+      setAssignments((prev) => prev.filter((a) => (a.assignment_id || a.id) !== assignmentId));
     } catch (error) {
       console.error("Error deleting assignment:", error);
     }
@@ -233,7 +233,7 @@ export default function TeacherAssignments() {
                   className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4"
                   style={{ borderColor: '#E8DFFF', borderTopColor: "#D97746" }}
                 />
-                <p className="text-gray-500">Loading submissions...</p>
+                <p className="text-gray-500">Loading student work...</p>
               </div>
             ) : (
               <motion.div variants={containerVariants} initial="hidden" animate="visible">
@@ -364,7 +364,7 @@ export default function TeacherAssignments() {
                     className="text-xl font-bold mb-4"
                     style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
                   >
-                    Student Submissions
+                    Student Work
                   </h2>
                   <div
                     className="rounded-2xl bg-white shadow-md border-2 overflow-hidden"
@@ -377,8 +377,8 @@ export default function TeacherAssignments() {
                     >
                       <div className="col-span-4">Student</div>
                       <div className="col-span-2 text-center">Status</div>
-                      <div className="col-span-2 text-center">Submitted</div>
-                      <div className="col-span-2 text-center">Grade</div>
+                      <div className="col-span-2 text-center">Turned In</div>
+                      <div className="col-span-2 text-center">Points</div>
                       <div className="col-span-2 text-center">Actions</div>
                     </div>
 
@@ -545,15 +545,15 @@ export default function TeacherAssignments() {
                 }}
               >
                 <FileText size={16} style={{ color: "#E6B84D" }} />
-                <span className="text-sm font-medium" style={{ color: '#3E2468' }}>Assignments</span>
+                <span className="text-sm font-medium" style={{ color: '#3E2468' }}>Challenges</span>
               </div>
               <h1
                 className="text-4xl font-bold"
                 style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
               >
-                Manage <span style={{ color: "#D97746" }}>Assignments</span>
+                Manage <span style={{ color: "#D97746" }}>Challenges</span>
               </h1>
-              <p className="text-gray-500 mt-2">Create and track student assignments</p>
+              <p className="text-gray-500 mt-2">Create and track student challenges</p>
             </div>
 
             <button

@@ -133,7 +133,7 @@ export default function FeedbackModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">
-                {existingFeedback ? "Edit Feedback" : "Give Feedback"}
+                {existingFeedback ? "Edit Comments" : "Add Comments"}
               </h2>
               <p className="text-white/50 text-sm">
                 For {student.first_name} {student.last_name}
@@ -169,7 +169,7 @@ export default function FeedbackModal({
           <div>
             <label className="block text-white/70 text-sm font-medium mb-2">
               <Star size={14} className="inline mr-1" style={{ color: "#E6B84D" }} />
-              Score (Optional, 0-100)
+              Points (Optional, 0-100)
             </label>
             <div className="flex flex-wrap gap-2 mb-3">
               {quickScores.map((score) => (

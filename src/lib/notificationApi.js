@@ -27,25 +27,24 @@ export async function createNotification({
   data = {},
 }) {
   try {
-    const { data: notification, error } = await supabase
-      .from("notifications")
-      .insert({
-        recipient_id: recipientId,
-        recipient_type: recipientType,
-        type,
-        title,
-        message,
-        data,
-      })
-      .select()
-      .single();
+    const { data: notificationId, error } = await supabase.rpc(
+      "create_notification",
+      {
+        p_recipient_id: recipientId,
+        p_recipient_type: recipientType,
+        p_type: type,
+        p_title: title,
+        p_message: message,
+        p_data: data,
+      }
+    );
 
     if (error) {
       console.error("[NOTIFICATION API] Create error:", error);
       throw error;
     }
     console.log("[NOTIFICATION API] Created notification for", recipientType, recipientId);
-    return { data: notification, error: null };
+    return { data: { id: notificationId }, error: null };
   } catch (error) {
     console.error("[NOTIFICATION API] Create notification error:", error);
     return { data: null, error };
@@ -57,21 +56,23 @@ export async function createNotification({
  */
 export async function createBulkNotifications(notifications) {
   try {
-    const { data, error } = await supabase
-      .from("notifications")
-      .insert(
-        notifications.map((n) => ({
-          recipient_id: n.recipientId,
-          recipient_type: n.recipientType,
-          type: n.type,
-          title: n.title,
-          message: n.message,
-          data: n.data || {},
-        }))
+    const results = await Promise.all(
+      notifications.map((n) =>
+        supabase.rpc("create_notification", {
+          p_recipient_id: n.recipientId,
+          p_recipient_type: n.recipientType,
+          p_type: n.type,
+          p_title: n.title,
+          p_message: n.message,
+          p_data: n.data || {},
+        })
       )
-      .select();
+    );
 
-    if (error) throw error;
+    const failed = results.find((r) => r.error);
+    if (failed) throw failed.error;
+
+    const data = results.map((r) => ({ id: r.data }));
     return { data, error: null };
   } catch (error) {
     console.error("Create bulk notifications error:", error);

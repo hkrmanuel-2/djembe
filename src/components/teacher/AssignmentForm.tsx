@@ -264,7 +264,7 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
                         formData.assignment_type === "project" ? "#4A9B9B" : "rgba(255,255,255,0.9)",
                     }}
                   >
-                    DAW Project
+                    Music Project
                   </p>
                   <p className="text-xs text-white/50">Music composition</p>
                 </div>
