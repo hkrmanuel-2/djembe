@@ -366,13 +366,13 @@ const World1: React.FC = () => {
     );
 
     // Load all musician models arranged around the campfire
-    // Drummer - near the fire
+    // Drummer - inside the tent, facing the fire
     loadAnimatedModel(
       "/models/Black_Student_Boy/Black_boy_drum.glb",
       "drummer",
-      new THREE.Vector3(10.44, 0, -0.05),
+      new THREE.Vector3(4.45, 0, -0.94),
       new THREE.Vector3(1, 1, 1),
-      -Math.PI * 0.75
+      1.22 // face toward the fire
     );
 
     // Pianist - left side
@@ -434,30 +434,196 @@ const World1: React.FC = () => {
       -Math.PI * 0.5
     );
 
-    loadAnimatedModel(
-      "/models/nany-wheeler/source/djembe_flutist.glb",
-      "flutist",
-      new THREE.Vector3(9.24, 0, 1.95),
-      new THREE.Vector3(1.4, 1.4, 1.4),
-      Math.PI
-    );
+    // Flutist - with flute instrument attached to hand bone
+    {
+      sharedLoader.load(
+        "/models/nany-wheeler/source/djembe_flutist.glb",
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(1.4, 1.4, 1.4);
+          model.position.set(9.24, 0, 1.95);
+          model.rotation.y = Math.PI;
+          model.name = "flutist";
 
-    loadAnimatedModel(
-      "/models/nany-wheeler/source/guitarist.glb",
-      "guitarist",
-      new THREE.Vector3(3.2, 0, -4.99),
-      new THREE.Vector3(1.4, 1.4, 1.4),
-      Math.PI * 0.25
-    );
+          setupModelMaterials(model);
+
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = "flutist";
+            }
+          });
+
+          scene.add(model);
+          clickableModelsRef.current.set("flutist", model);
+
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(model);
+            mixersRef.current.push(mixer);
+            const clip = gltf.animations[0];
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            actionsRef.current.set("flutist", action);
+            action.timeScale = 0.2;
+            action.play();
+          }
+
+          updateLoadingProgress();
+          console.log("flutist loaded successfully");
+
+          // Find hand bone and attach flute instrument
+          let handBone: THREE.Object3D | null = null;
+          model.traverse((child) => {
+            if ((child as any).isBone) {
+              const n = child.name.toLowerCase();
+              console.log("flutist bone:", child.name);
+              if (!handBone && ((n.includes('right') && n.includes('hand')) ||
+                  n.endsWith('hand_r') || n.endsWith('hand.r'))) {
+                handBone = child;
+              }
+            }
+          });
+
+          if (handBone) {
+            sharedLoader.load(
+              "/models/Black_Student_Boy/flute.glb",
+              (fluteGltf) => {
+                const flute = fluteGltf.scene;
+                flute.scale.set(0.004, 0.004, 0.004);
+                flute.position.set(0, 0.05, 0.02);
+                flute.rotation.set(-0.3, 0, Math.PI / 2);
+                flute.name = "flute";
+                setupModelMaterials(flute);
+                flute.traverse((c) => {
+                  if ((c as THREE.Mesh).isMesh) {
+                    c.userData.clickable = true;
+                    c.userData.modelName = "flutist";
+                  }
+                });
+                (handBone as THREE.Object3D).add(flute);
+                updateLoadingProgress();
+                console.log("flute attached to bone:", (handBone as THREE.Object3D).name);
+              },
+              undefined,
+              (error) => {
+                console.error("Error loading flute:", error);
+                updateLoadingProgress();
+              }
+            );
+          } else {
+            console.warn("No hand bone found for flutist");
+            updateLoadingProgress();
+          }
+        },
+        (xhr) => {},
+        (error) => {
+          console.error("Error loading flutist:", error);
+          updateLoadingProgress();
+          updateLoadingProgress();
+        }
+      );
+    }
+
+    // Guitarist - with guitar instrument attached to hand bone
+    {
+      sharedLoader.load(
+        "/models/nany-wheeler/source/guitarist.glb",
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(1.4, 1.4, 1.4);
+          model.position.set(3.2, 0, -4.99);
+          model.rotation.y = Math.PI * 0.25;
+          model.name = "guitarist";
+
+          setupModelMaterials(model);
+
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = "guitarist";
+            }
+          });
+
+          scene.add(model);
+          clickableModelsRef.current.set("guitarist", model);
+
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(model);
+            mixersRef.current.push(mixer);
+            const clip = gltf.animations[0];
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            actionsRef.current.set("guitarist", action);
+            action.timeScale = 0.2;
+            action.play();
+          }
+
+          updateLoadingProgress();
+          console.log("guitarist loaded successfully");
+
+          // Find hand bone and attach guitar instrument
+          let handBone: THREE.Object3D | null = null;
+          model.traverse((child) => {
+            if ((child as any).isBone) {
+              const n = child.name.toLowerCase();
+              console.log("guitarist bone:", child.name);
+              if (!handBone && ((n.includes('right') && n.includes('hand')) ||
+                  n.endsWith('hand_r') || n.endsWith('hand.r'))) {
+                handBone = child;
+              }
+            }
+          });
+
+          if (handBone) {
+            sharedLoader.load(
+              "/models/Black_Student_Boy/low_poly_guitar.glb",
+              (guitarGltf) => {
+                const guitar = guitarGltf.scene;
+                guitar.scale.set(0.6, 0.6, 0.6);
+                guitar.position.set(0, -0.15, 0.1);
+                guitar.rotation.set(0.3, 0, -Math.PI / 4);
+                guitar.name = "guitar";
+                setupModelMaterials(guitar);
+                guitar.traverse((c) => {
+                  if ((c as THREE.Mesh).isMesh) {
+                    c.userData.clickable = true;
+                    c.userData.modelName = "guitarist";
+                  }
+                });
+                (handBone as THREE.Object3D).add(guitar);
+                updateLoadingProgress();
+                console.log("guitar attached to bone:", (handBone as THREE.Object3D).name);
+              },
+              undefined,
+              (error) => {
+                console.error("Error loading guitar:", error);
+                updateLoadingProgress();
+              }
+            );
+          } else {
+            console.warn("No hand bone found for guitarist");
+            updateLoadingProgress();
+          }
+        },
+        (xhr) => {},
+        (error) => {
+          console.error("Error loading guitarist:", error);
+          updateLoadingProgress();
+          updateLoadingProgress();
+        }
+      );
+    }
 
     // Load static instrument props around the campfire
-    // Djembe drum - near fire
+    // Djembe drum - with drummer in tent
     loadStaticModel(
       "/models/Black_Student_Boy/djembe.glb",
       "djembe",
-      new THREE.Vector3(10.44, 0, -0.05),
+      new THREE.Vector3(4.45, 0, -0.94),
       new THREE.Vector3(2.7, 2.7, 2.7),
-      Math.PI
+      1.22 // match drummer rotation
     );
 
     // Piano - side area
@@ -545,88 +711,6 @@ const World1: React.FC = () => {
         (xhr) => { },
         (error) => {
           console.error("Error loading tambourine:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
-
-    // Flute - back left
-    // Flute - back left (custom loading)
-    {
-      sharedLoader.load(
-        "/models/Black_Student_Boy/flute.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(0.02, 0.02, 0.02);
-          model.position.set(9.24, 1.8, 1.7);
-          model.name = "flute";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "flute";
-              // Apply rotation to mesh directly (Group rotation is ignored for some reason)
-              child.rotation.set(
-                234 * (Math.PI / 180),
-                104 * (Math.PI / 180),
-                90 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("flute", model);
-          updateLoadingProgress();
-          console.log("flute loaded successfully");
-        },
-        (xhr) => {
-          console.log(`flute loading: ${(xhr.loaded / xhr.total) * 100}%`);
-        },
-        (error) => {
-          console.error("Error loading flute:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
-
-    // Guitar - back right (custom loading to face camera)
-    {
-      sharedLoader.load(
-        "/models/Black_Student_Boy/low_poly_guitar.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(1.2, 1.2, 1.2);
-          // Position at guitarist location, offset for arm holding position
-          model.position.set(3.5, 1.0, -5.2);
-          model.name = "guitar";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "guitar";
-              // Apply rotation to mesh directly
-              child.rotation.set(
-                212 * (Math.PI / 180),
-                198 * (Math.PI / 180),
-                355 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("guitar", model);
-          updateLoadingProgress();
-          console.log("guitar loaded successfully");
-        },
-        (xhr) => {
-          console.log(`guitar loading: ${(xhr.loaded / xhr.total) * 100}%`);
-        },
-        (error) => {
-          console.error("Error loading guitar:", error);
           updateLoadingProgress();
         }
       );
