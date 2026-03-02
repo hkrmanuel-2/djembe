@@ -74,7 +74,8 @@ export default async function handler(
         console.log("[MVSEP] Files is object, keys:", Object.keys(files));
         for (const [key, value] of Object.entries(files)) {
           const keyLower = key.toLowerCase();
-          const url = typeof value === "string" ? value : (value as any)?.url || (value as any)?.download_url || "";
+          const val = value as Record<string, string> | undefined;
+          const url = typeof value === "string" ? value : val?.url || val?.download_url || "";
           console.log("[MVSEP] Object entry:", { key: keyLower, url: url.substring(0, 50) });
 
           if (keyLower.includes("drum")) stems.drums = url;

@@ -19,12 +19,14 @@ export default function AssignmentsNew() {
     if (userProfile?.school_id) {
       loadAssignments();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile?.school_id]);
 
   useEffect(() => {
     if (userProfile?.student_id) {
       loadSubmissions();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile?.student_id]);
 
   const loadAssignments = async () => {

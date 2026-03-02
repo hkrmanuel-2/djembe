@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
 import { User, Palette, Bell, Sparkles, GraduationCap } from "lucide-react";
-import { useAuthStore } from "@/store/useAuthStore";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 export default function Settings() {
-  const { userType } = useAuthStore();
   const { reset: resetOnboarding } = useOnboarding();
 
   const handleRestartTutorial = () => {

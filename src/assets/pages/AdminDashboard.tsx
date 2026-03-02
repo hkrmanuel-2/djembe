@@ -71,6 +71,7 @@ export default function AdminDashboard() {
     if (userProfile?.school_id) {
       loadData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, activeTab]);
 
   const loadData = async () => {

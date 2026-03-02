@@ -100,7 +100,6 @@ export default function DAWLite() {
       const subdivisionsPerBeat = 4;
       const beatsPerBar = 4;
       const loopEndCol = col + span;
-      const currentTotalCols = (projectBars || 10) * beatsPerBar * subdivisionsPerBeat;
       const requiredBars = Math.ceil(loopEndCol / (beatsPerBar * subdivisionsPerBeat));
 
       // Extend timeline if needed

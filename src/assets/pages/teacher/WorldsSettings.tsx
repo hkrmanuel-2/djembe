@@ -304,7 +304,7 @@ export default function WorldsSettings() {
                            [&::-webkit-slider-thumb]:shadow-lg"
                   style={{
                     background: '#E8DFFF',
-                    // @ts-ignore -- slider thumb color via CSS custom property
+                    // @ts-expect-error -- slider thumb color via CSS custom property
                     '--tw-slider-thumb-bg': '#7B5BA8',
                   } as React.CSSProperties}
                 />

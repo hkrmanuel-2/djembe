@@ -58,6 +58,7 @@ export default function SignupNew() {
 
   useEffect(() => {
     loadSchools();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSchools = async () => {
@@ -95,10 +96,10 @@ export default function SignupNew() {
       } else {
         clearError();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading schools:", err);
       useAuthStore.setState({
-        error: `Error loading schools: ${err.message || "Unknown error"}`,
+        error: `Error loading schools: ${err instanceof Error ? err.message : "Unknown error"}`,
       });
     } finally {
       setIsLoadingSchools(false);
