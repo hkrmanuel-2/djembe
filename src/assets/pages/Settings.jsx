@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { User, Palette, Bell, Shield, Sparkles, GraduationCap } from "lucide-react";
+import { User, Palette, Bell, Sparkles, GraduationCap } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 export default function Settings() {
-  const { userType, setUserTypeOverride } = useAuthStore();
+  const { userType } = useAuthStore();
   const { reset: resetOnboarding } = useOnboarding();
 
   const handleRestartTutorial = () => {
@@ -104,54 +104,6 @@ export default function Settings() {
                       <span style={{ color: '#9B7DC8' }}>Change →</span>
                     </div>
                   </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* User Role (for testing) */}
-            <motion.div
-              variants={itemVariants}
-              className="rounded-2xl p-6 border-2 transition-all duration-300 bg-white shadow-md"
-              style={{ borderColor: '#E8DFFF' }}
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #42C9C9 0%, #7B5BA8 100%)' }}>
-                  <Shield size={24} className="text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-1" style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}>User Role</h3>
-                  <p className="text-sm mb-4 text-gray-500">
-                    Switch between student and teacher modes (for testing)
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setUserTypeOverride('student')}
-                      className="flex-1 py-3 px-4 rounded-xl font-medium transition-all border-2"
-                      style={{
-                        backgroundColor: userType === 'student' ? 'rgba(66, 201, 201, 0.1)' : 'white',
-                        borderColor: userType === 'student' ? '#42C9C9' : '#E8DFFF',
-                        color: userType === 'student' ? '#42C9C9' : '#9B7DC8',
-                        fontFamily: "'Fredoka', sans-serif",
-                      }}
-                    >
-                      Student
-                    </button>
-                    <button
-                      onClick={() => setUserTypeOverride('teacher')}
-                      className="flex-1 py-3 px-4 rounded-xl font-medium transition-all border-2"
-                      style={{
-                        backgroundColor: userType === 'teacher' ? 'rgba(217, 119, 70, 0.1)' : 'white',
-                        borderColor: userType === 'teacher' ? '#D97746' : '#E8DFFF',
-                        color: userType === 'teacher' ? '#D97746' : '#9B7DC8',
-                        fontFamily: "'Fredoka', sans-serif",
-                      }}
-                    >
-                      Teacher
-                    </button>
-                  </div>
-                  <p className="text-xs mt-3 text-gray-400">
-                    Current role: <span style={{ color: userType === 'teacher' ? '#D97746' : '#42C9C9' }}>{userType}</span>
-                  </p>
                 </div>
               </div>
             </motion.div>

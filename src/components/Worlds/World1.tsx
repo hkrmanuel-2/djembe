@@ -6,6 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
+import { useVoicesStore } from "../../store/useVoicesStore";
 
 const World1: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -32,7 +33,40 @@ const World1: React.FC = () => {
   const mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
+  // Map stem categories to 3D model names
+  const STEM_TO_MODEL: Record<string, string> = {
+    rhythm: "drummer",
+    bass: "guitarist",
+    harmony: "pianist",
+    melody: "flutist",
+    extras: "tambourinist",
+  };
 
+  // Sync stem playback ↔ 3D model animations
+  useEffect(() => {
+    const unsubscribe = useVoicesStore.subscribe((state) => {
+      const { categories, isPlaying } = state;
+
+      Object.entries(STEM_TO_MODEL).forEach(([category, modelName]) => {
+        const action = actionsRef.current.get(modelName);
+        if (!action) return;
+
+        const cat = categories[category as keyof typeof categories];
+        const shouldPerform = isPlaying && cat.activeVoice && !cat.muted;
+
+        // Always keep animation playing — just change speed
+        // Performing = full speed, idle = slow subtle movement
+        action.timeScale = shouldPerform ? 1.0 : 0.2;
+
+        // Ensure animation is always running
+        if (!action.isRunning()) {
+          action.reset().play();
+          action.timeScale = shouldPerform ? 1.0 : 0.2;
+        }
+      });
+    });
+    return () => unsubscribe();
+  }, []);
 
 
   // Check orientation for mobile devices
@@ -157,6 +191,9 @@ const World1: React.FC = () => {
     controls.enableRotate = false;
     controlsRef.current = controls;
 
+    // Shared loader instance (reuses parser & cache)
+    const sharedLoader = new GLTFLoader();
+
     // Track loading progress
     let modelsLoaded = 0;
     const totalModels = 11; // campfire + 5 musicians + 5 instruments
@@ -199,8 +236,7 @@ const World1: React.FC = () => {
       rotationX: number = 0,
       rotationZ: number = 0
     ) => {
-      const loader = new GLTFLoader();
-      loader.load(
+      sharedLoader.load(
         path,
         (gltf) => {
           const model = gltf.scene;
@@ -243,8 +279,7 @@ const World1: React.FC = () => {
       scale: THREE.Vector3,
       rotationY: number = 0
     ) => {
-      const loader = new GLTFLoader();
-      loader.load(
+      sharedLoader.load(
         path,
         (gltf) => {
           const model = gltf.scene;
@@ -278,9 +313,10 @@ const World1: React.FC = () => {
             action.setLoop(THREE.LoopRepeat, Infinity);
             action.clampWhenFinished = false;
             actionsRef.current.set(name, action);
+            action.timeScale = 0.2; // idle speed — slow subtle movement
             action.play();
 
-            console.log(`${name} animation ready - click to play!`);
+            console.log(`${name} animation ready (idle)`);
           }
 
           updateLoadingProgress();
@@ -296,13 +332,9 @@ const World1: React.FC = () => {
       );
     };
 
-    // Animation mixer for GLB animations
-    let mixer: THREE.AnimationMixer | null = null;
-    const clock = new THREE.Clock();
 
     // Load campfire environment
-    const forestLoader = new GLTFLoader();
-    forestLoader.load(
+    sharedLoader.load(
       "/models/camping_buscraft_ambience.glb",
       (gltf) => {
         gltf.scene.scale.set(2, 2, 2);
@@ -334,20 +366,19 @@ const World1: React.FC = () => {
     );
 
     // Load all musician models arranged around the campfire
-    // Drummer - near the fire
+    // Drummer - inside the tent, facing the fire
     loadAnimatedModel(
       "/models/Black_Student_Boy/Black_boy_drum.glb",
       "drummer",
-      new THREE.Vector3(10.44, 0, -0.05),
+      new THREE.Vector3(4.45, 0, -0.94),
       new THREE.Vector3(1, 1, 1),
-      -Math.PI * 0.75
+      1.22 // face toward the fire
     );
 
     // Pianist - left side
     // Pianist - left side (custom loading for mesh rotation)
     {
-      const pianistLoader = new GLTFLoader();
-      pianistLoader.load(
+      sharedLoader.load(
         "/models/Black_Student_Boy/pianist_black_boy.glb",
         (gltf) => {
           const model = gltf.scene;
@@ -379,6 +410,7 @@ const World1: React.FC = () => {
             action.setLoop(THREE.LoopRepeat, Infinity);
             action.clampWhenFinished = false;
             actionsRef.current.set("pianist", action);
+            action.timeScale = 0.2; // idle speed
             action.play();
           }
 
@@ -402,37 +434,202 @@ const World1: React.FC = () => {
       -Math.PI * 0.5
     );
 
-    loadAnimatedModel(
-      "/models/nany-wheeler/source/djembe_flutist.glb",
-      "flutist",
-      new THREE.Vector3(9.24, 0, 1.95),
-      new THREE.Vector3(1.8, 1.8, 1.8),
-      Math.PI
-    );
+    // Flutist - with flute instrument attached to hand bone
+    {
+      sharedLoader.load(
+        "/models/nany-wheeler/source/djembe_flutist.glb",
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(1.4, 1.4, 1.4);
+          model.position.set(9.24, 0, 1.95);
+          model.rotation.y = Math.PI;
+          model.name = "flutist";
 
-    loadAnimatedModel(
-      "/models/nany-wheeler/source/guitarist.glb",
-      "guitarist",
-      new THREE.Vector3(3.2, 0, -4.99),
-      new THREE.Vector3(1.8, 1.8, 1.8),
-      Math.PI * 0.25
-    );
+          setupModelMaterials(model);
+
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = "flutist";
+            }
+          });
+
+          scene.add(model);
+          clickableModelsRef.current.set("flutist", model);
+
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(model);
+            mixersRef.current.push(mixer);
+            const clip = gltf.animations[0];
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            actionsRef.current.set("flutist", action);
+            action.timeScale = 0.2;
+            action.play();
+          }
+
+          updateLoadingProgress();
+          console.log("flutist loaded successfully");
+
+          // Find hand bone and attach flute instrument
+          let handBone: THREE.Object3D | null = null;
+          model.traverse((child) => {
+            if ((child as any).isBone) {
+              const n = child.name.toLowerCase();
+              console.log("flutist bone:", child.name);
+              if (!handBone && ((n.includes('right') && n.includes('hand')) ||
+                  n.endsWith('hand_r') || n.endsWith('hand.r'))) {
+                handBone = child;
+              }
+            }
+          });
+
+          if (handBone) {
+            sharedLoader.load(
+              "/models/Black_Student_Boy/flute.glb",
+              (fluteGltf) => {
+                const flute = fluteGltf.scene;
+                flute.scale.set(0.004, 0.004, 0.004);
+                flute.position.set(0, 0.05, 0.02);
+                flute.rotation.set(-0.3, 0, Math.PI / 2);
+                flute.name = "flute";
+                setupModelMaterials(flute);
+                flute.traverse((c) => {
+                  if ((c as THREE.Mesh).isMesh) {
+                    c.userData.clickable = true;
+                    c.userData.modelName = "flutist";
+                  }
+                });
+                (handBone as THREE.Object3D).add(flute);
+                updateLoadingProgress();
+                console.log("flute attached to bone:", (handBone as THREE.Object3D).name);
+              },
+              undefined,
+              (error) => {
+                console.error("Error loading flute:", error);
+                updateLoadingProgress();
+              }
+            );
+          } else {
+            console.warn("No hand bone found for flutist");
+            updateLoadingProgress();
+          }
+        },
+        (xhr) => {},
+        (error) => {
+          console.error("Error loading flutist:", error);
+          updateLoadingProgress();
+          updateLoadingProgress();
+        }
+      );
+    }
+
+    // Guitarist - with guitar instrument attached to hand bone
+    {
+      sharedLoader.load(
+        "/models/nany-wheeler/source/guitarist.glb",
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(1.4, 1.4, 1.4);
+          model.position.set(3.2, 0, -4.99);
+          model.rotation.y = Math.PI * 0.25;
+          model.name = "guitarist";
+
+          setupModelMaterials(model);
+
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = "guitarist";
+            }
+          });
+
+          scene.add(model);
+          clickableModelsRef.current.set("guitarist", model);
+
+          if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(model);
+            mixersRef.current.push(mixer);
+            const clip = gltf.animations[0];
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            actionsRef.current.set("guitarist", action);
+            action.timeScale = 0.2;
+            action.play();
+          }
+
+          updateLoadingProgress();
+          console.log("guitarist loaded successfully");
+
+          // Find hand bone and attach guitar instrument
+          let handBone: THREE.Object3D | null = null;
+          model.traverse((child) => {
+            if ((child as any).isBone) {
+              const n = child.name.toLowerCase();
+              console.log("guitarist bone:", child.name);
+              if (!handBone && ((n.includes('right') && n.includes('hand')) ||
+                  n.endsWith('hand_r') || n.endsWith('hand.r'))) {
+                handBone = child;
+              }
+            }
+          });
+
+          if (handBone) {
+            sharedLoader.load(
+              "/models/Black_Student_Boy/low_poly_guitar.glb",
+              (guitarGltf) => {
+                const guitar = guitarGltf.scene;
+                guitar.scale.set(0.6, 0.6, 0.6);
+                guitar.position.set(0, -0.15, 0.1);
+                guitar.rotation.set(0.3, 0, -Math.PI / 4);
+                guitar.name = "guitar";
+                setupModelMaterials(guitar);
+                guitar.traverse((c) => {
+                  if ((c as THREE.Mesh).isMesh) {
+                    c.userData.clickable = true;
+                    c.userData.modelName = "guitarist";
+                  }
+                });
+                (handBone as THREE.Object3D).add(guitar);
+                updateLoadingProgress();
+                console.log("guitar attached to bone:", (handBone as THREE.Object3D).name);
+              },
+              undefined,
+              (error) => {
+                console.error("Error loading guitar:", error);
+                updateLoadingProgress();
+              }
+            );
+          } else {
+            console.warn("No hand bone found for guitarist");
+            updateLoadingProgress();
+          }
+        },
+        (xhr) => {},
+        (error) => {
+          console.error("Error loading guitarist:", error);
+          updateLoadingProgress();
+          updateLoadingProgress();
+        }
+      );
+    }
 
     // Load static instrument props around the campfire
-    // Djembe drum - near fire
+    // Djembe drum - with drummer in tent
     loadStaticModel(
       "/models/Black_Student_Boy/djembe.glb",
       "djembe",
-      new THREE.Vector3(10.44, 0, -0.05),
+      new THREE.Vector3(4.45, 0, -0.94),
       new THREE.Vector3(2.7, 2.7, 2.7),
-      Math.PI
+      1.22 // match drummer rotation
     );
 
     // Piano - side area
     // Piano - side area (inline for rotation control)
     {
-      const pianoLoader = new GLTFLoader();
-      pianoLoader.load(
+      sharedLoader.load(
         "/models/Black_Student_Boy/piano.glb",
         (gltf) => {
           const model = gltf.scene;
@@ -471,8 +668,7 @@ const World1: React.FC = () => {
     // Tambourine - near campfire
     // Tambourine - near campfire (inline for rotation control)
     {
-      const tambourineLoader = new GLTFLoader();
-      tambourineLoader.load(
+      sharedLoader.load(
         "/models/Black_Student_Boy/tambourine.glb",
         (gltf) => {
           const model = gltf.scene;
@@ -520,90 +716,6 @@ const World1: React.FC = () => {
       );
     }
 
-    // Flute - back left
-    // Flute - back left (custom loading)
-    {
-      const fluteLoader = new GLTFLoader();
-      fluteLoader.load(
-        "/models/Black_Student_Boy/flute.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(0.02, 0.02, 0.02);
-          model.position.set(8.98, 2.5, 1.28);
-          model.name = "flute";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "flute";
-              // Apply rotation to mesh directly (Group rotation is ignored for some reason)
-              child.rotation.set(
-                234 * (Math.PI / 180),
-                104 * (Math.PI / 180),
-                90 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("flute", model);
-          updateLoadingProgress();
-          console.log("flute loaded successfully");
-        },
-        (xhr) => {
-          console.log(`flute loading: ${(xhr.loaded / xhr.total) * 100}%`);
-        },
-        (error) => {
-          console.error("Error loading flute:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
-
-    // Guitar - back right (custom loading to face camera)
-    {
-      const guitarLoader = new GLTFLoader();
-      guitarLoader.load(
-        "/models/Black_Student_Boy/low_poly_guitar.glb",
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(1.5, 1.5, 1.5);
-          // Position at guitarist location, offset for arm holding position
-          model.position.set(6.01, 4, -5.83);
-          model.name = "guitar";
-
-          setupModelMaterials(model);
-
-          model.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
-              child.userData.clickable = true;
-              child.userData.modelName = "guitar";
-              // Apply rotation to mesh directly
-              child.rotation.set(
-                212 * (Math.PI / 180),
-                198 * (Math.PI / 180),
-                355 * (Math.PI / 180)
-              );
-            }
-          });
-
-          scene.add(model);
-          clickableModelsRef.current.set("guitar", model);
-          updateLoadingProgress();
-          console.log("guitar loaded successfully");
-        },
-        (xhr) => {
-          console.log(`guitar loading: ${(xhr.loaded / xhr.total) * 100}%`);
-        },
-        (error) => {
-          console.error("Error loading guitar:", error);
-          updateLoadingProgress();
-        }
-      );
-    }
-
     // Mouse event handlers for interacting (Drag & Click)
     const handleMouseClick = (event: MouseEvent) => {
       event.preventDefault();
@@ -633,13 +745,23 @@ const World1: React.FC = () => {
         }
 
         if (modelName) {
-          console.log(`${modelName} clicked!`);
-          const action = actionsRef.current.get(modelName);
-          if (action) {
-            if (action.isRunning()) {
-              action.fadeOut(0.3);
-            } else {
-              action.reset().fadeIn(0.3).play();
+          // Find which stem category maps to this model
+          const stemCategory = Object.entries(STEM_TO_MODEL).find(
+            ([, name]) => name === modelName
+          )?.[0];
+
+          // If voices are playing, toggle the stem's mute (keeps sync)
+          if (stemCategory && useVoicesStore.getState().isPlaying) {
+            useVoicesStore.getState().toggleMute(stemCategory);
+          } else {
+            // No stems playing — toggle between idle and full speed
+            const action = actionsRef.current.get(modelName);
+            if (action) {
+              action.timeScale = action.timeScale < 0.5 ? 1.0 : 0.2;
+              if (!action.isRunning()) {
+                action.reset().play();
+                action.timeScale = 1.0;
+              }
             }
           }
         }
@@ -655,51 +777,6 @@ const World1: React.FC = () => {
       camera.updateProjectionMatrix();
     };
     window.addEventListener("resize", handleResize);
-
-    const handleKeyPress = (event: KeyboardEvent) => {
-      // Log camera position
-      if (event.key === 'c' || event.key === 'C') {
-        const pos = camera.position;
-        const rot = camera.rotation;
-        console.log('Camera Position:', {
-          x: Number(pos.x.toFixed(2)),
-          y: Number(pos.y.toFixed(2)),
-          z: Number(pos.z.toFixed(2))
-        });
-        console.log('Camera Rotation:', {
-          x: Number(rot.x.toFixed(2)),
-          y: Number(rot.y.toFixed(2)),
-          z: Number(rot.z.toFixed(2))
-        });
-      }
-
-      // Log model positions
-      if (event.key === 'm' || event.key === 'M') {
-        const modelsData = Array.from(clickableModelsRef.current.entries()).map(([name, model]) => {
-          return {
-            name,
-            position: {
-              x: Number(model.position.x.toFixed(2)),
-              y: Number(model.position.y.toFixed(2)),
-              z: Number(model.position.z.toFixed(2))
-            },
-            rotation: {
-              x: Number(model.rotation.x.toFixed(2)),
-              y: Number(model.rotation.y.toFixed(2)),
-              z: Number(model.rotation.z.toFixed(2))
-            },
-            scale: {
-              x: Number(model.scale.x.toFixed(2)),
-              y: Number(model.scale.y.toFixed(2)),
-              z: Number(model.scale.z.toFixed(2))
-            }
-          };
-        });
-        console.log('--- Model Positions ---');
-        console.log(JSON.stringify(modelsData, null, 2));
-      }
-    };
-    window.addEventListener("keydown", handleKeyPress);
 
     let rafId: number;
 
@@ -721,7 +798,6 @@ const World1: React.FC = () => {
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("keydown", handleKeyPress);
       renderer.domElement.removeEventListener("click", handleMouseClick);
       mixersRef.current.forEach((mixer) => {
         mixer.stopAllAction();
@@ -731,64 +807,61 @@ const World1: React.FC = () => {
     };
   }, []);
 
-  // Show portrait mode overlay on mobile
-  if (isMobile && isPortrait) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-[#1A2B4A] flex flex-col items-center justify-center p-8">
-        <style>{`
-          @keyframes pulse-rotate {
-            0%, 100% { transform: rotate(-15deg) scale(1); }
-            50% { transform: rotate(15deg) scale(1.05); }
-          }
-        `}</style>
-        <div className="text-center max-w-sm">
-          {/* Rotating phone icon */}
-          <div className="mb-6 relative">
-            <Smartphone
-              size={80}
-              className="text-[#E6B84D] mx-auto"
-              style={{ animation: 'pulse-rotate 2s ease-in-out infinite' }}
-            />
-            <RotateCcw
-              size={32}
-              className="text-[#4A9B9B] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            />
-          </div>
-
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Rotate Your Device
-          </h2>
-
-          <p className="text-white/70 mb-6">
-            Fireside World works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
-            Please rotate your device horizontally to continue.
-          </p>
-
-          <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
-            <div className="w-12 h-8 border-2 border-white/30 rounded-md flex items-center justify-center">
-              <div className="w-8 h-4 bg-white/20 rounded-sm"></div>
-            </div>
-            <span>→</span>
-            <div className="w-16 h-10 border-2 border-[#E6B84D] rounded-md flex items-center justify-center">
-              <div className="w-10 h-6 bg-[#E6B84D]/20 rounded-sm"></div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate('/home')}
-            className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-full text-white text-sm hover:bg-white/20 transition-colors"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black">
-      {/* 3D Canvas */}
+      {/* 3D Canvas — always in DOM so Three.js context survives orientation changes */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+      {/* Portrait mode overlay (on top of canvas, not replacing it) */}
+      {isMobile && isPortrait && (
+        <div className="absolute inset-0 z-[100] bg-[#1A2B4A] flex flex-col items-center justify-center p-8">
+          <style>{`
+            @keyframes pulse-rotate {
+              0%, 100% { transform: rotate(-15deg) scale(1); }
+              50% { transform: rotate(15deg) scale(1.05); }
+            }
+          `}</style>
+          <div className="text-center max-w-sm">
+            <div className="mb-6 relative">
+              <Smartphone
+                size={80}
+                className="text-[#E6B84D] mx-auto"
+                style={{ animation: 'pulse-rotate 2s ease-in-out infinite' }}
+              />
+              <RotateCcw
+                size={32}
+                className="text-[#4A9B9B] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+              />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-3">
+              Rotate Your Device
+            </h2>
+
+            <p className="text-white/70 mb-6">
+              Fireside World works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
+              Please rotate your device horizontally to continue.
+            </p>
+
+            <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
+              <div className="w-12 h-8 border-2 border-white/30 rounded-md flex items-center justify-center">
+                <div className="w-8 h-4 bg-white/20 rounded-sm"></div>
+              </div>
+              <span>→</span>
+              <div className="w-16 h-10 border-2 border-[#E6B84D] rounded-md flex items-center justify-center">
+                <div className="w-10 h-6 bg-[#E6B84D]/20 rounded-sm"></div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/home')}
+              className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-full text-white text-sm hover:bg-white/20 transition-colors"
+            >
+              ← Back to Home
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Loading Overlay */}
       <AnimatePresence>

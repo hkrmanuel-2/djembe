@@ -171,7 +171,7 @@ export async function deleteAssignment(assignmentId) {
     const { error } = await supabase
       .from("assignments")
       .delete()
-      .eq("id", assignmentId);
+      .eq("assignment_id", assignmentId);
 
     if (error) throw error;
     return { success: true, error: null };

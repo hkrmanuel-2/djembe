@@ -98,7 +98,7 @@ export default function HomeNew() {
                   <div>
                     <h3 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2" style={{ color: '#1A2B4A' }}>Make Music</h3>
                     <p className="text-xs sm:text-sm leading-relaxed" style={{ color: '#5A6B7D' }}>
-                      Create beats, compose melodies, and bring your musical ideas to life with our DAW
+                      Create beats, mix melodies, and bring your musical ideas to life
                     </p>
                   </div>
 

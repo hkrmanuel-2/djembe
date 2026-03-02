@@ -269,7 +269,7 @@ export default function DAWLite() {
             </h2>
 
             <p className="text-white/70 mb-6">
-              DAW-Lite works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
+              Music Studio works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
               Please rotate your device horizontally to continue.
             </p>
 
@@ -323,7 +323,7 @@ export default function DAWLite() {
             </button>
 
             <h1 className="text-lg md:text-2xl font-bold tracking-wide text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-              <span style={{ color: '#D97746' }}>DAW</span><span className="hidden sm:inline" style={{ color: '#F2C94C' }}>-LITE</span>
+              <span style={{ color: '#D97746' }}>Music</span><span className="hidden sm:inline" style={{ color: '#F2C94C' }}> Studio</span>
             </h1>
 
             {/* Audio Status Indicator - Hidden on very small screens */}

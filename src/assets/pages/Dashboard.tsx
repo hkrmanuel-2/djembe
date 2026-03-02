@@ -212,7 +212,7 @@ export default function Dashboard() {
                   className="text-sm font-semibold"
                   style={{ color: "#7B5BA8", fontFamily: "'Fredoka', sans-serif" }}
                 >
-                  {userType === "teacher" ? "Teacher Portal" : "Student Dashboard"}
+                  {userType === "teacher" ? "Teacher Home" : "My Home"}
                 </span>
               </div>
             </motion.div>
@@ -274,7 +274,7 @@ export default function Dashboard() {
                       Make Music
                     </h3>
                     <p className="text-sm leading-relaxed text-gray-500">
-                      Create beats, compose melodies, and bring your musical ideas to life with our DAW
+                      Create beats, mix melodies, and bring your musical ideas to life
                     </p>
                   </div>
 
@@ -319,10 +319,10 @@ export default function Dashboard() {
                         className="text-xl font-bold mb-1.5"
                         style={{ color: "#3E2468", fontFamily: "'Fredoka', sans-serif" }}
                       >
-                        My Assignments
+                        My Challenges
                       </h3>
                       <p className="text-sm leading-relaxed text-gray-500">
-                        View your tasks, submit your work, and track your progress
+                        See what's new, turn in your work, and check how you're doing
                       </p>
                     </div>
 

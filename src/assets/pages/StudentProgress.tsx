@@ -401,7 +401,7 @@ export default function StudentProgress() {
             {/* Exports */}
             <StatCard
               icon={<Download size={22} />}
-              label="Exports"
+              label="Saved Songs"
               value={progress?.projects_exported || 0}
               color="#D97746"
             />
@@ -409,7 +409,7 @@ export default function StudentProgress() {
             {/* Streak */}
             <StatCard
               icon={<Flame size={22} />}
-              label="Streak"
+              label="Days in a Row"
               value={`${progress?.current_streak || 0} days`}
               color="#E8627A"
             />
