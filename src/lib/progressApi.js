@@ -72,7 +72,7 @@ export async function getStudentDetailedProgress(studentId) {
     if (studentError) throw studentError;
 
     // Get progress
-    const { data: progress, error: progressError } = await supabase
+    const { data: progress } = await supabase
       .from("student_progress")
       .select("*")
       .eq("student_id", studentId)

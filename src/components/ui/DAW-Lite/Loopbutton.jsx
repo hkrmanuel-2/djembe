@@ -1,7 +1,7 @@
 import React from "react";
 
 export default function LoopButton({ loop, onDragStart, onSelect, isSelected, isMobile }) {
-  const handleTouchStart = (e) => {
+  const handleTouchStart = () => {
     // For mobile: tap to select, then tap timeline to place
     if (onSelect) {
       onSelect(loop);

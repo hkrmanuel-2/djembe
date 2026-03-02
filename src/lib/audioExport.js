@@ -18,7 +18,7 @@ async function loadAudioBuffer(audioContext, url) {
 /**
  * Convert seconds to beat position based on BPM
  */
-function secondsToBeat(seconds, bpm) {
+function _secondsToBeat(seconds, bpm) {
   const secondsPerBeat = 60 / bpm;
   return seconds / secondsPerBeat;
 }
@@ -56,7 +56,7 @@ function mixAudioBuffers(audioContext, buffers, startTimes, durations) {
     const startTime = startTimes[index];
     const startFrame = Math.floor(startTime * sampleRate);
     const sourceFrames = buffer.length;
-    const endFrame = Math.min(startFrame + sourceFrames, frameCount);
+    const _endFrame = Math.min(startFrame + sourceFrames, frameCount);
     
     // Copy and mix audio data
     for (let channel = 0; channel < Math.min(buffer.numberOfChannels, 2); channel++) {

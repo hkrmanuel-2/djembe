@@ -330,7 +330,7 @@ export const useVoicesStore = create((set, get) => ({
           if (player && player.buffer?.loaded && player.state === "started") {
             player.stop();
           }
-        } catch (e) {
+        } catch {
           // Ignore errors when stopping players
         }
       });

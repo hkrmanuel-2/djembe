@@ -290,7 +290,7 @@ export function getCloudinaryUrl(public_id, transformations = {}) {
  * @param {string} public_id - Cloudinary public ID
  * @returns {Promise<Object>} Deletion result
  */
-export async function deleteFromCloudinary(public_id) {
+export async function deleteFromCloudinary(_public_id) {
   // Note: Deletion requires authentication and should be done via backend
   // This function is a placeholder for future implementation
   logger.warn("Cloudinary deletion requires backend API endpoint");

@@ -284,7 +284,7 @@ export const useStore = create(
             if (!Tone.Transport.state || Tone.Transport.state !== "started") {
               Tone.Transport.start("+0");
             }
-          } catch (err) {
+          } catch {
             // ignore if already started
           }
 
@@ -313,7 +313,7 @@ export const useStore = create(
           // stop Tone.Transport
           try {
             Tone.Transport.pause();
-          } catch (err) {
+          } catch {
             // ignore
           }
 
@@ -356,7 +356,7 @@ export const useStore = create(
 
           try {
             Tone.Transport.stop();
-          } catch (err) {
+          } catch {
             // ignore
           }
 
@@ -461,7 +461,7 @@ export const useStore = create(
             const defaultRows = 5;
             // Allow shrinking back to default when loops are deleted
             const newBars = bars || defaultBars;
-            const newRows = rows || defaultRows;
+            const _newRows = rows || defaultRows;
             
             return {
               project: { 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Waveform from "./Waveform";
 
-export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onDrop, onDragOver, removeLoop, onLoopDrag, onLoopTrim, bars: propBars, rows: propRows, onExtendTimeline, selectedLoop, onTimelineClick, isMobile }) {
+export default function Timeline({ placedLoops, currentBeat, isPlaying, onDrop, onDragOver, removeLoop, onLoopDrag, onLoopTrim, bars: propBars, rows: propRows, onExtendTimeline, onTimelineClick, isMobile }) {
   const beatsPerBar = 4;
   const subdivisionsPerBeat = 4; // 16th notes
   const DEFAULT_BARS = 10;
@@ -55,7 +55,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     }
   }, [bars, rows, propBars, propRows, onExtendTimeline]);
   const [draggedLoopId, setDraggedLoopId] = useState(null);
-  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [, setDragStartPos] = useState({ x: 0, y: 0 });
   const [trimmingLoopId, setTrimmingLoopId] = useState(null);
   const [trimSide, setTrimSide] = useState(null); // 'left' or 'right'
 
@@ -140,7 +140,6 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     const rect = timeline.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const cellWidth = rect.width / totalCols;
-    const currentCellHeight = baseCellHeight * zoom;
     let newCol = Math.max(0, Math.min(totalCols - 1, Math.floor(x / cellWidth)));
     newCol = snapToGrid(newCol);
 
@@ -221,7 +220,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     setTouchDragPosition({ x: touch.clientX, y: touch.clientY });
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = () => {
     if (!touchDragLoop) return;
 
     const timeline = timelineRef.current;

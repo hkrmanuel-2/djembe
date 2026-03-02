@@ -236,7 +236,7 @@ export function getNotificationIcon(type) {
 /**
  * Get notification link based on type and data
  */
-export function getNotificationLink(type, data) {
+export function getNotificationLink(type, _data) {
   switch (type) {
     case NOTIFICATION_TYPES.ASSIGNMENT_CREATED:
     case NOTIFICATION_TYPES.ASSIGNMENT_GRADED:

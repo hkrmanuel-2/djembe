@@ -31,7 +31,7 @@ const World1: React.FC = () => {
 
   // Raycasting and Dragging references
   const raycasterRef = useRef(new THREE.Raycaster());
-  const mouseRef = useRef(new THREE.Vector2());
+  const _mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
   // Map stem categories to 3D model names
@@ -89,7 +89,7 @@ const World1: React.FC = () => {
     };
   }, []);
 
-  const resetCamera = () => {
+  const _resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
       cameraRef.current.position.set(13.19, 2.51, -1.94);
       cameraRef.current.rotation.set(-2.23, 1.33, 2.24);
@@ -418,7 +418,7 @@ const World1: React.FC = () => {
           updateLoadingProgress();
           logger.log("pianist loaded successfully");
         },
-        (xhr) => { },
+        () => {},
         (error) => {
           console.error("Error loading pianist:", error);
           updateLoadingProgress();
@@ -517,7 +517,7 @@ const World1: React.FC = () => {
             updateLoadingProgress();
           }
         },
-        (xhr) => {},
+        () => {},
         (error) => {
           console.error("Error loading flutist:", error);
           updateLoadingProgress();
@@ -608,7 +608,7 @@ const World1: React.FC = () => {
             updateLoadingProgress();
           }
         },
-        (xhr) => {},
+        () => {},
         (error) => {
           console.error("Error loading guitarist:", error);
           updateLoadingProgress();
@@ -658,7 +658,7 @@ const World1: React.FC = () => {
           updateLoadingProgress();
           logger.log("piano loaded successfully");
         },
-        (xhr) => { },
+        () => {},
         (error) => {
           console.error("Error loading piano:", error);
           updateLoadingProgress();
@@ -709,7 +709,7 @@ const World1: React.FC = () => {
           updateLoadingProgress();
           logger.log("tambourine loaded successfully");
         },
-        (xhr) => { },
+        () => {},
         (error) => {
           console.error("Error loading tambourine:", error);
           updateLoadingProgress();
