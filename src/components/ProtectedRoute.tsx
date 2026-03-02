@@ -2,8 +2,13 @@ import { Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect } from "react";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, initAuth } = useAuthStore();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: ("admin" | "teacher" | "student")[];
+}
+
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, initAuth, userType } = useAuthStore();
 
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
@@ -25,6 +30,16 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Role-based access control
+  if (allowedRoles && userType && !allowedRoles.includes(userType as "admin" | "teacher" | "student")) {
+    // Redirect to the user's appropriate home page
+    const homeRoute =
+      userType === "admin" ? "/admin" :
+      userType === "teacher" ? "/students" :
+      "/home";
+    return <Navigate to={homeRoute} replace />;
   }
 
   return <>{children}</>;

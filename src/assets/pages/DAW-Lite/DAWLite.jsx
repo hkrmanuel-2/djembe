@@ -7,6 +7,7 @@ import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols
 import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
 import AILoopGenerator from "../../../components/ui/DAW-Lite/AILoopGenerator.jsx";
 import { Home, RotateCcw, Smartphone } from "lucide-react";
+import { logger } from "../../../lib/logger";
 
 export default function DAWLite() {
   const [draggedLoop, setDraggedLoop] = useState(null);
@@ -135,7 +136,7 @@ export default function DAWLite() {
       if (newLoop.url) {
         const audio = new Audio(newLoop.url);
         audio.volume = 0.8;
-        audio.play().catch((err) => console.log("Audio play error:", err));
+        audio.play().catch((err) => logger.log("Audio play error:", err));
         // Stop after 1.5 seconds for a quick preview
         setTimeout(() => {
           audio.pause();
@@ -167,7 +168,7 @@ export default function DAWLite() {
   const handleLoopGenerated = (newLoop) => {
     // Loop is already added to library and will appear automatically
     // Could show a notification here if needed
-    console.log('New AI loop generated:', newLoop);
+    logger.log('New AI loop generated:', newLoop);
   };
 
   // Handle loop selection for mobile tap-to-place flow
@@ -221,7 +222,7 @@ export default function DAWLite() {
     if (newLoop.url) {
       const audio = new Audio(newLoop.url);
       audio.volume = 0.8;
-      audio.play().catch((err) => console.log("Audio play error:", err));
+      audio.play().catch((err) => logger.log("Audio play error:", err));
       setTimeout(() => {
         audio.pause();
         audio.currentTime = 0;

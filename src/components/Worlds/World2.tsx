@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -166,10 +167,10 @@ const World2: React.FC = () => {
           scene.add(model);
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -219,14 +220,14 @@ const World2: React.FC = () => {
             action.clampWhenFinished = false;
             actionsRef.current.set(name, action);
 
-            console.log(`${name} animation ready - click to play!`);
+            logger.log(`${name} animation ready - click to play!`);
           }
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -249,7 +250,7 @@ const World2: React.FC = () => {
       },
       (xhr) => {
         const progress = (xhr.loaded / xhr.total) * 100;
-        console.log(`Auditorium loading: ${progress}%`);
+        logger.log(`Auditorium loading: ${progress}%`);
       },
       (error) => {
         console.error("Error loading auditorium:", error);
@@ -344,16 +345,16 @@ const World2: React.FC = () => {
         const intersects = raycasterRef.current.intersectObject(model, true);
 
         if (intersects.length > 0) {
-          console.log(`${name} clicked!`);
+          logger.log(`${name} clicked!`);
 
           const action = actionsRef.current.get(name);
           if (action) {
             if (action.isRunning()) {
               action.fadeOut(0.3);
-              console.log(`${name} animation stopped`);
+              logger.log(`${name} animation stopped`);
             } else {
               action.reset().fadeIn(0.3).play();
-              console.log(`${name} animation playing`);
+              logger.log(`${name} animation playing`);
             }
           }
         }

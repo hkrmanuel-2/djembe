@@ -4,6 +4,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { Globe, Music, Save, Loader2, Check, ArrowLeft } from "lucide-react";
 import { getVoiceSettings, updateVoiceSettings } from "@/lib/teacherApi";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 
 // Preset options
 const GENRE_OPTIONS = [
@@ -101,7 +102,7 @@ export default function WorldsSettings() {
 
   // Handle save
   const handleSave = async () => {
-    console.log("[WorldsSettings] Save clicked, userProfile:", userProfile);
+    logger.log("[WorldsSettings] Save clicked, userProfile:", userProfile);
 
     if (!userProfile?.school_id) {
       setError("No school ID found. Please contact support.");
@@ -119,7 +120,7 @@ export default function WorldsSettings() {
     setError(null);
     setSaveSuccess(false);
 
-    console.log("[WorldsSettings] Saving settings:", {
+    logger.log("[WorldsSettings] Saving settings:", {
       schoolId: userProfile.school_id,
       teacherId,
       settings,
@@ -133,7 +134,7 @@ export default function WorldsSettings() {
       selectedWorld
     );
 
-    console.log("[WorldsSettings] Save result:", result);
+    logger.log("[WorldsSettings] Save result:", result);
 
     if (result.error) {
       setError(result.error);

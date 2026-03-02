@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -259,10 +260,10 @@ const World1: React.FC = () => {
           clickableModelsRef.current.set(name, model);
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -316,14 +317,14 @@ const World1: React.FC = () => {
             action.timeScale = 0.2; // idle speed — slow subtle movement
             action.play();
 
-            console.log(`${name} animation ready (idle)`);
+            logger.log(`${name} animation ready (idle)`);
           }
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -357,7 +358,7 @@ const World1: React.FC = () => {
       },
       (xhr) => {
         const progress = (xhr.loaded / xhr.total) * 100;
-        console.log(`Campfire loading: ${progress}%`);
+        logger.log(`Campfire loading: ${progress}%`);
       },
       (error) => {
         console.error("Error loading campfire:", error);
@@ -415,7 +416,7 @@ const World1: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log("pianist loaded successfully");
+          logger.log("pianist loaded successfully");
         },
         (xhr) => { },
         (error) => {
@@ -470,14 +471,14 @@ const World1: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log("flutist loaded successfully");
+          logger.log("flutist loaded successfully");
 
           // Find hand bone and attach flute instrument
           let handBone: THREE.Object3D | null = null;
           model.traverse((child) => {
             if ((child as any).isBone) {
               const n = child.name.toLowerCase();
-              console.log("flutist bone:", child.name);
+              logger.log("flutist bone:", child.name);
               if (!handBone && ((n.includes('right') && n.includes('hand')) ||
                   n.endsWith('hand_r') || n.endsWith('hand.r'))) {
                 handBone = child;
@@ -503,7 +504,7 @@ const World1: React.FC = () => {
                 });
                 (handBone as THREE.Object3D).add(flute);
                 updateLoadingProgress();
-                console.log("flute attached to bone:", (handBone as THREE.Object3D).name);
+                logger.log("flute attached to bone:", (handBone as THREE.Object3D).name);
               },
               undefined,
               (error) => {
@@ -512,7 +513,7 @@ const World1: React.FC = () => {
               }
             );
           } else {
-            console.warn("No hand bone found for flutist");
+            logger.warn("No hand bone found for flutist");
             updateLoadingProgress();
           }
         },
@@ -561,14 +562,14 @@ const World1: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log("guitarist loaded successfully");
+          logger.log("guitarist loaded successfully");
 
           // Find hand bone and attach guitar instrument
           let handBone: THREE.Object3D | null = null;
           model.traverse((child) => {
             if ((child as any).isBone) {
               const n = child.name.toLowerCase();
-              console.log("guitarist bone:", child.name);
+              logger.log("guitarist bone:", child.name);
               if (!handBone && ((n.includes('right') && n.includes('hand')) ||
                   n.endsWith('hand_r') || n.endsWith('hand.r'))) {
                 handBone = child;
@@ -594,7 +595,7 @@ const World1: React.FC = () => {
                 });
                 (handBone as THREE.Object3D).add(guitar);
                 updateLoadingProgress();
-                console.log("guitar attached to bone:", (handBone as THREE.Object3D).name);
+                logger.log("guitar attached to bone:", (handBone as THREE.Object3D).name);
               },
               undefined,
               (error) => {
@@ -603,7 +604,7 @@ const World1: React.FC = () => {
               }
             );
           } else {
-            console.warn("No hand bone found for guitarist");
+            logger.warn("No hand bone found for guitarist");
             updateLoadingProgress();
           }
         },
@@ -655,7 +656,7 @@ const World1: React.FC = () => {
           scene.add(model);
           clickableModelsRef.current.set("piano", model);
           updateLoadingProgress();
-          console.log("piano loaded successfully");
+          logger.log("piano loaded successfully");
         },
         (xhr) => { },
         (error) => {
@@ -706,7 +707,7 @@ const World1: React.FC = () => {
           scene.add(model);
           clickableModelsRef.current.set("tambourine", model);
           updateLoadingProgress();
-          console.log("tambourine loaded successfully");
+          logger.log("tambourine loaded successfully");
         },
         (xhr) => { },
         (error) => {

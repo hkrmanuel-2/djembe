@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { logger } from "./logger";
 
 /**
  * Notification types
@@ -43,7 +44,7 @@ export async function createNotification({
       console.error("[NOTIFICATION API] Create error:", error);
       throw error;
     }
-    console.log("[NOTIFICATION API] Created notification for", recipientType, recipientId);
+    logger.log("[NOTIFICATION API] Created notification for", recipientType, recipientId);
     return { data: { id: notificationId }, error: null };
   } catch (error) {
     console.error("[NOTIFICATION API] Create notification error:", error);
@@ -169,8 +170,8 @@ export async function notifyTeacherSubmission({
   assignmentTitle,
   isLate,
 }) {
-  console.log("[NOTIFICATION] Starting notifyTeacherSubmission");
-  console.log("[NOTIFICATION] Parameters:", {
+  logger.log("[NOTIFICATION] Starting notifyTeacherSubmission");
+  logger.log("[NOTIFICATION] Parameters:", {
     teacherId,
     studentId,
     studentName,
@@ -184,7 +185,7 @@ export async function notifyTeacherSubmission({
     const notificationTitle = isLate ? "Late Submission" : "New Submission";
     const notificationMessage = `${studentName} submitted "${assignmentTitle}"${isLate ? " (late)" : ""}`;
     
-    console.log("[NOTIFICATION] Notification details:", {
+    logger.log("[NOTIFICATION] Notification details:", {
       type: notificationType,
       title: notificationTitle,
       message: notificationMessage
@@ -205,7 +206,7 @@ export async function notifyTeacherSubmission({
       },
     });
 
-    console.log("[NOTIFICATION] Notification created successfully:", result);
+    logger.log("[NOTIFICATION] Notification created successfully:", result);
     return result;
   } catch (error) {
     console.error("[NOTIFICATION] Error in notifyTeacherSubmission:", {

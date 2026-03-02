@@ -27,6 +27,7 @@ import AdminDashboard from './assets/pages/AdminDashboard';
 import { useSessionTracker } from './hooks/useSessionTracker';
 import OnboardingTour from './components/onboarding/OnboardingTour';
 import { useOnboarding } from './hooks/useOnboarding';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 
 function AppContent() {
@@ -145,103 +146,86 @@ function AppContent() {
                 } replace />
               ) : <Signup />
             } />
+            {/* Student Routes */}
             <Route path="/home" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/daw" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <DAWLite />
               </ProtectedRoute>
             } />
-
-            {/* Assignments Route */}
             <Route path="/assignments" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <Assignments />
               </ProtectedRoute>
             } />
-
-            {/* Student Progress Route */}
             <Route path="/progress" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <StudentProgress />
               </ProtectedRoute>
             } />
-
-            {/* Teacher Dashboard Route */}
-            <Route path="/students" element={
-              <ProtectedRoute>
-                <TeacherDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* Teacher Assignments Route */}
-            <Route path="/teacher/assignments" element={
-              <ProtectedRoute>
-                <TeacherAssignments />
-              </ProtectedRoute>
-            } />
-
-            {/* Teacher Submissions Route */}
-            <Route path="/teacher/submissions" element={
-              <ProtectedRoute>
-                <TeacherSubmissions />
-              </ProtectedRoute>
-            } />
-
-            {/* Teacher Analytics Route */}
-            <Route path="/teacher/analytics" element={
-              <ProtectedRoute>
-                <StudentDifficulties />
-              </ProtectedRoute>
-            } />
-
-            {/* Teacher Projects Route */}
-            <Route path="/teacher/projects" element={
-              <ProtectedRoute>
-                <StudentProjects />
-              </ProtectedRoute>
-            } />
-
-            {/* Teacher Worlds Settings Route */}
-            <Route path="/teacher/worlds" element={
-              <ProtectedRoute>
-                <WorldsSettings />
-              </ProtectedRoute>
-            } />
-
-            {/* Admin Dashboard Route */}
-            <Route path="/admin" element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* Tutorials Route - for both students and teachers */}
-            <Route path="/tutorials" element={
-              <ProtectedRoute>
-                <Tutorials />
-              </ProtectedRoute>
-            } />
-
-            {/* Settings Route */}
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-
-            {/* Worlds Routes */}
             <Route path="/world1" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <World1 />
               </ProtectedRoute>
             } />
             <Route path="/world2" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <World2 />
+              </ProtectedRoute>
+            } />
+
+            {/* Teacher Routes */}
+            <Route path="/students" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/assignments" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <TeacherAssignments />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/submissions" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <TeacherSubmissions />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/analytics" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <StudentDifficulties />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/projects" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <StudentProjects />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/worlds" element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <WorldsSettings />
+              </ProtectedRoute>
+            } />
+
+            {/* Admin Route */}
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Shared Routes (student + teacher) */}
+            <Route path="/tutorials" element={
+              <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                <Tutorials />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute allowedRoles={['student', 'teacher']}>
+                <Settings />
               </ProtectedRoute>
             } />
           </Routes>
@@ -253,11 +237,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <LoadingProvider>
-        <AppContent />
-      </LoadingProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <LoadingProvider>
+          <AppContent />
+        </LoadingProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

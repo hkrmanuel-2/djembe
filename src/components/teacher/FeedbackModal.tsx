@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import { createFeedback, updateFeedback } from "@/lib/teacherApi";
 import { X, MessageSquare, Star } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 type FeedbackModalProps = {
   student: {
@@ -61,25 +62,25 @@ export default function FeedbackModal({
       return;
     }
 
-    console.log("Submitting feedback...");
-    console.log("Teacher ID:", userProfile.teacher_id);
-    console.log("Submission ID:", submissionId);
-    console.log("Submission object:", student.submission);
-    console.log("Comment:", formData.comment);
-    console.log("Score:", scoreValue);
-    console.log("Existing Feedback:", existingFeedback);
+    logger.log("Submitting feedback...");
+    logger.log("Teacher ID:", userProfile.teacher_id);
+    logger.log("Submission ID:", submissionId);
+    logger.log("Submission object:", student.submission);
+    logger.log("Comment:", formData.comment);
+    logger.log("Score:", scoreValue);
+    logger.log("Existing Feedback:", existingFeedback);
 
     setIsSubmitting(true);
     try {
       if (existingFeedback) {
-        console.log("Updating existing feedback with ID:", existingFeedback.feedback_id);
+        logger.log("Updating existing feedback with ID:", existingFeedback.feedback_id);
         await updateFeedback(existingFeedback.feedback_id, {
           comment: formData.comment,
           score: scoreValue,
           submission_id: submissionId,
         });
       } else {
-        console.log("Creating new feedback");
+        logger.log("Creating new feedback");
         await createFeedback(userProfile.teacher_id, {
           submission_id: submissionId,
           comment: formData.comment,
@@ -87,7 +88,7 @@ export default function FeedbackModal({
         });
       }
 
-      console.log("Feedback submitted successfully!");
+      logger.log("Feedback submitted successfully!");
       onSuccess();
     } catch (error: unknown) {
       console.error("Error saving feedback:", error);

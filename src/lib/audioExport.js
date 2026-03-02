@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 // Audio export utility for mixing and exporting projects as MP3/WAV
 
 /**
@@ -207,7 +208,7 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
 
     for (const loop of placedLoops) {
       if (!loop.url) {
-        console.warn(`Loop ${loop.id} has no URL, skipping`);
+        logger.warn(`Loop ${loop.id} has no URL, skipping`);
         continue;
       }
 
@@ -260,7 +261,7 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
         blob = await audioBufferToMp3(trimmedBuffer);
         extension = 'mp3';
       } catch (error) {
-        console.warn('MP3 encoding failed, falling back to WAV:', error);
+        logger.warn('MP3 encoding failed, falling back to WAV:', error);
         // Fallback to WAV
         const wavArrayBuffer = audioBufferToWav(trimmedBuffer);
         blob = new Blob([wavArrayBuffer], { type: 'audio/wav' });

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { supabase } from "@/lib/supabase";
 import { validateEmailDomain } from "@/lib/emailValidation";
 import { Mail, Lock, User, Building2, ArrowRight, ArrowLeft } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface School {
   school_id: string;
@@ -87,7 +88,7 @@ export default function SignupNew() {
       setSchools(data || []);
 
       if (!data || data.length === 0) {
-        console.warn("No schools found in database");
+        logger.warn("No schools found in database");
         useAuthStore.setState({
           error: "No schools available. Please contact your administrator.",
         });

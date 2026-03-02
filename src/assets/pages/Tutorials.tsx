@@ -5,6 +5,7 @@ import { getTutorials, getCategoryName } from "@/lib/tutorialsApi";
 import TutorialCard from "@/components/tutorials/TutorialCard";
 import VideoPlayerModal from "@/components/tutorials/VideoPlayerModal";
 import { Search } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Tutorial {
   id: string;
@@ -57,7 +58,7 @@ export default function Tutorials() {
         setError(result.error);
       }
 
-      console.log("Tutorials loaded:", result.data?.length || 0, "tutorials", result.data);
+      logger.log("Tutorials loaded:", result.data?.length || 0, "tutorials", result.data);
       setTutorials(result.data || []);
     } catch (error: any) {
       console.error("Error loading tutorials:", error);

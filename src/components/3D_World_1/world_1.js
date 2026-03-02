@@ -1,3 +1,4 @@
+import { logger } from "../../lib/logger";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -43,14 +44,14 @@ loader1.load(
 
         gltf.scene.traverse((child) => {
             if (child.isMesh) {
-                console.log('Mesh found:', child.name, child.material);
+                logger.log('Mesh found:', child.name, child.material);
                 if (child.material) {
                     const materials = Array.isArray(child.material) ? child.material : [child.material];
 
                     materials.forEach(material => {
                         if (material.map) {
                             material.map.colorSpace = THREE.SRGBColorSpace;  
-                            console.log('Texture found:', material.map);
+                            logger.log('Texture found:', material.map);
                         }
                         material.needsUpdate = true;
                     });
@@ -59,11 +60,11 @@ loader1.load(
         });
 
         scene.add(gltf.scene);
-        console.log('GLTF model loaded successfully');
+        logger.log('GLTF model loaded successfully');
     },
 
     function (xhr) {
-        console.log(('GLTF model ' + (xhr.loaded / xhr.total * 100) + '% loaded'));
+        logger.log(('GLTF model ' + (xhr.loaded / xhr.total * 100) + '% loaded'));
     },
     function (error) {
         console.error('An error happened while loading the GLTF model:', error);
