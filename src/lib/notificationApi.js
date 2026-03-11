@@ -40,10 +40,14 @@ export async function createNotification({
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[NOTIFICATION API] Create error:", error);
+      throw error;
+    }
+    console.log("[NOTIFICATION API] Created notification for", recipientType, recipientId);
     return { data: notification, error: null };
   } catch (error) {
-    console.error("Create notification error:", error);
+    console.error("[NOTIFICATION API] Create notification error:", error);
     return { data: null, error };
   }
 }
@@ -164,20 +168,52 @@ export async function notifyTeacherSubmission({
   assignmentTitle,
   isLate,
 }) {
-  return await createNotification({
-    recipientId: teacherId,
-    recipientType: "teacher",
-    type: isLate ? NOTIFICATION_TYPES.LATE_SUBMISSION : NOTIFICATION_TYPES.SUBMISSION_RECEIVED,
-    title: isLate ? "Late Submission" : "New Submission",
-    message: `${studentName} submitted "${assignmentTitle}"${isLate ? " (late)" : ""}`,
-    data: {
-      studentId,
-      studentName,
-      assignmentId,
-      assignmentTitle,
-      isLate,
-    },
+  console.log("[NOTIFICATION] Starting notifyTeacherSubmission");
+  console.log("[NOTIFICATION] Parameters:", {
+    teacherId,
+    studentId,
+    studentName,
+    assignmentId,
+    assignmentTitle,
+    isLate
   });
+
+  try {
+    const notificationType = isLate ? NOTIFICATION_TYPES.LATE_SUBMISSION : NOTIFICATION_TYPES.SUBMISSION_RECEIVED;
+    const notificationTitle = isLate ? "Late Submission" : "New Submission";
+    const notificationMessage = `${studentName} submitted "${assignmentTitle}"${isLate ? " (late)" : ""}`;
+    
+    console.log("[NOTIFICATION] Notification details:", {
+      type: notificationType,
+      title: notificationTitle,
+      message: notificationMessage
+    });
+
+    const result = await createNotification({
+      recipientId: teacherId,
+      recipientType: "teacher",
+      type: notificationType,
+      title: notificationTitle,
+      message: notificationMessage,
+      data: {
+        studentId,
+        studentName,
+        assignmentId,
+        assignmentTitle,
+        isLate,
+      },
+    });
+
+    console.log("[NOTIFICATION] Notification created successfully:", result);
+    return result;
+  } catch (error) {
+    console.error("[NOTIFICATION] Error in notifyTeacherSubmission:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    throw error;
+  }
 }
 
 /**

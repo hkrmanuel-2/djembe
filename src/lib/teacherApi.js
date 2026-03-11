@@ -205,14 +205,16 @@ export async function getTeacherAssignments(schoolId) {
  */
 export async function getAssignmentWithSubmissions(assignmentId, schoolId, classId = null) {
   try {
-    // Get assignment details
+    // Get assignment details using assignment_id
+    console.log("[TEACHER API] Getting assignment with ID:", assignmentId);
     const { data: assignment, error: assignmentError } = await supabase
       .from("assignments")
       .select("*")
-      .eq("id", assignmentId)
+      .eq("assignment_id", assignmentId)
       .single();
 
     if (assignmentError) throw assignmentError;
+    console.log("[TEACHER API] Found assignment:", assignment);
 
     // Get all students in the school (optionally filtered by class)
     let studentsQuery = supabase
@@ -229,15 +231,24 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
     if (studentsError) throw studentsError;
 
     // Get submissions for this assignment
+    console.log("[TEACHER API] Querying submissions for assignment:", assignmentId);
     const { data: submissions, error: submissionsError } = await supabase
       .from("submissions")
       .select("*")
       .eq("assignment_id", assignmentId);
 
+    console.log("[TEACHER API] Submissions query result:", {
+      count: submissions?.length || 0,
+      submissions: submissions,
+      error: submissionsError
+    });
+
     if (submissionsError) throw submissionsError;
 
-    // Get feedback for these submissions
-    const submissionIds = submissions?.map((s) => s.id) || [];
+    // Get feedback for these submissions (submissions table uses submission_id as primary key)
+    const submissionIds = submissions?.map((s) => s.submission_id).filter(Boolean) || [];
+    console.log("[TEACHER API] Submission IDs for feedback query:", submissionIds);
+
     let feedback = [];
     if (submissionIds.length > 0) {
       const { data: feedbackData } = await supabase
@@ -260,8 +271,9 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
 
     const studentsWithSubmissions = students?.map((student) => {
       const submission = submissionMap.get(student.student_id);
-      const submissionFeedback = submission
-        ? feedbackMap.get(submission.id)
+      const submissionId = submission ? submission.submission_id : null;
+      const submissionFeedback = submissionId
+        ? feedbackMap.get(submissionId)
         : null;
 
       return {
@@ -458,8 +470,8 @@ export async function getStudentDifficulties(schoolId, classId = null) {
           severity: issues.some((i) => i.severity === "high")
             ? "high"
             : issues.some((i) => i.severity === "medium")
-            ? "medium"
-            : "low",
+              ? "medium"
+              : "low",
         });
       }
     }
@@ -594,6 +606,17 @@ export async function getStudentProjectById(projectId) {
  */
 export async function createFeedback(teacherId, data) {
   try {
+    console.log("[TEACHER API] Creating feedback with data:", {
+      teacherId,
+      submission_id: data.submission_id,
+      hasComment: !!data.comment,
+      score: data.score
+    });
+
+    if (!data.submission_id) {
+      throw new Error("submission_id is required");
+    }
+
     const { data: feedback, error } = await supabase
       .from("feedback")
       .insert([
@@ -609,24 +632,46 @@ export async function createFeedback(teacherId, data) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[TEACHER API] Create feedback error:", error);
+      console.error("[TEACHER API] Error code:", error.code, "| Message:", error.message);
+      console.error("[TEACHER API] Submission ID used:", data.submission_id, "| Teacher ID:", teacherId);
+      if (error.code === "42501") {
+        throw new Error("Permission denied (RLS). Run database/fix_feedback_rls_only.sql in Supabase SQL Editor.");
+      }
+      throw error;
+    }
+
+    console.log("[TEACHER API] Feedback created successfully, fetching submission details...");
+    console.log("[TEACHER API] Submission ID:", data.submission_id);
 
     // Get submission details to notify the student
     const { data: submission } = await supabase
       .from("submissions")
-      .select(`
-        student_id,
-        assignment_id,
-        assignments (title)
-      `)
-      .eq("id", data.submission_id)
+      .select(`student_id, assignment_id`)
+      .eq("submission_id", data.submission_id)
       .single();
+
+    console.log("[TEACHER API] Found submission:", submission);
+
+    // Get assignment title separately (using assignment_id)
+    let assignmentTitle = "Assignment";
+    if (submission?.assignment_id) {
+      const { data: assignment } = await supabase
+        .from("assignments")
+        .select("title")
+        .eq("assignment_id", submission.assignment_id)
+        .single();
+      if (assignment) {
+        assignmentTitle = assignment.title;
+      }
+    }
 
     if (submission) {
       notifyStudentFeedback({
         studentId: submission.student_id,
         assignmentId: submission.assignment_id,
-        assignmentTitle: submission.assignments?.title || "Assignment",
+        assignmentTitle: assignmentTitle,
         score: data.score,
         feedbackPreview: data.comment?.substring(0, 100),
       }).catch((err) => console.error("Failed to send feedback notification:", err));
@@ -644,6 +689,13 @@ export async function createFeedback(teacherId, data) {
  */
 export async function updateFeedback(feedbackId, data) {
   try {
+    console.log("[TEACHER API] Updating feedback with data:", {
+      feedbackId,
+      submission_id: data.submission_id,
+      hasComment: !!data.comment,
+      score: data.score
+    });
+
     const { data: feedback, error } = await supabase
       .from("feedback")
       .update({
@@ -655,7 +707,52 @@ export async function updateFeedback(feedbackId, data) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[TEACHER API] Update feedback error:", error);
+      console.error("[TEACHER API] Submission ID used:", data.submission_id);
+      throw error;
+    }
+
+    console.log("[TEACHER API] Feedback updated successfully, fetching submission details...");
+    console.log("[TEACHER API] Submission ID:", data.submission_id);
+
+    // Get submission details to notify the student
+    let submission = null;
+    if (data.submission_id) {
+      const { data: sub } = await supabase
+        .from("submissions")
+        .select(`student_id, assignment_id`)
+        .eq("submission_id", data.submission_id)
+        .single();
+      submission = sub;
+    }
+
+    console.log("[TEACHER API] Found submission:", submission);
+
+    // Get assignment title
+    let assignmentTitle = "Assignment";
+    if (submission?.assignment_id) {
+      const { data: assignment } = await supabase
+        .from("assignments")
+        .select("title")
+        .eq("assignment_id", submission.assignment_id)
+        .single();
+      if (assignment) {
+        assignmentTitle = assignment.title;
+      }
+    }
+
+    // Notify student of updated feedback
+    if (submission) {
+      notifyStudentFeedback({
+        studentId: submission.student_id,
+        assignmentId: submission.assignment_id,
+        assignmentTitle: assignmentTitle,
+        score: data.score,
+        feedbackPreview: data.comment?.substring(0, 100),
+      }).catch((err) => console.error("Failed to send feedback notification:", err));
+    }
+
     return { data: feedback, error: null };
   } catch (error) {
     console.error("Update feedback error:", error);

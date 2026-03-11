@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 type Submission = {
-  id: string;
+  submission_id: string;
   student_id: string;
   assignment_id: string;
   file_url: string;
@@ -38,7 +38,7 @@ type Student = {
 };
 
 type Assignment = {
-  id: string;
+  assignment_id: string;
   title: string;
   description: string;
   due_date: string;
@@ -104,7 +104,7 @@ export default function TeacherSubmissions() {
 
     try {
       const result = await getAssignmentWithSubmissions(
-        assignment.id,
+        assignment.assignment_id,
         userProfile.school_id,
         selectedClass || null
       );
@@ -133,10 +133,17 @@ export default function TeacherSubmissions() {
   const handleSubmitFeedback = async () => {
     if (!selectedStudent?.submission || !userProfile?.teacher_id) return;
 
+    const submissionId = selectedStudent.submission.submission_id;
+    if (!submissionId) {
+      console.error("Submission ID missing:", selectedStudent.submission);
+      alert("Error: Submission ID is missing. Please refresh and try again.");
+      return;
+    }
+
     setSubmittingFeedback(true);
     try {
       const feedbackData = {
-        submissionId: selectedStudent.submission.id,
+        submission_id: submissionId,
         comment: feedbackText,
         score: score,
       };
@@ -303,7 +310,7 @@ export default function TeacherSubmissions() {
             ) : (
               assignments.map((assignment) => (
                 <motion.div
-                  key={assignment.id}
+                  key={assignment.assignment_id}
                   whileHover={{ scale: 1.02 }}
                   className="bg-white shadow-md rounded-2xl border-2 p-6 cursor-pointer hover:shadow-lg transition-all"
                   style={{ borderColor: '#E8DFFF' }}
@@ -399,8 +406,8 @@ export default function TeacherSubmissions() {
                           <td className="px-6 py-4 text-gray-500 text-sm">
                             {student.submission
                               ? `${formatDate(student.submission.submitted_at)} at ${formatTime(
-                                  student.submission.submitted_at
-                                )}`
+                                student.submission.submitted_at
+                              )}`
                               : "\u2014"}
                           </td>
                           <td className="px-6 py-4">
@@ -420,7 +427,7 @@ export default function TeacherSubmissions() {
                           </td>
                           <td className="px-6 py-4">
                             {student.feedback?.score !== null &&
-                            student.feedback?.score !== undefined ? (
+                              student.feedback?.score !== undefined ? (
                               <span className="px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 w-fit"
                                 style={{ backgroundColor: "rgba(217, 119, 70, 0.12)", color: "#D97746" }}
                               >

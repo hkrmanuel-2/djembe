@@ -34,6 +34,8 @@ type ClassType = {
 
 type Assignment = {
   id: string;
+  // Some APIs may return assignment_id instead of id; keep optional for compatibility
+  assignment_id?: string;
   title: string;
   description: string;
   due_date: string;
@@ -47,7 +49,7 @@ type StudentSubmission = {
   last_name: string;
   email: string;
   submission: {
-    id: string;
+    submission_id: string;
     file_url: string;
     file_name: string;
     submitted_at: string;
@@ -128,7 +130,11 @@ export default function TeacherAssignments() {
     setDetailLoading(true);
     try {
       const classFilter = selectedClass || null;
-      const result = await getAssignmentWithSubmissions(assignment.id, userProfile.school_id, classFilter);
+      const result = await getAssignmentWithSubmissions(
+        assignment.id || assignment.assignment_id,
+        userProfile.school_id,
+        classFilter
+      );
       if (result.data) {
         setAssignmentDetail(result.data);
       }
@@ -301,10 +307,9 @@ export default function TeacherAssignments() {
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${
-                              (assignmentDetail.submittedCount / assignmentDetail.totalStudents) *
+                            width: `${(assignmentDetail.submittedCount / assignmentDetail.totalStudents) *
                               100
-                            }%`,
+                              }%`,
                             backgroundColor: "#4ABA6E",
                           }}
                         />
@@ -381,11 +386,10 @@ export default function TeacherAssignments() {
                     {assignmentDetail.students.map((student, index) => (
                       <div
                         key={student.student_id}
-                        className={`grid grid-cols-12 gap-4 px-6 py-4 items-center ${
-                          index !== assignmentDetail.students.length - 1
-                            ? "border-b"
-                            : ""
-                        }`}
+                        className={`grid grid-cols-12 gap-4 px-6 py-4 items-center ${index !== assignmentDetail.students.length - 1
+                          ? "border-b"
+                          : ""
+                          }`}
                         style={{ borderColor: '#E8DFFF' }}
                       >
                         <div className="col-span-4 flex items-center gap-3">
@@ -500,7 +504,7 @@ export default function TeacherAssignments() {
           {feedbackStudent && feedbackStudent.submission && selectedAssignment && (
             <FeedbackModal
               student={feedbackStudent}
-              submissionId={feedbackStudent.submission.id}
+              submissionId={feedbackStudent.submission.submission_id || ""}
               existingFeedback={feedbackStudent.feedback}
               onClose={() => setFeedbackStudent(null)}
               onSuccess={() => {
@@ -582,7 +586,7 @@ export default function TeacherAssignments() {
             <motion.div variants={itemVariants} className="space-y-4">
               {assignments.map((assignment) => (
                 <div
-                  key={assignment.id}
+                  key={assignment.id || assignment.assignment_id}
                   className="rounded-2xl bg-white shadow-md border-2 overflow-hidden cursor-pointer hover:shadow-lg transition-all"
                   style={{ borderColor: '#E8DFFF' }}
                   onClick={() => handleAssignmentClick(assignment)}
@@ -653,7 +657,7 @@ export default function TeacherAssignments() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(assignment.id);
+                            handleDelete(assignment.id || assignment.assignment_id);
                           }}
                           className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                           title="Delete"

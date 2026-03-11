@@ -55,7 +55,7 @@ export const useAuthStore = create(
             .from("admins")
             .select("*")
             .eq("email", email)
-            .single();
+            .maybeSingle();
 
           if (adminData && !adminError) {
             set({
@@ -74,7 +74,7 @@ export const useAuthStore = create(
             .from("teachers")
             .select("*")
             .eq("email", email)
-            .single();
+            .maybeSingle();
 
           if (teacherData && !teacherError) {
             // Check if teacher is approved
@@ -106,7 +106,7 @@ export const useAuthStore = create(
             .from("students")
             .select("*")
             .eq("email", email)
-            .single();
+            .maybeSingle();
 
           if (studentData && !studentError) {
             // Check if student is approved
