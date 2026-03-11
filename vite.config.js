@@ -1,6 +1,11 @@
+/* eslint-env node */
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Custom plugin to handle API routes in development
 function apiRoutesPlugin() {
@@ -251,7 +256,7 @@ function apiRoutesPlugin() {
 
           const contentType = response.headers.get("content-type") || "audio/mpeg";
           const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
+          const buffer = globalThis.Buffer.from(arrayBuffer);
 
           res.setHeader("Content-Type", contentType);
           res.setHeader("Content-Length", buffer.length);

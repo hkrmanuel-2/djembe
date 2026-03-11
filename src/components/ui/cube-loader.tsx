@@ -100,7 +100,7 @@ export default function CubeLoader({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .perspective-container {
           perspective: 1200px;
         }

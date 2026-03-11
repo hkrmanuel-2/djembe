@@ -42,6 +42,7 @@ export function Sidebar({ items, userProfile, onSignOut }: SidebarProps) {
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
+  const [worldMenuOpen, setWorldMenuOpen] = useState(false);
 
   const activeItem = items.find((item) => {
     if (item.url === "/") return location.pathname === "/";
@@ -116,8 +117,78 @@ export function Sidebar({ items, userProfile, onSignOut }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto px-2 space-y-1.5">
         {items.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.name;
+          const isActive = activeTab === item.name || (item.name === "Worlds" && (location.pathname === "/world1" || location.pathname === "/world2"));
           const color = getItemColor(item.name);
+          const isWorldItem = item.name === "Worlds";
+
+          if (isWorldItem) {
+            return (
+              <div key={item.name}>
+                <motion.div
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setWorldMenuOpen(!worldMenuOpen)}
+                  className="flex items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer"
+                  style={{
+                    height: 48,
+                    padding: expanded ? "0 14px" : "0",
+                    justifyContent: expanded ? "flex-start" : "center",
+                    background: isActive ? color : "transparent",
+                    color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: 15,
+                  }}
+                >
+                  <Icon size={24} strokeWidth={2} />
+                  {expanded && (
+                    <div className="flex items-center justify-between flex-1">
+                      <span>{item.name}</span>
+                      <motion.div
+                        animate={{ rotate: worldMenuOpen ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </motion.div>
+                    </div>
+                  )}
+                </motion.div>
+
+                <AnimatePresence>
+                  {isWorldItem && worldMenuOpen && expanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden ml-4 pl-4 border-l border-white/10 mt-1 space-y-1"
+                    >
+                      <RouterLink to="/world1">
+                        <motion.div
+                          whileHover={{ x: 4, color: "#fff" }}
+                          className={`py-2 text-sm font-medium transition-colors ${location.pathname === "/world1" ? "text-[#E6B84D]" : "text-white/60"}`}
+                          style={{ fontFamily: "'Fredoka', sans-serif" }}
+                        >
+                          Fireside World
+                        </motion.div>
+                      </RouterLink>
+                      <RouterLink to="/world2">
+                        <motion.div
+                          whileHover={{ x: 4, color: "#fff" }}
+                          className={`py-2 text-sm font-medium transition-colors ${location.pathname === "/world2" ? "text-[#E6B84D]" : "text-white/60"}`}
+                          style={{ fontFamily: "'Fredoka', sans-serif" }}
+                        >
+                          Auditorium World
+                        </motion.div>
+                      </RouterLink>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          }
 
           return (
             <RouterLink key={item.name} to={item.url} title={item.name}>
