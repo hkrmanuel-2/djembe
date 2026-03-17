@@ -480,7 +480,7 @@ const World1: React.FC = () => {
               const n = child.name.toLowerCase();
               logger.log("flutist bone:", child.name);
               if (!handBone && ((n.includes('right') && n.includes('hand')) ||
-                  n.endsWith('hand_r') || n.endsWith('hand.r'))) {
+                n.endsWith('hand_r') || n.endsWith('hand.r'))) {
                 handBone = child;
               }
             }
@@ -518,6 +518,7 @@ const World1: React.FC = () => {
           }
         },
         () => {},
+        (xhr) => { },
         (error) => {
           console.error("Error loading flutist:", error);
           updateLoadingProgress();
@@ -571,7 +572,7 @@ const World1: React.FC = () => {
               const n = child.name.toLowerCase();
               logger.log("guitarist bone:", child.name);
               if (!handBone && ((n.includes('right') && n.includes('hand')) ||
-                  n.endsWith('hand_r') || n.endsWith('hand.r'))) {
+                n.endsWith('hand_r') || n.endsWith('hand.r'))) {
                 handBone = child;
               }
             }
@@ -608,7 +609,7 @@ const World1: React.FC = () => {
             updateLoadingProgress();
           }
         },
-        () => {},
+        (xhr) => { },
         (error) => {
           console.error("Error loading guitarist:", error);
           updateLoadingProgress();
@@ -1050,4 +1051,3 @@ const World1: React.FC = () => {
 };
 
 export default World1;
-

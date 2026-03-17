@@ -13,7 +13,8 @@ import {
   BookOpen,
   BarChart3,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  LucideIcon
 } from 'lucide-react';
 import {
   getPendingApprovals,
@@ -311,11 +312,10 @@ export default function AdminDashboard() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all font-semibold ${
-                  activeTab === tab.id
-                    ? 'shadow-lg'
-                    : 'hover:bg-white/10'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === tab.id
+                  ? 'shadow-lg'
+                  : 'hover:bg-white/10'
+                  }`}
                 style={activeTab === tab.id ? {
                   background: 'linear-gradient(135deg, #D97746 0%, #E6B84D 100%)',
                   color: 'white',
@@ -702,7 +702,16 @@ export default function AdminDashboard() {
 }
 
 // Helper Components
-function StatCard({ icon: Icon, label, value, color, alert, delay }) {
+interface StatCardProps {
+  icon: LucideIcon;
+  label: string;
+  value: number | string;
+  color: 'blue' | 'green' | 'purple' | 'yellow';
+  alert?: boolean;
+  delay: number;
+}
+
+function StatCard({ icon: Icon, label, value, color, alert, delay }: StatCardProps) {
   const colors = {
     blue: { from: 'rgba(66, 153, 225, 0.2)', to: 'rgba(49, 130, 206, 0.2)', border: 'rgba(66, 153, 225, 0.3)' },
     green: { from: 'rgba(74, 186, 110, 0.2)', to: 'rgba(56, 161, 105, 0.2)', border: 'rgba(74, 186, 110, 0.3)' },
@@ -733,7 +742,15 @@ function StatCard({ icon: Icon, label, value, color, alert, delay }) {
   );
 }
 
-function AccessControlToggle({ label, description, value, onChange, delay }) {
+interface AccessControlToggleProps {
+  label: string;
+  description: string;
+  value: boolean;
+  onChange: (checked: boolean) => void;
+  delay: number;
+}
+
+function AccessControlToggle({ label, description, value, onChange, delay }: AccessControlToggleProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -752,9 +769,8 @@ function AccessControlToggle({ label, description, value, onChange, delay }) {
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={() => onChange(!value)}
-        className={`relative w-14 h-7 rounded-full transition-colors shadow-inner ${
-          value ? 'bg-green-500' : 'bg-white/20'
-        }`}
+        className={`relative w-14 h-7 rounded-full transition-colors shadow-inner ${value ? 'bg-green-500' : 'bg-white/20'
+          }`}
       >
         <motion.div
           animate={{ x: value ? 28 : 2 }}

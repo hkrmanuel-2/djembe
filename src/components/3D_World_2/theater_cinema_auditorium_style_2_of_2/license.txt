@@ -1,0 +1,8 @@
+Model Information:
+* title:	Theater Cinema Auditorium (Style 2 of 2)
+* source:	https://sketchfab.com/3d-models/theater-cinema-auditorium-style-2-of-2-1ecb4126437249628b9b61ac3c165bf1
+* author:	jimbogies (https://sketchfab.com/jimbogies)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

@@ -3,10 +3,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
+import { Timer } from "three";
+// @ts-ignore - Module resolution issue with three addons in this project setup
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+// @ts-ignore
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone, X } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
+import { useVoicesStore } from "../../store/useVoicesStore";
 
 const World2: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -25,12 +29,46 @@ const World2: React.FC = () => {
   // Animation references
   const mixersRef = useRef<THREE.AnimationMixer[]>([]);
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
-  const clockRef = useRef(new THREE.Clock());
+  const timerRef = useRef(new Timer());
 
-  // Raycasting references
+  // Raycasting & Interaction references
   const raycasterRef = useRef(new THREE.Raycaster());
   const mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
+
+
+
+  // Map stem categories to 3D model names
+  const STEM_TO_MODEL: Record<string, string> = {
+    rhythm: "drummer",
+    bass: "guitarist",
+    harmony: "pianist",
+    melody: "flutist",
+    extras: "tambourinist",
+  };
+
+  // Sync stem playback ↔ 3D model animations
+  useEffect(() => {
+    const unsubscribe = useVoicesStore.subscribe((state: any) => {
+      const { categories, isPlaying } = state;
+
+      Object.entries(STEM_TO_MODEL).forEach(([category, modelName]) => {
+        const action = actionsRef.current.get(modelName);
+        if (!action) return;
+
+        const cat = categories[category as keyof typeof categories];
+        const shouldPerform = isPlaying && cat.activeVoice && !cat.muted;
+
+        action.timeScale = shouldPerform ? 1.0 : 0.2;
+
+        if (!action.isRunning()) {
+          action.reset().play();
+          action.timeScale = shouldPerform ? 1.0 : 0.2;
+        }
+      });
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Check orientation for mobile devices
   useEffect(() => {
@@ -53,9 +91,12 @@ const World2: React.FC = () => {
 
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.set(-8, 1.5, -10);
-      cameraRef.current.lookAt(5, 1.5, -15);
-      controlsRef.current.reset();
+      cameraRef.current.position.set(172.08, 53.4, 159.28);
+      cameraRef.current.rotation.set(-2.95, -0.68, -3.02);
+      const forward = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(-2.95, -0.68, -3.02, 'XYZ'));
+      controlsRef.current.target.copy(cameraRef.current.position).add(forward.multiplyScalar(100));
+      controlsRef.current.update();
+      // controlsRef.current.reset(); // Don't reset to 0,0,0 if default initialization was bad
     }
   };
 
@@ -68,6 +109,8 @@ const World2: React.FC = () => {
       setIsFullscreen(false);
     }
   };
+
+
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -84,8 +127,9 @@ const World2: React.FC = () => {
       0.1,
       1000
     );
-    camera.position.set(-8, 1.5, -10);
-    camera.lookAt(5, 1.5, -15);
+    // Initial camera position
+    camera.position.set(172.08, 53.4, 159.28);
+    camera.rotation.set(-2.95, -0.68, -3.02);
     cameraRef.current = camera;
 
     // Renderer
@@ -111,6 +155,12 @@ const World2: React.FC = () => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.enableRotate = true;
+    controls.maxPolarAngle = Math.PI / 2 - 0.1;
+    const forward = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(-2.95, -0.68, -3.02, 'XYZ'));
+    controls.target.copy(camera.position).add(forward.multiplyScalar(100));
+    controls.update();
     controlsRef.current = controls;
 
     // Track loading progress
@@ -139,6 +189,7 @@ const World2: React.FC = () => {
               ((material as any).map as THREE.Texture).colorSpace =
                 THREE.SRGBColorSpace;
             }
+            material.side = THREE.DoubleSide; // Fix for background leak
             material.needsUpdate = true;
           });
         }
@@ -151,28 +202,43 @@ const World2: React.FC = () => {
       name: string,
       position: THREE.Vector3,
       scale: THREE.Vector3,
-      rotationY: number = 0
+      rotation: number | THREE.Euler = 0
     ) => {
       const loader = new GLTFLoader();
       loader.load(
         path,
-        (gltf) => {
+        (gltf: any) => {
           const model = gltf.scene;
           model.scale.copy(scale);
           model.position.copy(position);
-          model.rotation.y = rotationY;
+          model.rotation.order = 'YXZ';
+          if (typeof rotation === 'number') {
+            model.rotation.y = rotation;
+          } else {
+            model.rotation.copy(rotation);
+          }
           model.name = name;
 
           setupModelMaterials(model);
+
+          // Mark as clickable
+          model.traverse((child: any) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.userData.clickable = true;
+              child.userData.modelName = name;
+            }
+          });
+
           scene.add(model);
+          clickableModelsRef.current.set(name, model);
 
           updateLoadingProgress();
           logger.log(`${name} loaded successfully`);
         },
-        (xhr) => {
-          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+        (xhr: any) => {
+          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
         },
-        (error) => {
+        (error: any) => {
           console.error(`Error loading ${name}:`, error);
           updateLoadingProgress();
         }
@@ -185,21 +251,26 @@ const World2: React.FC = () => {
       name: string,
       position: THREE.Vector3,
       scale: THREE.Vector3,
-      rotationY: number = 0
+      rotation: number | THREE.Euler = 0
     ) => {
       const loader = new GLTFLoader();
       loader.load(
         path,
-        (gltf) => {
+        (gltf: any) => {
           const model = gltf.scene;
           model.scale.copy(scale);
           model.position.copy(position);
-          model.rotation.y = rotationY;
+          model.rotation.order = 'YXZ';
+          if (typeof rotation === 'number') {
+            model.rotation.y = rotation;
+          } else {
+            model.rotation.copy(rotation);
+          }
           model.name = name;
 
           setupModelMaterials(model);
 
-          model.traverse((child) => {
+          model.traverse((child: any) => {
             if ((child as THREE.Mesh).isMesh) {
               child.userData.clickable = true;
               child.userData.modelName = name;
@@ -219,17 +290,19 @@ const World2: React.FC = () => {
             action.setLoop(THREE.LoopRepeat, Infinity);
             action.clampWhenFinished = false;
             actionsRef.current.set(name, action);
+            action.timeScale = 0.2; // Start with idle speed
+            action.play();
 
-            logger.log(`${name} animation ready - click to play!`);
+            console.log(`${name} animation auto-playing!`);
           }
 
           updateLoadingProgress();
           logger.log(`${name} loaded successfully`);
         },
-        (xhr) => {
-          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+        (xhr: any) => {
+          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
         },
-        (error) => {
+        (error: any) => {
           console.error(`Error loading ${name}:`, error);
           updateLoadingProgress();
         }
@@ -239,20 +312,20 @@ const World2: React.FC = () => {
     // Load main auditorium model
     const audiLoader = new GLTFLoader();
     audiLoader.load(
-      "/models/viola_desmond_the_roseland_theatre.glb",
-      (gltf) => {
+      "src/components/3D_World_2/theater_cinema_auditorium_style_2_of_2/scene.gltf",
+      (gltf: any) => {
         gltf.scene.scale.set(1, 1, 1);
-        gltf.scene.position.set(0, 0, 1);
+        gltf.scene.position.set(0, -2, 1);
         gltf.scene.rotation.y = Math.PI / 4;
         setupModelMaterials(gltf.scene);
         scene.add(gltf.scene);
         updateLoadingProgress();
       },
-      (xhr) => {
+      (xhr: any) => {
         const progress = (xhr.loaded / xhr.total) * 100;
         logger.log(`Auditorium loading: ${progress}%`);
       },
-      (error) => {
+      (error: any) => {
         console.error("Error loading auditorium:", error);
         updateLoadingProgress();
       }
@@ -263,105 +336,177 @@ const World2: React.FC = () => {
     loadAnimatedModel(
       "/models/Black_Student_Boy/Black_boy_drum.glb",
       "drummer",
-      new THREE.Vector3(0, -1, 0),
-      new THREE.Vector3(1, 1, 1),
-      Math.PI
+      new THREE.Vector3(225.51, 20, 357.22),
+      new THREE.Vector3(25, 25, 25),
+      3.91
     );
 
     // Pianist - left side
     loadAnimatedModel(
       "/models/Black_Student_Boy/pianist_black_boy.glb",
       "pianist",
-      new THREE.Vector3(-4, -1, -2),
-      new THREE.Vector3(1, 1, 1),
-      Math.PI * 0.75
+      new THREE.Vector3(336.85, 20, 235.47),
+      new THREE.Vector3(25, 25, 25),
+      4.01
     );
 
     // Tambourinist - right side
     loadAnimatedModel(
       "/models/Black_Student_Boy/tambourinist.glb",
       "tambourinist",
-      new THREE.Vector3(4, -1, -2),
-      new THREE.Vector3(1, 1, 1),
-      -Math.PI * 0.75
+      new THREE.Vector3(280.83, 20, 294.12),
+      new THREE.Vector3(25, 25, 25),
+      -2.36
     );
+
+    loadAnimatedModel(
+      "/models/nany-wheeler/source/guitarist.glb",
+      "guitarist",
+      new THREE.Vector3(401.19, 20, 178.25),
+      new THREE.Vector3(45, 45, 45),
+      4.01
+    );
+
+    loadAnimatedModel(
+      "/models/nany-wheeler/source/djembe_flutist.glb",
+      "flutist",
+      new THREE.Vector3(183.19, 20, 405.56),
+      new THREE.Vector3(45, 45, 45),
+      3.54
+    );
+
+
 
     // Load static instrument props
     // Djembe drum - front left
     loadStaticModel(
       "/models/Black_Student_Boy/djembe.glb",
       "djembe",
-      new THREE.Vector3(-3, -1, 2),
-      new THREE.Vector3(1, 1, 1),
-      Math.PI * 0.25
+      new THREE.Vector3(227.39, 20, 357.73),
+      new THREE.Vector3(60, 60, 60),
+      0.79
     );
 
     // Piano - far left
     loadStaticModel(
       "/models/Black_Student_Boy/piano.glb",
       "piano",
-      new THREE.Vector3(-6, -1, 0),
-      new THREE.Vector3(1, 1, 1),
-      Math.PI * 0.5
+      new THREE.Vector3(228.72, 20.00, 127.46),
+      new THREE.Vector3(970, 970, 970),
+      0.80
     );
 
     // Tambourine - front right
     loadStaticModel(
       "/models/Black_Student_Boy/tambourine.glb",
       "tambourine",
-      new THREE.Vector3(3, -1, 2),
-      new THREE.Vector3(1, 1, 1),
-      -Math.PI * 0.25
+      new THREE.Vector3(283.14, 74, 294.57),
+      new THREE.Vector3(650, 650, 650),
+      new THREE.Euler(0.00, 0.52, 1.71, 'YXZ')
     );
 
     // Flute - back left
     loadStaticModel(
       "/models/Black_Student_Boy/flute (1).glb",
       "flute",
-      new THREE.Vector3(-2, -1, -4),
-      new THREE.Vector3(1, 1, 1),
-      Math.PI * 0.5
+      new THREE.Vector3(167.08, 80.00, 394.11),
+      new THREE.Vector3(0.6, 0.6, 0.6),
+      new THREE.Euler(6.28, 2.37, 5.71, 'YXZ')
     );
 
     // Guitar - back right
     loadStaticModel(
-      "/models/Black_Student_Boy/low_poly_guitar..glb",
+      "/models/Black_Student_Boy/low_poly_guitar.glb",
       "guitar",
-      new THREE.Vector3(2, -1, -4),
-      new THREE.Vector3(1, 1, 1),
-      -Math.PI * 0.5
+      new THREE.Vector3(428.69, 107.00, 139.83),
+      new THREE.Vector3(30, 30, 30),
+      0.58
     );
 
-    // Click handler for playing animations
-    const handleClick = (event: MouseEvent) => {
+    // Mouse event handlers for interacting (Click only)
+    const handleMouseClick = (event: MouseEvent) => {
+      event.preventDefault();
+
       const rect = renderer.domElement.getBoundingClientRect();
-      mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      const mouse = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+      );
 
-      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+      raycasterRef.current.setFromCamera(mouse, camera);
+      const intersects = raycasterRef.current.intersectObjects(
+        Array.from(clickableModelsRef.current.values()),
+        true
+      );
 
-      // Check intersections with all clickable models
-      clickableModelsRef.current.forEach((model, name) => {
-        const intersects = raycasterRef.current.intersectObject(model, true);
+      if (intersects.length > 0) {
+        let target: THREE.Object3D | null = intersects[0].object;
+        let modelName: string | null = null;
 
-        if (intersects.length > 0) {
-          logger.log(`${name} clicked!`);
+        while (target) {
+          if (target.userData.modelName && clickableModelsRef.current.has(target.userData.modelName)) {
+            modelName = target.userData.modelName;
+            break;
+          }
+          target = target.parent;
+        }
 
-          const action = actionsRef.current.get(name);
-          if (action) {
-            if (action.isRunning()) {
-              action.fadeOut(0.3);
-              logger.log(`${name} animation stopped`);
-            } else {
-              action.reset().fadeIn(0.3).play();
-              logger.log(`${name} animation playing`);
+        if (modelName) {
+          const stemCategory = Object.entries(STEM_TO_MODEL).find(
+            ([, name]) => name === modelName
+          )?.[0];
+
+          if (stemCategory && useVoicesStore.getState().isPlaying) {
+            useVoicesStore.getState().toggleMute(stemCategory);
+          } else {
+            const action = actionsRef.current.get(modelName);
+            if (action) {
+              action.timeScale = action.timeScale < 0.5 ? 1.0 : 0.2;
+              if (!action.isRunning()) {
+                action.reset().play();
+                action.timeScale = 1.0;
+              }
             }
           }
         }
-      });
+      }
     };
 
-    renderer.domElement.addEventListener("click", handleClick);
+    // Keydown handler for logging positions
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Log camera position
+      if (event.key === 'c' || event.key === 'C') {
+        const pos = camera.position;
+        const rot = camera.rotation;
+        console.log('Camera Position:', {
+          x: Number(pos.x.toFixed(2)),
+          y: Number(pos.y.toFixed(2)),
+          z: Number(pos.z.toFixed(2))
+        });
+        console.log('Camera Rotation:', {
+          x: Number(rot.x.toFixed(2)),
+          y: Number(rot.y.toFixed(2)),
+          z: Number(rot.z.toFixed(2))
+        });
+      }
+
+      // Log model positions
+      if (event.key === 'm' || event.key === 'M') {
+        console.log('--- Model Positions ---');
+        clickableModelsRef.current.forEach((model, name) => {
+          const pos = model.position;
+          const rot = model.rotation;
+          console.log(`${name}:`);
+          console.log(`  Position: x=${pos.x.toFixed(2)}, y=${pos.y.toFixed(2)}, z=${pos.z.toFixed(2)}`);
+          console.log(`  Rotation: x=${rot.x.toFixed(2)}, y=${rot.y.toFixed(2)}, z=${rot.z.toFixed(2)}`);
+        });
+        console.log('-----------------------');
+      }
+    };
+
+    const canvasEl = renderer.domElement;
+    canvasEl.addEventListener("click", handleMouseClick as EventListener);
+    window.addEventListener("keydown", handleKeyDown);
 
     // Resize handler
     const handleResize = () => {
@@ -372,11 +517,12 @@ const World2: React.FC = () => {
     window.addEventListener("resize", handleResize);
 
     // Animation loop
+    let animationId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(animate);
 
       // Update all animation mixers
-      const delta = clockRef.current.getDelta();
+      const delta = timerRef.current.update().getDelta();
       mixersRef.current.forEach((mixer) => {
         mixer.update(delta);
       });
@@ -387,8 +533,11 @@ const World2: React.FC = () => {
     animate();
 
     return () => {
+      cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
-      renderer.domElement.removeEventListener("click", handleClick);
+      canvasEl.removeEventListener("click", handleMouseClick as EventListener);
+      window.removeEventListener("keydown", handleKeyDown);
+
       mixersRef.current.forEach((mixer) => {
         mixer.stopAllAction();
       });
@@ -558,8 +707,8 @@ const World2: React.FC = () => {
             <button
               onClick={() => setShowVoicesPanel(!showVoicesPanel)}
               className={`p-2 sm:p-3 rounded-full backdrop-blur-md border transition-colors ${showVoicesPanel
-                  ? "bg-purple-500/30 border-purple-400/50"
-                  : "bg-black/40 border-white/10 hover:bg-black/60"
+                ? "bg-purple-500/30 border-purple-400/50"
+                : "bg-black/40 border-white/10 hover:bg-black/60"
                 }`}
               title="Voices Panel"
             >
@@ -612,15 +761,7 @@ const World2: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-white/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                  <span>Drag to rotate the camera</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                  <span>Scroll to zoom in/out</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                  <span>Right-click drag to pan</span>
+                  <span>Drag background to explore</span>
                 </div>
               </div>
             </div>
@@ -638,11 +779,14 @@ const World2: React.FC = () => {
         >
           <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
             <p className="text-white/60 text-xs">
-              Click musicians to animate • Drag to explore • Scroll to zoom
+              Click musicians to animate
             </p>
           </div>
         </motion.div>
       )}
+
+
+
 
       {/* Voices Panel */}
       <VoicesPanel
