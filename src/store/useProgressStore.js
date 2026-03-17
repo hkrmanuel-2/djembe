@@ -267,20 +267,22 @@ export const useProgressStore = create(
             let unlocked = false;
 
             switch (criteria.type) {
-              case "count":
+              case "count": {
                 const currentCount = progress[criteria.field] || 0;
                 unlocked = currentCount >= criteria.threshold;
                 break;
+              }
               case "level":
                 unlocked = progress.current_level >= criteria.level;
                 break;
               case "streak":
                 unlocked = progress.current_streak >= criteria.days;
                 break;
-              case "time":
+              case "time": {
                 const totalMinutes = progress.total_time_minutes || 0;
                 unlocked = totalMinutes >= criteria.minutes;
                 break;
+              }
             }
 
             if (unlocked) {

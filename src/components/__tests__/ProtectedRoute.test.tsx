@@ -50,10 +50,11 @@ describe("ProtectedRoute", () => {
     expect(screen.queryByText("Secret Content")).not.toBeInTheDocument();
   });
 
-  it("should render children when authenticated", () => {
+  it("should render children when authenticated with no role restriction", () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: true,
       isLoading: false,
+      userType: "student",
       initAuth: vi.fn(),
     });
 
@@ -68,9 +69,7 @@ describe("ProtectedRoute", () => {
     expect(screen.getByText("Secret Content")).toBeInTheDocument();
   });
 
-  // This test DOCUMENTS A KNOWN BUG:
-  // ProtectedRoute does NOT check userType, so students can access /admin
-  it("BUG: does not block students from teacher/admin routes", () => {
+  it("should block students from admin routes", () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: true,
       isLoading: false,
@@ -80,14 +79,89 @@ describe("ProtectedRoute", () => {
 
     render(
       <MemoryRouter initialEntries={["/admin"]}>
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["admin"]}>
           <div>Admin Dashboard</div>
         </ProtectedRoute>
       </MemoryRouter>
     );
 
-    // BUG: Student CAN see admin content because ProtectedRoute
-    // only checks isAuthenticated, not userType
+    // Student should NOT see admin content
+    expect(screen.queryByText("Admin Dashboard")).not.toBeInTheDocument();
+  });
+
+  it("should block students from teacher routes", () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      userType: "student",
+      initAuth: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/students"]}>
+        <ProtectedRoute allowedRoles={["teacher"]}>
+          <div>Teacher Dashboard</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText("Teacher Dashboard")).not.toBeInTheDocument();
+  });
+
+  it("should allow teachers to access teacher routes", () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      userType: "teacher",
+      initAuth: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute allowedRoles={["teacher"]}>
+          <div>Teacher Dashboard</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Teacher Dashboard")).toBeInTheDocument();
+  });
+
+  it("should allow access to shared routes for both students and teachers", () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      userType: "student",
+      initAuth: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute allowedRoles={["student", "teacher"]}>
+          <div>Tutorials Page</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Tutorials Page")).toBeInTheDocument();
+  });
+
+  it("should allow admin to access admin routes", () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      userType: "admin",
+      initAuth: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <div>Admin Dashboard</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
+
     expect(screen.getByText("Admin Dashboard")).toBeInTheDocument();
   });
 });

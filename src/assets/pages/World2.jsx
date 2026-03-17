@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -90,7 +91,7 @@ export default function World2() {
         scene.add(gltf.scene);
       },
       (xhr) => {
-        console.log('Auditorium Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        logger.log('Auditorium Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
       },
       (error) => {
         console.error('Error loading auditorium model:', error);
@@ -112,7 +113,7 @@ export default function World2() {
 
         model.traverse((child) => {
           if (child.isMesh) {
-            console.log('Mesh found:', child.name, child.material);
+            logger.log('Mesh found:', child.name, child.material);
             // Enable raycasting on meshes
             child.userData.clickable = true;
             
@@ -132,7 +133,7 @@ export default function World2() {
 
         // Setup animation mixer for drummer
         if (gltf.animations && gltf.animations.length > 0) {
-          console.log('Drummer animations found:', gltf.animations.map(a => a.name));
+          logger.log('Drummer animations found:', gltf.animations.map(a => a.name));
 
           const mixer = new THREE.AnimationMixer(model);
           drummerMixerRef.current = mixer;
@@ -146,13 +147,13 @@ export default function World2() {
           action.clampWhenFinished = false;
           drummerActionRef.current = action;
 
-          console.log('Drummer animation ready - click on the drummer to play!');
+          logger.log('Drummer animation ready - click on the drummer to play!');
         } else {
-          console.log('No animations found in the drummer model');
+          logger.log('No animations found in the drummer model');
         }
       },
       (xhr) => {
-        console.log('Drummer Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        logger.log('Drummer Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
       },
       (error) => {
         console.error('Error loading drummer model:', error);
@@ -174,18 +175,18 @@ export default function World2() {
         const intersects = raycasterRef.current.intersectObject(drummerModelRef.current, true);
 
         if (intersects.length > 0) {
-          console.log('Drummer clicked!');
+          logger.log('Drummer clicked!');
 
           // Toggle animation playback
           if (drummerActionRef.current) {
             if (drummerActionRef.current.isRunning()) {
               // Stop the animation
               drummerActionRef.current.fadeOut(0.3);
-              console.log('Drummer animation stopped');
+              logger.log('Drummer animation stopped');
             } else {
               // Play the animation
               drummerActionRef.current.reset().fadeIn(0.3).play();
-              console.log('Drummer animation playing');
+              logger.log('Drummer animation playing');
             }
           }
         }
@@ -207,7 +208,7 @@ export default function World2() {
 
         model.traverse((child) => {
           if (child.isMesh) {
-            console.log('Mesh found:', child.name, child.material);
+            logger.log('Mesh found:', child.name, child.material);
             // Enable raycasting on meshes
             child.userData.clickable = true;
             
@@ -227,7 +228,7 @@ export default function World2() {
 
         // Setup animation mixer for pianist
         if (gltf.animations && gltf.animations.length > 0) {
-          console.log('Pianist animations found:', gltf.animations.map(a => a.name));
+          logger.log('Pianist animations found:', gltf.animations.map(a => a.name));
 
           const mixer = new THREE.AnimationMixer(model);
           pianistMixerRef.current = mixer;
@@ -241,13 +242,13 @@ export default function World2() {
           action.clampWhenFinished = false;
           pianistActionRef.current = action;
 
-          console.log('Pianist animation ready - click on the pianist to play!');
+          logger.log('Pianist animation ready - click on the pianist to play!');
         } else {
-          console.log('No animations found in the pianist model');
+          logger.log('No animations found in the pianist model');
         }
       },
       (xhr) => {
-        console.log('Pianist Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        logger.log('Pianist Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
       },
       (error) => {
         console.error('Error loading pianist model:', error);
@@ -269,18 +270,18 @@ export default function World2() {
         const intersects = raycasterRef.current.intersectObject(pianistModelRef.current, true);
 
         if (intersects.length > 0) {
-          console.log('Pianist clicked!');
+          logger.log('Pianist clicked!');
 
           // Toggle animation playback
           if (pianistActionRef.current) {
             if (pianistActionRef.current.isRunning()) {
               // Stop the animation
               pianistActionRef.current.fadeOut(0.3);
-              console.log('Pianist animation stopped');
+              logger.log('Pianist animation stopped');
             } else {
               // Play the animation
               pianistActionRef.current.reset().fadeIn(0.3).play();
-              console.log('Pianist animation playing');
+              logger.log('Pianist animation playing');
             }
           }
         }

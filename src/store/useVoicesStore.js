@@ -2,6 +2,7 @@
 // Handles beat-synced voice switching using Tone.js Transport
 
 import { create } from "zustand";
+import { logger } from "../lib/logger";
 import * as Tone from "tone";
 import { getVoiceSettings } from "../lib/teacherApi";
 import { generateAndSeparateStems } from "../lib/voicesApi";
@@ -179,7 +180,7 @@ export const useVoicesStore = create((set, get) => ({
 
     try {
       await Tone.start();
-      console.log("[VoicesStore] Audio context started");
+      logger.log("[VoicesStore] Audio context started");
 
       // Create master gain
       masterGain = new Tone.Gain(0.8).toDestination();
@@ -234,7 +235,7 @@ export const useVoicesStore = create((set, get) => ({
 
     // Wait for ALL player buffers to be fully loaded
     await Promise.all(loadPromises);
-    console.log("[VoicesStore] All stem players loaded");
+    logger.log("[VoicesStore] All stem players loaded");
   },
 
   /**
@@ -249,15 +250,15 @@ export const useVoicesStore = create((set, get) => ({
     }
 
     if (!stemsLoaded) {
-      console.warn("[VoicesStore] Stems not loaded yet");
+      logger.warn("[VoicesStore] Stems not loaded yet");
       return;
     }
 
     // Load players if not already (and wait for them to be ready)
     if (Object.keys(players).length === 0) {
-      console.log("[VoicesStore] Loading stem players before playback...");
+      logger.log("[VoicesStore] Loading stem players before playback...");
       await get().loadStemPlayers();
-      console.log("[VoicesStore] Stem players ready, starting playback");
+      logger.log("[VoicesStore] Stem players ready, starting playback");
     }
 
     // Update BPM
@@ -305,7 +306,7 @@ export const useVoicesStore = create((set, get) => ({
     // Update time display
     get()._startTimeUpdater();
 
-    console.log("[VoicesStore] Playback started - all voices synchronized");
+    logger.log("[VoicesStore] Playback started - all voices synchronized");
   },
 
   /**
@@ -329,7 +330,7 @@ export const useVoicesStore = create((set, get) => ({
           if (player && player.buffer?.loaded && player.state === "started") {
             player.stop();
           }
-        } catch (e) {
+        } catch {
           // Ignore errors when stopping players
         }
       });
@@ -354,7 +355,7 @@ export const useVoicesStore = create((set, get) => ({
       categories: resetCategories,
     });
 
-    console.log("[VoicesStore] Playback stopped");
+    logger.log("[VoicesStore] Playback stopped");
   },
 
   /**

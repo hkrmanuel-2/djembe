@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/store/useAuthStore";
 import { supabase } from "@/lib/supabase";
 import { validateEmailDomain } from "@/lib/emailValidation";
+import { logger } from "@/lib/logger";
 
 interface School {
   school_id: string;
@@ -61,7 +62,7 @@ export function SignupForm({
       
       // If error, try lowercase (table name might be case-sensitive)
       if (error && (error.message?.includes("relation") || error.code === "PGRST116")) {
-        console.log("Trying lowercase table name...");
+        logger.log("Trying lowercase table name...");
         const result = await supabase
           .from("schools")
           .select("school_id, name, allowed_domains")
@@ -78,11 +79,11 @@ export function SignupForm({
         return;
       }
       
-      console.log("Loaded schools:", data);
+      logger.log("Loaded schools:", data);
       setSchools(data || []);
       
       if (!data || data.length === 0) {
-        console.warn("No schools found in database");
+        logger.warn("No schools found in database");
         useAuthStore.setState({ 
           error: "No schools available. Please contact your administrator." 
         });

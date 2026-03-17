@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabase';
+import { logger } from "./logger";
 
 const STORAGE_BUCKET = 'assignment-submissions'; // Bucket name in Supabase Storage
 
@@ -34,8 +35,8 @@ export function validateFile(file, options = {}) {
     ],
   } = options;
 
-  console.log("[STORAGE] Starting file validation");
-  console.log("[STORAGE] File info:", {
+  logger.log("[STORAGE] Starting file validation");
+  logger.log("[STORAGE] File info:", {
     name: file?.name,
     size: file?.size,
     type: file?.type
@@ -45,7 +46,7 @@ export function validateFile(file, options = {}) {
 
   // Check file size
   const fileSizeMB = file.size / (1024 * 1024);
-  console.log("[STORAGE] File size check:", {
+  logger.log("[STORAGE] File size check:", {
     fileSizeMB: fileSizeMB.toFixed(2),
     maxSizeMB,
     passes: fileSizeMB <= maxSizeMB
@@ -55,7 +56,7 @@ export function validateFile(file, options = {}) {
   }
 
   // Check file type
-  console.log("[STORAGE] File type check:", {
+  logger.log("[STORAGE] File type check:", {
     fileType: file.type,
     isAllowed: allowedTypes.includes(file.type)
   });
@@ -67,7 +68,7 @@ export function validateFile(file, options = {}) {
     valid: errors.length === 0,
     errors,
   };
-  console.log("[STORAGE] Validation result:", result);
+  logger.log("[STORAGE] Validation result:", result);
   return result;
 }
 
@@ -85,8 +86,8 @@ export async function uploadAssignmentSubmission(
   assignmentId,
   onProgress = null
 ) {
-  console.log("[STORAGE] Starting uploadAssignmentSubmission");
-  console.log("[STORAGE] Parameters:", {
+  logger.log("[STORAGE] Starting uploadAssignmentSubmission");
+  logger.log("[STORAGE] Parameters:", {
     fileName: file?.name,
     fileSize: file?.size,
     fileType: file?.type,
@@ -101,11 +102,11 @@ export async function uploadAssignmentSubmission(
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `student_${studentId}/assignment_${assignmentId}/${timestamp}_${safeFileName}`;
     
-    console.log("[STORAGE] File path:", filePath);
-    console.log("[STORAGE] Uploading to bucket:", STORAGE_BUCKET);
+    logger.log("[STORAGE] File path:", filePath);
+    logger.log("[STORAGE] Uploading to bucket:", STORAGE_BUCKET);
 
     // Upload file to Supabase Storage
-    console.log("[STORAGE] Attempting upload to bucket:", STORAGE_BUCKET);
+    logger.log("[STORAGE] Attempting upload to bucket:", STORAGE_BUCKET);
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKET)
       .upload(filePath, file, {
@@ -126,7 +127,7 @@ export async function uploadAssignmentSubmission(
       throw error;
     }
 
-    console.log("[STORAGE] Upload successful, data:", data);
+    logger.log("[STORAGE] Upload successful, data:", data);
 
     // Get public URL
     const { data: urlData } = supabase.storage
@@ -134,7 +135,7 @@ export async function uploadAssignmentSubmission(
       .getPublicUrl(filePath);
 
     const publicUrl = urlData.publicUrl;
-    console.log("[STORAGE] Public URL:", publicUrl);
+    logger.log("[STORAGE] Public URL:", publicUrl);
 
     return {
       success: true,

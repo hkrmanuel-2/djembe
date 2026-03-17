@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
+import { logger } from "../lib/logger";
 
 export const useNotificationStore = create((set, get) => ({
   notifications: [],
@@ -11,11 +12,11 @@ export const useNotificationStore = create((set, get) => ({
   // Load notifications for current user
   loadNotifications: async (userId, userType) => {
     if (!userId || !userType) {
-      console.log("[NOTIFICATIONS] Skipped load - missing userId or userType:", { userId, userType });
+      logger.log("[NOTIFICATIONS] Skipped load - missing userId or userType:", { userId, userType });
       return;
     }
 
-    console.log("[NOTIFICATIONS] Loading for:", { userId, userType });
+    logger.log("[NOTIFICATIONS] Loading for:", { userId, userType });
     set({ isLoading: true, error: null });
     try {
       const { data, error } = await supabase
@@ -31,7 +32,7 @@ export const useNotificationStore = create((set, get) => ({
         throw error;
       }
 
-      console.log("[NOTIFICATIONS] Loaded:", data?.length ?? 0, "notifications");
+      logger.log("[NOTIFICATIONS] Loaded:", data?.length ?? 0, "notifications");
       const unreadCount = data?.filter((n) => !n.read).length || 0;
 
       set({

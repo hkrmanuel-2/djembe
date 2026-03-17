@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 // Audio export utility for mixing and exporting projects as MP3/WAV
 
 /**
@@ -17,7 +18,7 @@ async function loadAudioBuffer(audioContext, url) {
 /**
  * Convert seconds to beat position based on BPM
  */
-function secondsToBeat(seconds, bpm) {
+function _secondsToBeat(seconds, bpm) {
   const secondsPerBeat = 60 / bpm;
   return seconds / secondsPerBeat;
 }
@@ -55,7 +56,7 @@ function mixAudioBuffers(audioContext, buffers, startTimes, durations) {
     const startTime = startTimes[index];
     const startFrame = Math.floor(startTime * sampleRate);
     const sourceFrames = buffer.length;
-    const endFrame = Math.min(startFrame + sourceFrames, frameCount);
+    const _endFrame = Math.min(startFrame + sourceFrames, frameCount);
     
     // Copy and mix audio data
     for (let channel = 0; channel < Math.min(buffer.numberOfChannels, 2); channel++) {
@@ -207,7 +208,7 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
 
     for (const loop of placedLoops) {
       if (!loop.url) {
-        console.warn(`Loop ${loop.id} has no URL, skipping`);
+        logger.warn(`Loop ${loop.id} has no URL, skipping`);
         continue;
       }
 
@@ -260,7 +261,7 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
         blob = await audioBufferToMp3(trimmedBuffer);
         extension = 'mp3';
       } catch (error) {
-        console.warn('MP3 encoding failed, falling back to WAV:', error);
+        logger.warn('MP3 encoding failed, falling back to WAV:', error);
         // Fallback to WAV
         const wavArrayBuffer = audioBufferToWav(trimmedBuffer);
         blob = new Blob([wavArrayBuffer], { type: 'audio/wav' });

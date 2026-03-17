@@ -77,8 +77,8 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [stats, setStats] = useState<ClassStats | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [studentDetail, setStudentDetail] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentDetail, setStudentDetail] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [classes, setClasses] = useState<ClassType[]>([]);
@@ -89,6 +89,7 @@ export default function TeacherDashboard() {
     if (userProfile?.teacher_id) {
       loadClasses();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile?.teacher_id]);
 
   // Load dashboard data when school, class selection, or teacher's classes change
@@ -96,6 +97,7 @@ export default function TeacherDashboard() {
     if (userProfile?.school_id && classes !== undefined) {
       loadDashboardData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile?.school_id, selectedClass, classes]);
 
   const loadClasses = async () => {
@@ -301,7 +303,7 @@ export default function TeacherDashboard() {
                       Badges Earned ({studentDetail.badges.length})
                     </h2>
                     <div className="flex flex-wrap gap-3">
-                      {studentDetail.badges.map((badge: any) => (
+                      {studentDetail.badges.map((badge: Record<string, unknown> & { id: string; badge_definitions?: { icon?: string; name?: string } }) => (
                         <div
                           key={badge.id}
                           className="flex items-center gap-2 px-4 py-2 rounded-full border-2"
@@ -333,7 +335,7 @@ export default function TeacherDashboard() {
                       className="rounded-2xl bg-white shadow-md border-2 overflow-hidden"
                       style={{ borderColor: '#E8DFFF' }}
                     >
-                      {studentDetail.activities.slice(0, 10).map((activity: any, index: number) => (
+                      {studentDetail.activities.slice(0, 10).map((activity: Record<string, unknown> & { id: string; description?: string; xp_earned?: number; created_at?: string }, index: number) => (
                         <div
                           key={activity.id}
                           className={`px-6 py-4 flex items-center justify-between ${

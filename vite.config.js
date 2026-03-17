@@ -236,7 +236,11 @@ function apiRoutesPlugin() {
         }
 
         const allowedDomains = ["mvsep.com", "musicfile.api.box", "cdn.suno.ai", "cdn1.suno.ai", "cdn2.suno.ai"];
-        const isAllowed = allowedDomains.some((domain) => audioUrl.includes(domain));
+        let isAllowed = false;
+        try {
+          const parsed = new URL(audioUrl);
+          isAllowed = allowedDomains.some((d) => parsed.hostname === d || parsed.hostname.endsWith("." + d));
+        } catch { isAllowed = false; }
 
         if (!isAllowed) {
           res.statusCode = 403;
@@ -268,6 +272,161 @@ function apiRoutesPlugin() {
           res.statusCode = 500;
           res.setHeader("Content-Type", "application/json");
           res.end(JSON.stringify({ error: error.message }));
+        }
+      });
+      const SUNO_API_BASE_URL = "https://api.sunoapi.org";
+
+      // POST /api/generate - Suno music generation proxy
+      server.middlewares.use("/api/generate", async (req, res, next) => {
+        // Skip if this is /api/generate-status or /api/generate-credits
+        const reqUrl = new URL(req.url, `http://${req.headers.host}`);
+        if (reqUrl.pathname !== "/api/generate") { next(); return; }
+
+        if (req.method === "OPTIONS") {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+          res.statusCode = 200;
+          res.end();
+          return;
+        }
+
+        if (req.method !== "POST") { next(); return; }
+
+        let body = "";
+        req.on("data", (chunk) => (body += chunk));
+        req.on("end", async () => {
+          try {
+            const { prompt, styleTags, title, bpm } = JSON.parse(body);
+            const apiKey = env.SUNO_API_KEY;
+            if (!apiKey) {
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: "SUNO_API_KEY not configured" }));
+              return;
+            }
+
+            const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+              body: JSON.stringify({
+                gpt_description_prompt: prompt,
+                style: styleTags || "",
+                title: title || `Track - ${bpm || 120}bpm`,
+                model: "V4_5ALL",
+                instrumental: true,
+                customMode: true,
+                callBackUrl: "https://example.com/callback",
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.message || `Suno API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const taskId = data.data?.taskId || data.taskId;
+
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ success: true, taskId }));
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ success: false, error: error.message }));
+          }
+        });
+      });
+
+      // GET /api/generate-status - Suno polling proxy
+      server.middlewares.use("/api/generate-status", async (req, res, next) => {
+        if (req.method !== "GET") { next(); return; }
+
+        const reqUrl = new URL(req.url, `http://${req.headers.host}`);
+        const taskId = reqUrl.searchParams.get("taskId");
+        if (!taskId) {
+          res.statusCode = 400;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "taskId parameter required" }));
+          return;
+        }
+
+        const apiKey = env.SUNO_API_KEY;
+        if (!apiKey) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "SUNO_API_KEY not configured" }));
+          return;
+        }
+
+        try {
+          const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate/record-info?taskId=${taskId}`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!response.ok) throw new Error(`Suno polling error: ${response.status}`);
+
+          const data = await response.json();
+          const taskData = data.data;
+
+          res.setHeader("Content-Type", "application/json");
+
+          if (!taskData) {
+            res.end(JSON.stringify({ success: true, status: "pending" }));
+            return;
+          }
+
+          const status = taskData.status;
+          if (status === "SUCCESS" || status === "FIRST_SUCCESS") {
+            const sunoData = taskData.response?.sunoData;
+            if (Array.isArray(sunoData) && sunoData[0]) {
+              const track = sunoData[0];
+              res.end(JSON.stringify({
+                success: true, status: "done",
+                audioId: track.id || track.audioId,
+                audioUrl: track.audioUrl || track.streamAudioUrl,
+              }));
+              return;
+            }
+          }
+
+          if (["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"].includes(status)) {
+            res.end(JSON.stringify({ success: false, status: "failed", error: taskData.errorMessage || status }));
+            return;
+          }
+
+          res.end(JSON.stringify({ success: true, status: "processing" }));
+        } catch (error) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+      });
+
+      // GET /api/generate-credits - Suno credits proxy
+      server.middlewares.use("/api/generate-credits", async (req, res, next) => {
+        if (req.method !== "GET") { next(); return; }
+
+        const apiKey = env.SUNO_API_KEY;
+        if (!apiKey) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "SUNO_API_KEY not configured" }));
+          return;
+        }
+
+        try {
+          const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate/credit`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!response.ok) throw new Error(`Suno API error: ${response.status}`);
+
+          const data = await response.json();
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ success: true, credits: data.credits || 0 }));
+        } catch (error) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ success: false, error: error.message }));
         }
       });
     },

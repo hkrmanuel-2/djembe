@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { notifyStudentsNewAssignment, notifyStudentFeedback } from "./notificationApi";
+import { logger } from "./logger";
 
 // ============================================
 // CLASS MANAGEMENT
@@ -206,7 +207,7 @@ export async function getTeacherAssignments(schoolId) {
 export async function getAssignmentWithSubmissions(assignmentId, schoolId, classId = null) {
   try {
     // Get assignment details using assignment_id
-    console.log("[TEACHER API] Getting assignment with ID:", assignmentId);
+    logger.log("[TEACHER API] Getting assignment with ID:", assignmentId);
     const { data: assignment, error: assignmentError } = await supabase
       .from("assignments")
       .select("*")
@@ -214,7 +215,7 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
       .single();
 
     if (assignmentError) throw assignmentError;
-    console.log("[TEACHER API] Found assignment:", assignment);
+    logger.log("[TEACHER API] Found assignment:", assignment);
 
     // Get all students in the school (optionally filtered by class)
     let studentsQuery = supabase
@@ -231,13 +232,13 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
     if (studentsError) throw studentsError;
 
     // Get submissions for this assignment
-    console.log("[TEACHER API] Querying submissions for assignment:", assignmentId);
+    logger.log("[TEACHER API] Querying submissions for assignment:", assignmentId);
     const { data: submissions, error: submissionsError } = await supabase
       .from("submissions")
       .select("*")
       .eq("assignment_id", assignmentId);
 
-    console.log("[TEACHER API] Submissions query result:", {
+    logger.log("[TEACHER API] Submissions query result:", {
       count: submissions?.length || 0,
       submissions: submissions,
       error: submissionsError
@@ -247,7 +248,7 @@ export async function getAssignmentWithSubmissions(assignmentId, schoolId, class
 
     // Get feedback for these submissions (submissions table uses submission_id as primary key)
     const submissionIds = submissions?.map((s) => s.submission_id).filter(Boolean) || [];
-    console.log("[TEACHER API] Submission IDs for feedback query:", submissionIds);
+    logger.log("[TEACHER API] Submission IDs for feedback query:", submissionIds);
 
     let feedback = [];
     if (submissionIds.length > 0) {
@@ -606,7 +607,7 @@ export async function getStudentProjectById(projectId) {
  */
 export async function createFeedback(teacherId, data) {
   try {
-    console.log("[TEACHER API] Creating feedback with data:", {
+    logger.log("[TEACHER API] Creating feedback with data:", {
       teacherId,
       submission_id: data.submission_id,
       hasComment: !!data.comment,
@@ -642,8 +643,8 @@ export async function createFeedback(teacherId, data) {
       throw error;
     }
 
-    console.log("[TEACHER API] Feedback created successfully, fetching submission details...");
-    console.log("[TEACHER API] Submission ID:", data.submission_id);
+    logger.log("[TEACHER API] Feedback created successfully, fetching submission details...");
+    logger.log("[TEACHER API] Submission ID:", data.submission_id);
 
     // Get submission details to notify the student
     const { data: submission } = await supabase
@@ -652,7 +653,7 @@ export async function createFeedback(teacherId, data) {
       .eq("submission_id", data.submission_id)
       .single();
 
-    console.log("[TEACHER API] Found submission:", submission);
+    logger.log("[TEACHER API] Found submission:", submission);
 
     // Get assignment title separately (using assignment_id)
     let assignmentTitle = "Assignment";
@@ -689,7 +690,7 @@ export async function createFeedback(teacherId, data) {
  */
 export async function updateFeedback(feedbackId, data) {
   try {
-    console.log("[TEACHER API] Updating feedback with data:", {
+    logger.log("[TEACHER API] Updating feedback with data:", {
       feedbackId,
       submission_id: data.submission_id,
       hasComment: !!data.comment,
@@ -713,8 +714,8 @@ export async function updateFeedback(feedbackId, data) {
       throw error;
     }
 
-    console.log("[TEACHER API] Feedback updated successfully, fetching submission details...");
-    console.log("[TEACHER API] Submission ID:", data.submission_id);
+    logger.log("[TEACHER API] Feedback updated successfully, fetching submission details...");
+    logger.log("[TEACHER API] Submission ID:", data.submission_id);
 
     // Get submission details to notify the student
     let submission = null;
@@ -727,7 +728,7 @@ export async function updateFeedback(feedbackId, data) {
       submission = sub;
     }
 
-    console.log("[TEACHER API] Found submission:", submission);
+    logger.log("[TEACHER API] Found submission:", submission);
 
     // Get assignment title
     let assignmentTitle = "Assignment";

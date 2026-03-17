@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -82,7 +83,7 @@ export default function World1() {
         scene.add(gltf.scene);
       },
       (xhr) => {
-        console.log('Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        logger.log('Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
       },
       (error) => {
         console.error('Error loading model:', error);

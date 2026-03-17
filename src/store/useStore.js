@@ -4,6 +4,7 @@ import * as Tone from "tone";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "./useAuthStore";
 import { useProgressStore } from "./useProgressStore";
+import { logger } from "../lib/logger";
 
 export const useStore = create(
   persist(
@@ -25,11 +26,11 @@ export const useStore = create(
           audio.loop = false; // Play once, don't loop
           audio.volume = 1.0; // Full volume for clear playback
           audio.play().catch((err) => {
-            console.warn("Audio play error:", err);
+            logger.warn("Audio play error:", err);
           });
           // Let the audio play to completion naturally - don't track it
         } catch (err) {
-          console.warn("Failed to play placed loop:", err);
+          logger.warn("Failed to play placed loop:", err);
         }
       };
 
@@ -283,7 +284,7 @@ export const useStore = create(
             if (!Tone.Transport.state || Tone.Transport.state !== "started") {
               Tone.Transport.start("+0");
             }
-          } catch (err) {
+          } catch {
             // ignore if already started
           }
 
@@ -312,7 +313,7 @@ export const useStore = create(
           // stop Tone.Transport
           try {
             Tone.Transport.pause();
-          } catch (err) {
+          } catch {
             // ignore
           }
 
@@ -355,7 +356,7 @@ export const useStore = create(
 
           try {
             Tone.Transport.stop();
-          } catch (err) {
+          } catch {
             // ignore
           }
 
@@ -367,7 +368,7 @@ export const useStore = create(
           Object.values(players).forEach((player) => {
             try {
               player.stop();
-            } catch (e) { }
+            } catch { /* Tone.js may throw on disposed context */ }
           });
 
           set((state) => ({
@@ -383,7 +384,7 @@ export const useStore = create(
         rewind: () => {
           try {
             Tone.Transport.position = 0;
-          } catch (e) { }
+          } catch { /* Tone.js may throw on disposed context */ }
           set((state) => ({
             transport: { ...state.transport, currentBeat: 0 },
           }));
@@ -398,7 +399,7 @@ export const useStore = create(
           // update Tone transport bpm and store bpm
           try {
             Tone.Transport.bpm.value = bpm;
-          } catch (err) { }
+          } catch { /* Tone.js may throw on disposed context */ }
           set((state) => ({
             transport: { ...state.transport, bpm },
             project: { ...state.project, bpm },
@@ -460,7 +461,7 @@ export const useStore = create(
             const defaultRows = 5;
             // Allow shrinking back to default when loops are deleted
             const newBars = bars || defaultBars;
-            const newRows = rows || defaultRows;
+            const _newRows = rows || defaultRows;
             
             return {
               project: { 

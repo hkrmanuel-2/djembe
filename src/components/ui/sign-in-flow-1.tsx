@@ -223,7 +223,7 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
 const ShaderMaterial = ({
   source,
   uniforms,
-  maxFps = 60,
+  maxFps: _maxFps = 60,
 }: {
   source: string;
   hovered?: boolean;

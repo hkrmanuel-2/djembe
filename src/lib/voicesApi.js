@@ -1,15 +1,7 @@
-// Voices API - Suno generation + MVSEP stem separation
-// Suno: https://docs.sunoapi.org/
+import { logger } from "./logger";
+// Voices API - Suno generation (via server proxy) + MVSEP stem separation
+// Suno calls are proxied through /api/generate (API key stays server-side)
 // MVSEP: https://mvsep.com/ (BS Roformer SW model)
-
-const SUNO_API_BASE_URL = "https://api.sunoapi.org";
-
-/**
- * Get Suno API key from environment
- */
-function getSunoApiKey() {
-  return import.meta.env.VITE_SUNO_API_KEY || "";
-}
 
 /**
  * Build a kid-friendly music generation prompt from teacher settings
@@ -70,14 +62,9 @@ Create loopable, instrumental content with clear stem separation.`;
 }
 
 /**
- * Generate a full music track using Suno API
+ * Generate a full music track via server-side Suno proxy
  */
 export async function generateTrack(settings) {
-  const apiKey = getSunoApiKey();
-  if (!apiKey) {
-    return { success: false, error: "Suno API key not configured" };
-  }
-
   try {
     const prompt = buildPrompt(settings);
     const genre = settings.genre || "afrobeat";
@@ -85,45 +72,30 @@ export async function generateTrack(settings) {
     const mood = settings.mood || "happy";
     const bpm = settings.bpm || 120;
 
-    // Build style tags for Suno (more effective than long prompts)
     const styleTags = `${genre}, ${style}, ${mood}, ${bpm} bpm, instrumental, kid-friendly, educational, rhythmic, loopable`;
 
-    console.log("[VoicesAPI] Generating track with style:", styleTags);
-    console.log("[VoicesAPI] Full prompt:", prompt);
-
-    const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate`, {
+    const response = await fetch("/api/generate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Use gpt_description_prompt for the full description
-        gpt_description_prompt: prompt,
-        // Use style/tags for genre direction (Suno weights this heavily)
-        style: styleTags,
+        prompt,
+        styleTags,
         title: `${genre} ${mood} rhythm - ${bpm}bpm`,
-        model: "V4_5ALL",
-        instrumental: true,
-        customMode: true,
-        callBackUrl: "https://example.com/callback",
+        bpm,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API error: ${response.status}`);
+      throw new Error(errorData.error || `API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("[VoicesAPI] Generate response:", data);
-
-    const taskId = data.data?.taskId || data.taskId;
-    if (!taskId) {
-      throw new Error("No task ID received from generation");
+    if (!data.success || !data.taskId) {
+      throw new Error(data.error || "No task ID received from generation");
     }
 
-    const trackResult = await pollForTrackCompletion(taskId, apiKey);
+    const trackResult = await pollForTrackCompletion(data.taskId);
     return trackResult;
   } catch (error) {
     console.error("[VoicesAPI] Generate track error:", error);
@@ -132,61 +104,33 @@ export async function generateTrack(settings) {
 }
 
 /**
- * Poll for track generation completion
+ * Poll for track generation completion via server-side proxy
  */
-async function pollForTrackCompletion(taskId, apiKey, maxAttempts = 60) {
+async function pollForTrackCompletion(taskId, maxAttempts = 60) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const response = await fetch(
-        `${SUNO_API_BASE_URL}/api/v1/generate/record-info?taskId=${taskId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      );
+      const response = await fetch(`/api/generate-status?taskId=${taskId}`);
 
       if (!response.ok) {
         throw new Error(`Polling error: ${response.status}`);
       }
 
       const data = await response.json();
-      const taskData = data.data;
 
-      if (!taskData) {
-        await wait(2000);
-        continue;
-      }
-
-      const status = taskData.status;
-      console.log("[VoicesAPI] Track generation status:", status);
-
-      if (status === "SUCCESS" || status === "FIRST_SUCCESS") {
-        const sunoData = taskData.response?.sunoData;
-        if (Array.isArray(sunoData) && sunoData[0]) {
-          const track = sunoData[0];
-          return {
-            success: true,
-            taskId: taskId,
-            audioId: track.id || track.audioId,
-            audioUrl: track.audioUrl || track.streamAudioUrl,
-          };
-        }
-      }
-
-      if (
-        status === "CREATE_TASK_FAILED" ||
-        status === "GENERATE_AUDIO_FAILED" ||
-        status === "CALLBACK_EXCEPTION" ||
-        status === "SENSITIVE_WORD_ERROR"
-      ) {
+      if (data.status === "done" && data.audioUrl) {
         return {
-          success: false,
-          error: taskData.errorMessage || `Generation failed: ${status}`,
+          success: true,
+          taskId,
+          audioId: data.audioId,
+          audioUrl: data.audioUrl,
         };
       }
 
+      if (data.status === "failed") {
+        return { success: false, error: data.error || "Generation failed" };
+      }
+
+      // Still processing
       const waitTime = Math.min(1000 + attempt * 500, 5000);
       await wait(waitTime);
     } catch (error) {
@@ -208,7 +152,7 @@ async function pollForTrackCompletion(taskId, apiKey, maxAttempts = 60) {
  */
 export async function separateStems(audioUrl, onProgress = () => {}) {
   try {
-    console.log("[VoicesAPI] Starting stem separation for:", audioUrl);
+    logger.log("[VoicesAPI] Starting stem separation for:", audioUrl);
     onProgress("Starting separation...");
 
     // Step 1: Start the separation job
@@ -226,7 +170,7 @@ export async function separateStems(audioUrl, onProgress = () => {}) {
     }
 
     const startData = await startResponse.json();
-    console.log("[VoicesAPI] Separation started:", startData);
+    logger.log("[VoicesAPI] Separation started:", startData);
 
     if (!startData.success) {
       throw new Error(startData.error || "Failed to start separation");
@@ -247,12 +191,12 @@ export async function separateStems(audioUrl, onProgress = () => {}) {
       const statusResponse = await fetch(`/api/separate-status?hash=${hash}`);
 
       if (!statusResponse.ok) {
-        console.warn("[VoicesAPI] Status check failed, retrying...");
+        logger.warn("[VoicesAPI] Status check failed, retrying...");
         continue;
       }
 
       const statusData = await statusResponse.json();
-      console.log("[VoicesAPI] Status:", statusData.status);
+      logger.log("[VoicesAPI] Status:", statusData.status);
 
       if (statusData.status === "done" && statusData.stems) {
         // Success! Map stems to our categories
@@ -309,7 +253,7 @@ export function mapStemsToCategories(rawStems) {
  */
 export async function generateAndSeparateStems(settings, onProgress = () => {}) {
   try {
-    console.log("[VoicesAPI] Starting stem generation...");
+    logger.log("[VoicesAPI] Starting stem generation...");
 
     // Stage 1: Generate track with Suno
     onProgress("generating", "Creating music track...");

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -232,7 +233,7 @@ const World2: React.FC = () => {
           clickableModelsRef.current.set(name, model);
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr: any) => {
           console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
@@ -296,7 +297,7 @@ const World2: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr: any) => {
           console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
@@ -322,7 +323,7 @@ const World2: React.FC = () => {
       },
       (xhr: any) => {
         const progress = (xhr.loaded / xhr.total) * 100;
-        console.log(`Auditorium loading: ${progress}%`);
+        logger.log(`Auditorium loading: ${progress}%`);
       },
       (error: any) => {
         console.error("Error loading auditorium:", error);

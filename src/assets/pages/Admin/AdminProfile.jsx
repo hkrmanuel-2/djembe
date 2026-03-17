@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState } from 'react';
 
 function AdminProfile() {
@@ -12,7 +13,7 @@ function AdminProfile() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Add your profile update logic here
-    console.log('Profile data:', profileData);
+    logger.log('Profile data:', profileData);
   };
 
   const handleInputChange = (e) => {
