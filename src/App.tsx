@@ -78,9 +78,9 @@ function AppContent() {
     ] : [
       // Student navigation
       { name: 'Dashboard', url: '/home', icon: HomeIcon },
-      { name: 'DAW', url: '/daw', icon: Music },
-      { name: 'Assignments', url: '/assignments', icon: FileText },
-      { name: 'Progress', url: '/progress', icon: Trophy },
+      { name: 'Music Studio', url: '/daw', icon: Music },
+      { name: 'Challenges', url: '/assignments', icon: FileText },
+      { name: 'My Journey', url: '/progress', icon: Trophy },
       { name: 'Tutorials', url: '/tutorials', icon: GraduationCap },
       { name: 'Worlds', url: '/world1', icon: Globe },
       { name: 'Settings', url: '/settings', icon: SettingsIcon },

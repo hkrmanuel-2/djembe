@@ -260,10 +260,10 @@ export default function TeacherSubmissions() {
             style={{ color: '#3E2468', fontFamily: "'Fredoka', sans-serif" }}
           >
             <FileCheck size={40} style={{ color: "#D97746" }} />
-            Student Submissions
+            Student Work
           </h1>
           <p className="text-gray-500">
-            Review and grade student work
+            Review and give points for student work
           </p>
         </motion.div>
 
@@ -387,9 +387,9 @@ export default function TeacherSubmissions() {
                       <tr>
                         <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>Student</th>
                         <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>Status</th>
-                        <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>Submitted At</th>
+                        <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>Turned In</th>
                         <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>File</th>
-                        <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>Grade</th>
+                        <th className="px-6 py-4 text-left font-semibold" style={{ color: '#3E2468' }}>Points</th>
                         <th className="px-6 py-4 text-center font-semibold" style={{ color: '#3E2468' }}>Actions</th>
                       </tr>
                     </thead>
@@ -445,7 +445,7 @@ export default function TeacherSubmissions() {
                                 className="px-4 py-2 bg-[#D97746] hover:bg-[#E6B84D] rounded-lg text-white text-sm font-semibold transition-colors flex items-center gap-2 mx-auto"
                               >
                                 <MessageSquare size={14} />
-                                {student.feedback ? "Edit Feedback" : "Give Feedback"}
+                                {student.feedback ? "Edit Comments" : "Add Comments"}
                               </button>
                             )}
                           </td>

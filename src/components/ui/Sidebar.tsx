@@ -21,9 +21,9 @@ interface SidebarProps {
 // Fun accent colors for each nav item name
 const itemColors: Record<string, string> = {
   Home: "#F2C94C",
-  DAW: "#D97746",
-  Assignments: "#42C9C9",
-  Progress: "#E8627A",
+  "Music Studio": "#D97746",
+  Challenges: "#42C9C9",
+  "My Journey": "#E8627A",
   Tutorials: "#4ABA6E",
   Worlds: "#9B7DC8",
   Settings: "#A0A0A0",

@@ -388,7 +388,7 @@ function MiniNavbar() {
 
   const navLinksData = [
     { label: 'Home', to: '/' },
-    { label: 'DAW', to: '/daw' },
+    { label: 'Music Studio', to: '/daw' },
     { label: 'Worlds', to: '/world1' },
   ];
 

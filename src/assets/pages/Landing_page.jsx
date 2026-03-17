@@ -6,7 +6,7 @@ const CAROUSEL_SLIDES = [
   {
     heading: "Create Your Own Beats. It's Easy!",
     description:
-      "Use our intuitive DAW-Lite to drag, drop, and arrange loops into original compositions. The platform makes it simple for beginners to create professional-sounding rhythms.",
+      "Use our Music Studio to drag, drop, and arrange loops into your own songs. It's super easy for beginners to create awesome-sounding rhythms!",
   },
   {
     heading: "Explore Immersive 3D Worlds",

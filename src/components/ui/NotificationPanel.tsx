@@ -158,7 +158,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
             <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#E8DFFF', background: 'linear-gradient(135deg, #3E2468 0%, #5B3D8F 100%)', borderRadius: '0 0 0 0' }}>
               <div className="flex items-center gap-3">
                 <Bell size={20} className="text-white/90" />
-                <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>Notifications</h2>
+                <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>What's New</h2>
                 {unreadCount > 0 && (
                   <span
                     className="px-2 py-0.5 text-xs font-bold text-white rounded-full"

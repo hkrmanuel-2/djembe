@@ -393,7 +393,7 @@ export default function TeacherDashboard() {
               style={{ backgroundColor: "rgba(232, 223, 255, 0.5)", borderColor: '#E8DFFF' }}
             >
               <Users size={16} style={{ color: "#E6B84D" }} />
-              <span className="text-sm font-medium" style={{ color: '#3E2468' }}>Teacher Dashboard</span>
+              <span className="text-sm font-medium" style={{ color: '#3E2468' }}>Teacher Home</span>
             </div>
 
             <h1
@@ -480,15 +480,15 @@ export default function TeacherDashboard() {
           <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
             <QuickActionCard
               icon={<FileText size={24} />}
-              title="Assignments"
-              description="Create and manage assignments"
+              title="Challenges"
+              description="Create and manage challenges"
               color="#D97746"
               onClick={() => navigate("/teacher/assignments")}
             />
             <QuickActionCard
               icon={<AlertTriangle size={24} />}
-              title="Analytics"
-              description="View students needing attention"
+              title="Student Insights"
+              description="See which students need help"
               color="#F59E0B"
               onClick={() => navigate("/teacher/analytics")}
             />
@@ -543,9 +543,9 @@ export default function TeacherDashboard() {
                 >
                   <div className="col-span-4">Student</div>
                   <div className="col-span-2 text-center">Level</div>
-                  <div className="col-span-2 text-center">XP</div>
-                  <div className="col-span-2 text-center">Projects</div>
-                  <div className="col-span-2 text-center">Streak</div>
+                  <div className="col-span-2 text-center">Points</div>
+                  <div className="col-span-2 text-center">Songs</div>
+                  <div className="col-span-2 text-center">Days in a Row</div>
                 </div>
 
                 {/* Student Rows */}

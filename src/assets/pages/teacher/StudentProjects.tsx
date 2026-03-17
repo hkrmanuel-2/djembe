@@ -318,7 +318,7 @@ export default function StudentProjects() {
                   </div>
 
                   <p className="text-gray-400 text-sm mt-4 text-center">
-                    This is a simplified view. Open in DAW for full playback.
+                    This is a simplified view. Open in Music Studio for full playback.
                   </p>
                 </div>
 

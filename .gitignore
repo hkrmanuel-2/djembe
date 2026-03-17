@@ -27,7 +27,11 @@ dist-ssr
 
 # Environment files
 .env
+.env.local
 .env.*
 !.env.example
 env.download
 *.download
+
+# Internal docs (not for git)
+/docs-internal/

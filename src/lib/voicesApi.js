@@ -284,7 +284,7 @@ export async function separateStems(audioUrl, onProgress = () => {}) {
 /**
  * Map BS Roformer SW 6 stems (drums, bass, guitar, piano, vocals, other) to our 5 categories
  */
-function mapStemsToCategories(rawStems) {
+export function mapStemsToCategories(rawStems) {
   return {
     rhythm: rawStems.drums
       ? [{ id: "rhythm-0", name: "Drums", url: rawStems.drums, stemKey: "drums" }]

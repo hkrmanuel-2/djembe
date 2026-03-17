@@ -24,8 +24,8 @@ export const useAuthStore = create(
 
           if (session?.user) {
             await get().loadUserProfile(session.user);
-            // Check for dev override after loading profile
-            get().checkUserTypeOverride();
+            // Clear any stale dev overrides
+            localStorage.removeItem('userTypeOverride');
           } else {
             set({
               user: null,
@@ -281,30 +281,6 @@ export const useAuthStore = create(
       // Clear error
       clearError: () => set({ error: null }),
 
-      // Override user type for testing (dev only)
-      setUserTypeOverride: (newType) => {
-        const currentProfile = get().userProfile;
-        if (currentProfile) {
-          set({ userType: newType });
-          // Store in localStorage so it persists across refreshes
-          localStorage.setItem('userTypeOverride', newType);
-        }
-      },
-
-      // Check for userType override on init
-      checkUserTypeOverride: () => {
-        const override = localStorage.getItem('userTypeOverride');
-        if (override && (override === 'admin' || override === 'teacher' || override === 'student')) {
-          set({ userType: override });
-        }
-      },
-
-      // Clear the override
-      clearUserTypeOverride: () => {
-        localStorage.removeItem('userTypeOverride');
-        // Reload the actual user type from profile
-        get().initAuth();
-      },
     }),
     {
       name: "auth-storage",

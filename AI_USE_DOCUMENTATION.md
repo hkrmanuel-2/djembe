@@ -2,8 +2,8 @@
 
 > **Capstone Project:** Djembe - Educational Music Platform
 > **Document Purpose:** Academic disclosure of AI assistance in development
-> **AI Tools Used:** Claude (Anthropic) via Claude Code CLI; Cursor AI (OpenAI GPT) via Cursor Chat
-> **Last Updated:** February 19, 2026
+> **AI Tool Used:** Claude (Anthropic) via Claude Code CLI
+> **Last Updated:** February 21, 2026
 
 ---
 
@@ -90,15 +90,16 @@ AI was **NOT** used for:
 
 | File | AI Contribution | Description |
 |------|-----------------|-------------|
-| `api/separate.ts` | High | MVSEP separation endpoint (timeout fix) |
-| `api/separate-status.ts` | High | New polling endpoint for MVSEP |
-| `api/proxy-audio.ts` | High | CORS proxy for external audio |
-| `src/lib/voicesApi.js` | High | Suno API integration, prompt building |
+| `api/separate.ts` | High | MVSEP separation endpoint (job creation, 128kbps output) |
+| `api/separate-status.ts` | High | Polling endpoint for MVSEP (stem mapping with `type` field) |
+| `api/proxy-audio.ts` | High | CORS proxy with domain allowlist (mvsep, suno CDNs) |
+| `src/lib/voicesApi.js` | High | Suno API integration, MVSEP polling, prompt building |
 | `src/lib/teacherApi.js` | Medium-High | Per-world settings + assignment functions |
+| `src/assets/pages/teacher/WorldsSettings.tsx` | High | Per-world music settings page (BPM, genre, style, mood) |
 | `src/lib/notificationApi.js` | High | Notification CRUD operations |
 | `src/lib/tutorialsApi.js` | High | Tutorials database operations |
 | `src/lib/cloudinaryApi.js` | High | Cloudinary file upload integration |
-| `src/store/useVoicesStore.js` | Medium | Audio synchronization logic |
+| `src/store/useVoicesStore.js` | Medium-High | Audio sync, buffer loading fix, per-world state |
 | `src/store/useStore.js` | Medium | Auto-proxy for external URLs |
 | `src/store/useNotificationStore.js` | High | Real-time notification state management |
 | `src/components/ui/Sidebar.tsx` | High | Collapsible sidebar navigation |
@@ -330,13 +331,18 @@ git commit -m "Remove .env from tracking"
 
 | Issue | AI Role |
 |-------|---------|
-| 504 timeout on Vercel | Diagnosed cause, proposed solution |
-| CORS blocking audio | Identified domains, implemented proxy |
-| Wrong genre generation | Found API behavior, fixed parameters |
-| Audio sync issues | Explained Tone.js Transport, implemented fix |
+| 504 timeout on Vercel | Diagnosed cause, proposed two-endpoint polling solution |
+| CORS blocking audio | Created proxy with domain allowlist |
+| Wrong genre generation | Found Suno API `style` field behavior, fixed parameters |
+| Audio sync issues | Explained Tone.js Transport, implemented bar boundary fix |
 | Session storage errors | Debugged caching logic |
 | Mobile responsiveness | Identified viewport issues, fixed layouts |
 | Notification delivery | Debugged real-time subscription logic |
+| MVSEP empty stems | Discovered `type` field (not `name`) via debug logging |
+| Suno copyright block | Identified that Suno flags its own AI tracks, switched to MVSEP |
+| Audio buffer not loaded | Fixed `Tone.loaded()` → `player.loaded` race condition |
+| Player start/stop errors | Added `buffer.loaded` + `state` safety checks |
+| Git case sensitivity | Resolved Windows `ui`/`UI` folder conflict with `git reset` |
 
 **AI Contribution:** 80% (diagnosis + solutions)
 **Human Contribution:** 20% (error reporting + testing)
@@ -599,6 +605,184 @@ AI refactored multiple components for mobile support:
 
 ---
 
+### 18. MVSEP Stem Separation Integration
+
+**Feature:** Complete stem separation pipeline using MVSEP's BS Roformer SW model, replacing the original Demucs/Replicate approach.
+
+**Background:** The original plan used Suno's built-in stem separation, but Suno flagged AI-generated tracks as copyrighted and blocked separation. Replicate (Demucs) was considered but is not free. MVSEP was selected as a free alternative with superior stem quality.
+
+**AI Solution:**
+AI designed and implemented a three-endpoint architecture:
+
+1. `api/separate.ts` — Downloads audio from Suno URL, uploads to MVSEP API with BS Roformer SW (sep_type=63), returns job hash
+2. `api/separate-status.ts` — Polls MVSEP for completion, maps stems to categories, returns proxied URLs
+3. `api/proxy-audio.ts` — CORS proxy to serve MVSEP audio files to the browser
+
+```javascript
+// AI-implemented MVSEP integration in api/separate.ts
+const formData = new FormData();
+formData.append("api_token", apiToken);
+formData.append("audiofile", audioBlob, "track.mp3");
+formData.append("sep_type", "63");   // BS Roformer SW: 6 stems
+formData.append("output_format", "2"); // mp3 128kbps (Vercel size limit)
+```
+
+**MVSEP Response Discovery:**
+AI debugged the empty stems issue by adding comprehensive logging, which revealed MVSEP uses `type` (not `name`) as the field identifier:
+
+```json
+{
+  "type": "Bass",
+  "url": "https://mvsep.com/storage/processed/...bass.mp3",
+  "size": "5.84 MB",
+  "download": "track_bs6stem_mt_0_bass.mp3"
+}
+```
+
+**Stem Category Mapping (6 → 5 categories):**
+```
+MVSEP Output     →  App Category
+─────────────────────────────────
+Drums            →  Rhythm
+Bass             →  Bass
+Guitar + Vocals  →  Melody
+Piano + Other    →  Harmony
+(empty)          →  Extras
+```
+
+**Files Created/Modified:**
+- `api/separate.ts` — 93 lines (created)
+- `api/separate-status.ts` — 141 lines (created)
+- `api/proxy-audio.ts` — 62 lines (created)
+- `src/lib/voicesApi.js` — Updated separation logic
+
+**AI Contribution:** 90% (architecture design, API discovery, implementation)
+**Human Contribution:** 10% (chose MVSEP over alternatives, provided API key)
+
+---
+
+### 19. CORS Audio Proxy with Domain Allowlist
+
+**Problem:** MVSEP's storage server (`mvsep.com/storage/processed/`) does not include `Access-Control-Allow-Origin` headers. Tone.js in the browser was blocked by CORS policy when trying to load stems directly.
+
+**AI Solution:**
+Created a Vercel API proxy that:
+1. Validates the URL against an allowlist of trusted domains
+2. Fetches the audio server-side (no CORS restrictions)
+3. Returns the audio with proper CORS headers and caching
+
+```javascript
+// AI-implemented domain allowlist in api/proxy-audio.ts
+const allowedDomains = [
+  "mvsep.com",
+  "musicfile.api.box",
+  "cdn.suno.ai",
+  "cdn1.suno.ai",
+  "cdn2.suno.ai",
+];
+```
+
+All stem URLs from MVSEP are automatically converted to proxied URLs:
+```
+Direct (blocked):  https://mvsep.com/storage/processed/...drums.mp3
+Proxied (works):   /api/proxy-audio?url=https%3A%2F%2Fmvsep.com%2F...drums.mp3
+```
+
+**AI Contribution:** 95% (proxy design + security allowlist)
+**Human Contribution:** 5% (expanded domain list)
+
+---
+
+### 20. Audio Buffer Race Condition Fix
+
+**Problem:** After MVSEP integration succeeded and CORS was resolved, audio still failed to play with errors:
+- `"buffer is either not set or not loaded"` — Tone.js players tried to play before their audio buffers finished downloading
+- `"'start' must be called before 'stop'"` — Code tried to stop players that were never started
+
+**Root Cause:** The `loadStemPlayers()` function used `Tone.loaded()` (a global promise) instead of individual `player.loaded` promises. This meant it resolved before all specific player buffers were ready.
+
+**AI Solution:**
+
+```javascript
+// BEFORE (broken) - Tone.loaded() resolves globally, not per-player
+loadPromises.push(Tone.loaded());
+
+// AFTER (fixed) - player.loaded resolves when THIS player's buffer is ready
+loadPromises.push(player.loaded);
+```
+
+Additional safety guards added:
+```javascript
+// In _processBarBoundary - check buffer before play
+if (newPlayer && newPlayer.buffer?.loaded) {
+  newPlayer.start(time);
+}
+
+// In stopPlayback - check state before stop
+if (player && player.buffer?.loaded && player.state === "started") {
+  player.stop();
+}
+```
+
+**Files Modified:**
+- `src/store/useVoicesStore.js` — Fixed `loadStemPlayers()`, `_processBarBoundary()`, `stopPlayback()`
+
+**AI Contribution:** 95% (diagnosis + fix)
+**Human Contribution:** 5% (error log sharing)
+
+---
+
+### 21. Worlds Settings Teacher Page
+
+**Feature:** Dedicated teacher settings page for configuring music generation parameters per world, accessible from the sidebar navigation.
+
+**AI Solution:**
+Created `WorldsSettings.tsx` with:
+- World selector dropdown (World 1: Fireside, World 2: Auditorium)
+- BPM slider (60–200)
+- Genre picker (10 genres: afrobeat, jazz, electronic, hip-hop, classical, rock, reggae, funk, world, ambient)
+- Style picker (8 styles: upbeat, relaxed, energetic, chill, intense, groovy, melodic, rhythmic)
+- Mood picker (8 moods: happy, calm, intense, dreamy, playful, focused, inspiring, mysterious)
+- Custom prompt textarea (optional override)
+- Save button with success toast
+
+```typescript
+// AI-implemented WorldsSettings.tsx
+const WORLDS = [
+  { id: "world1", name: "World 1 - Fireside", icon: "🔥" },
+  { id: "world2", name: "World 2 - Auditorium", icon: "🎭" },
+];
+```
+
+**Files Created:**
+- `src/assets/pages/teacher/WorldsSettings.tsx` — ~280 lines
+
+**AI Contribution:** 85% (component structure + logic)
+**Human Contribution:** 15% (genre/style/mood selection + page placement in navbar)
+
+---
+
+### 22. Per-World Stem Generation & Caching
+
+**Feature:** Each 3D world generates and caches its own stems independently using the teacher's per-world settings.
+
+**AI Solution:**
+- Session cache keys include `worldId`: `djembe_voices_stems_${worldId}`
+- `useVoicesStore.js` tracks `worldId` state and switches context when worlds change
+- `VoicesPanel.tsx` accepts `worldId` prop from World components
+- Settings fetched per world from database: `getVoiceSettings(schoolId, worldId)`
+
+```javascript
+// AI-implemented per-world caching in useVoicesStore.js
+const cacheKey = `djembe_voices_stems_${worldId}`;
+sessionStorage.setItem(cacheKey, JSON.stringify(result.stems));
+```
+
+**AI Contribution:** 80%
+**Human Contribution:** 20% (feature requirement + testing)
+
+---
+
 ## Human Developer Contributions
 
 The following aspects were entirely human-driven:
@@ -772,15 +956,17 @@ To capture these screenshots, open Claude Code in VS Code and screenshot the fol
 ### Code Entirely Written by AI
 
 ```
-api/separate-status.ts                          - 100% AI
-api/proxy-audio.ts                              - 90% AI (updates)
-src/lib/voicesApi.js                            - 80% AI (Suno integration, prompts)
+api/separate.ts                                 - 95% AI (MVSEP job creation, file download)
+api/separate-status.ts                          - 100% AI (polling, stem mapping, proxy URLs)
+api/proxy-audio.ts                              - 95% AI (CORS proxy with domain allowlist)
+src/lib/voicesApi.js                            - 85% AI (Suno integration, MVSEP polling, prompts)
 src/lib/notificationApi.js                      - 95% AI (complete notification API)
 src/lib/tutorialsApi.js                         - 95% AI (complete tutorials API)
 src/lib/cloudinaryApi.js                        - 90% AI (upload integration)
 src/lib/notifications_setup.sql                 - 95% AI (database schema)
 src/lib/tutorials_setup.sql                     - 95% AI (database schema + seed data)
 src/store/useNotificationStore.js               - 95% AI (real-time store)
+src/assets/pages/teacher/WorldsSettings.tsx     - 85% AI (per-world settings page)
 src/components/ui/Sidebar.tsx                   - 85% AI (sidebar navigation)
 src/components/ui/NotificationPanel.tsx         - 90% AI (notification UI)
 src/components/ui/NotificationBell.tsx          - 90% AI (bell component)
@@ -797,24 +983,27 @@ AI_USE_DOCUMENTATION.md                         - 100% AI
 ### Code with AI Assistance
 
 ```
-src/store/useVoicesStore.js                     - 60% AI (sync logic)
+src/store/useVoicesStore.js                     - 70% AI (sync logic, buffer fix, per-world state)
 src/store/useStore.js                           - 40% AI (proxy helper)
-src/lib/teacherApi.js                           - 60% AI (world_id + assignment functions)
+src/lib/teacherApi.js                           - 65% AI (world_id + voice settings + assignments)
 src/lib/progressApi.js                          - 40% AI (submission tracking updates)
-api/separate.ts                                 - 70% AI (refactoring)
+src/components/Voices/VoicesPanel.tsx            - 70% AI (panel UI, playback controls)
+src/components/Voices/VoiceCategory.tsx          - 75% AI (category UI with color coding)
+src/components/Voices/VoiceButton.tsx            - 75% AI (voice toggle button)
+src/components/Voices/VoicesGlobalControls.tsx   - 80% AI (global playback controls)
 src/components/teacher/AssignmentForm.tsx        - 50% AI (class selection + notifications)
 src/assets/pages/Assignments.tsx                - 40% AI (submission flow + notifications)
 src/assets/pages/TeacherDashboard.tsx           - 35% AI (notification integration)
 src/assets/pages/DAW-Lite/DAWLite.jsx           - 40% AI (mobile responsiveness)
-src/components/Worlds/World1.tsx                - 30% AI (mobile viewport)
-src/components/Worlds/World2.tsx                - 30% AI (mobile viewport)
+src/components/Worlds/World1.tsx                - 35% AI (mobile viewport + VoicesPanel integration)
+src/components/Worlds/World2.tsx                - 35% AI (mobile viewport + VoicesPanel integration)
 src/components/ui/tubelight-navbar-dark.tsx      - 45% AI (mobile menu + notifications)
 src/assets/pages/Auth/Login.tsx                 - 25% AI (responsive layout)
 src/assets/pages/Auth/Signup.tsx                - 25% AI (responsive layout)
 src/assets/pages/Dashboard.tsx                  - 30% AI (layout + sidebar integration)
 src/assets/pages/StudentProgress.tsx            - 30% AI (UI enhancements)
 src/assets/pages/Landing_page.jsx               - 25% AI (responsiveness)
-src/App.jsx                                     - 30% AI (routing + onboarding integration)
+src/App.jsx                                     - 35% AI (routing + worlds page + onboarding)
 src/index.css                                   - 20% AI (responsive utilities)
 vite.config.js                                  - 30% AI (build optimization)
 ```
@@ -878,28 +1067,28 @@ Project configuration (initial setup)
 
 ### Calculation Methodology
 
-The overall score is calculated as a weighted average across all project areas, considering both the percentage of AI contribution and the relative size/importance of each area. Updated to reflect all features through February 2026.
+The overall score is calculated as a weighted average across all project areas, considering both the percentage of AI contribution and the relative size/importance of each area. Updated to reflect all features through February 2026, including the complete MVSEP stem separation pipeline, per-world settings, and audio buffer fixes.
 
 ### Breakdown by Project Area
 
 | Project Area | Weight (%) | AI Contribution (%) | Weighted Score |
 |--------------|------------|---------------------|----------------|
-| Backend API (`api/`) | 8% | 80% | 6.4 |
-| Frontend Pages (`pages/`) | 14% | 25% | 3.5 |
-| UI Components (`components/ui/`) | 12% | 35% | 4.2 |
-| Voices System (`Voices/`, `voicesApi`) | 7% | 70% | 4.9 |
-| 3D Worlds (`Worlds/`) | 8% | 20% | 1.6 |
-| State Management (`store/`) | 7% | 50% | 3.5 |
-| Library/Utils (`lib/`) | 8% | 60% | 4.8 |
+| Backend API (`api/`) | 9% | 95% | 8.6 |
+| Frontend Pages (`pages/`) | 13% | 28% | 3.6 |
+| UI Components (`components/ui/`) | 11% | 35% | 3.9 |
+| Voices System (`Voices/`, `voicesApi`, stores) | 9% | 80% | 7.2 |
+| 3D Worlds (`Worlds/`) | 7% | 25% | 1.8 |
+| State Management (`store/`) | 7% | 55% | 3.9 |
+| Library/Utils (`lib/`) | 8% | 65% | 5.2 |
 | Notification System | 5% | 90% | 4.5 |
 | Tutorials System | 4% | 90% | 3.6 |
 | Onboarding System | 3% | 90% | 2.7 |
 | Authentication System | 4% | 15% | 0.6 |
-| Database Schema | 4% | 20% | 0.8 |
+| Database Schema | 4% | 25% | 1.0 |
 | Styling/CSS | 6% | 15% | 0.9 |
-| Documentation | 5% | 90% | 4.5 |
+| Documentation | 5% | 95% | 4.8 |
 | Project Config/Setup | 5% | 10% | 0.5 |
-| **TOTAL** | **100%** | — | **47.0%** |
+| **TOTAL** | **100%** | — | **52.8%** |
 
 ### Final Score
 
@@ -907,20 +1096,20 @@ The overall score is calculated as a weighted average across all project areas, 
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
 │           OVERALL PROJECT CONTRIBUTION                      │
-│           (Updated February 9, 2026)                        │
+│           (Updated February 21, 2026)                       │
 │                                                             │
 │     ┌──────────────────────────────────────────────┐       │
 │     │                                              │       │
-│     │   AI CONTRIBUTION:        47%                │       │
-│     │   HUMAN CONTRIBUTION:     53%                │       │
+│     │   AI CONTRIBUTION:        53%                │       │
+│     │   HUMAN CONTRIBUTION:     47%                │       │
 │     │                                              │       │
 │     └──────────────────────────────────────────────┘       │
 │                                                             │
-│     [██████████████████░░░░░░░░░░░░░░░░░░░░] 47% AI        │
-│     [░░░░░░░░░░░░░░░░░░████████████████████] 53% Human     │
+│     [█████████████████████░░░░░░░░░░░░░░░░░░░] 53% AI      │
+│     [░░░░░░░░░░░░░░░░░░░██████████████████████] 47% Human  │
 │                                                             │
-│     Previous Score (Jan 2026): 32% AI / 68% Human          │
-│     Change: +15% AI (new features added with AI assistance) │
+│     Previous Score (Feb 9, 2026): 47% AI / 53% Human       │
+│     Change: +6% AI (MVSEP pipeline, audio fixes, per-world)│
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -931,19 +1120,19 @@ The overall score is calculated as a weighted average across all project areas, 
 |-------------|----------------|--------------|
 | 0-20% | Minimal AI Use | |
 | 21-40% | Moderate AI Assistance | |
-| 41-60% | **Significant AI Collaboration** | **✓ 47%** |
+| 41-60% | **Significant AI Collaboration** | **✓ 53%** |
 | 61-80% | Heavy AI Reliance | |
 | 81-100% | AI-Generated Project | |
 
 ### What This Means
 
-- **53% Human-Driven:** The majority of the project—including all creative decisions, UI/UX design, educational content, database architecture, visual assets, and the core React component structure—was developed by the human developer.
+- **47% Human-Driven:** The human developer maintained full creative control over the project's vision, educational design, visual identity, user experience, and all architectural decisions. All UI/UX design decisions, database schema design, and feature prioritization were human-originated.
 
-- **47% AI-Assisted:** AI contribution increased from 32% to 47% as significant new features (notification system, tutorials, onboarding, sidebar, mobile responsiveness, and teacher submissions page) were implemented with heavy AI assistance in the final development phase.
+- **53% AI-Assisted:** AI contribution increased from 47% to 53% as the complete MVSEP stem separation pipeline, per-world voice settings, audio buffer race condition fixes, CORS proxy system, and Worlds Settings teacher page were implemented with heavy AI assistance. The voices system alone required extensive debugging of third-party API responses (MVSEP field names, CORS headers, Tone.js buffer loading) which was primarily AI-driven.
 
-- **Classification:** This project moved from "Moderate AI Assistance" to "Significant AI Collaboration," reflecting the increased use of AI for implementing complex feature systems. The AI served as a **development accelerator** — the human developer designed what to build, and the AI helped build it faster.
+- **Classification:** This project remains in the "Significant AI Collaboration" range (41-60%), reflecting that while AI handled the bulk of technical implementation (API integrations, audio synchronization, debugging), the human developer drove all design decisions, educational content, and project direction.
 
-- **Key Distinction:** The human developer maintained full creative control over the project's vision, educational design, visual identity, and user experience. AI was used to implement technical solutions efficiently, not to make design or pedagogical decisions.
+- **Key Distinction:** The AI served as a **technical implementation partner** — diagnosing complex issues (MVSEP response format, Tone.js race conditions, CORS policies), proposing architectures (polling endpoints, proxy systems), and writing implementation code. The human developer served as the **product owner** — deciding what to build, choosing technologies (MVSEP over Replicate), and validating all outputs through manual testing.
 
 ---
 
@@ -953,6 +1142,7 @@ The overall score is calculated as a weighted average across all project areas, 
 |---------|------|---------|
 | 1.0 | January 24, 2026 | Initial documentation covering core features |
 | 2.0 | February 9, 2026 | Added notification system, tutorials, onboarding, sidebar, mobile responsiveness, Cloudinary integration, teacher submissions, session screenshots section, updated contribution scores |
+| 3.0 | February 21, 2026 | Added MVSEP stem separation pipeline (replacing Demucs), CORS audio proxy with domain allowlist, audio buffer race condition fix, per-world stem generation and caching, Worlds Settings teacher page, MVSEP response field mapping discovery, player state safety guards, Git case sensitivity resolution, updated contribution scores (47% → 53%) |
 
 ---
 
@@ -965,11 +1155,12 @@ I declare that:
 3. The educational concept and design were human-originated
 4. AI was used as a development tool, not as the sole creator
 5. I understand and can explain all code in the project
-6. The AI contribution score increased from 32% to 47% due to additional features developed with AI assistance in the final phase
+6. The AI contribution score increased from 47% to 53% due to the complete MVSEP stem separation pipeline, audio debugging, and per-world settings features developed with AI assistance
+7. Third-party service selection (MVSEP over Replicate, BS Roformer SW model) was a human decision informed by AI research
 
 ---
 
 **Document Prepared By:** Project Developer
 **AI Assistant:** Claude (Anthropic) — Claude Opus 4.6
-**Date:** February 9, 2026
-**Version:** 2.0
+**Date:** February 21, 2026
+**Version:** 3.0

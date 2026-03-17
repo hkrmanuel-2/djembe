@@ -545,62 +545,61 @@ const World2: React.FC = () => {
     };
   }, []);
 
-  // Show portrait mode overlay on mobile
-  if (isMobile && isPortrait) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-[#1A2B4A] flex flex-col items-center justify-center p-8">
-        <style>{`
-          @keyframes pulse-rotate {
-            0%, 100% { transform: rotate(-15deg) scale(1); }
-            50% { transform: rotate(15deg) scale(1.05); }
-          }
-        `}</style>
-        <div className="text-center max-w-sm">
-          {/* Rotating phone icon */}
-          <div className="mb-6 relative">
-            <Smartphone
-              size={80}
-              className="text-[#E6B84D] mx-auto"
-              style={{ animation: 'pulse-rotate 2s ease-in-out infinite' }}
-            />
-            <RotateCcw
-              size={32}
-              className="text-[#4A9B9B] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            />
-          </div>
-
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Rotate Your Device
-          </h2>
-
-          <p className="text-white/70 mb-6">
-            Auditorium World works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
-            Please rotate your device horizontally to continue.
-          </p>
-
-          <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
-            <div className="w-12 h-8 border-2 border-white/30 rounded-md flex items-center justify-center">
-              <div className="w-8 h-4 bg-white/20 rounded-sm"></div>
-            </div>
-            <span>→</span>
-            <div className="w-16 h-10 border-2 border-[#E6B84D] rounded-md flex items-center justify-center">
-              <div className="w-10 h-6 bg-[#E6B84D]/20 rounded-sm"></div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate('/home')}
-            className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-full text-white text-sm hover:bg-white/20 transition-colors"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black">
+      {/* 3D Canvas — always in DOM so Three.js context survives orientation changes */}
+
+      {/* Portrait mode overlay (on top of canvas, not replacing it) */}
+      {isMobile && isPortrait && (
+        <div className="absolute inset-0 z-[100] bg-[#1A2B4A] flex flex-col items-center justify-center p-8">
+          <style>{`
+            @keyframes pulse-rotate {
+              0%, 100% { transform: rotate(-15deg) scale(1); }
+              50% { transform: rotate(15deg) scale(1.05); }
+            }
+          `}</style>
+          <div className="text-center max-w-sm">
+            <div className="mb-6 relative">
+              <Smartphone
+                size={80}
+                className="text-[#E6B84D] mx-auto"
+                style={{ animation: 'pulse-rotate 2s ease-in-out infinite' }}
+              />
+              <RotateCcw
+                size={32}
+                className="text-[#4A9B9B] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+              />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-3">
+              Rotate Your Device
+            </h2>
+
+            <p className="text-white/70 mb-6">
+              Auditorium World works best in <span className="text-[#E6B84D] font-semibold">landscape mode</span>.
+              Please rotate your device horizontally to continue.
+            </p>
+
+            <div className="flex items-center justify-center gap-2 text-white/50 text-sm">
+              <div className="w-12 h-8 border-2 border-white/30 rounded-md flex items-center justify-center">
+                <div className="w-8 h-4 bg-white/20 rounded-sm"></div>
+              </div>
+              <span>→</span>
+              <div className="w-16 h-10 border-2 border-[#E6B84D] rounded-md flex items-center justify-center">
+                <div className="w-10 h-6 bg-[#E6B84D]/20 rounded-sm"></div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/home')}
+              className="mt-8 px-6 py-2 bg-white/10 border border-white/20 rounded-full text-white text-sm hover:bg-white/20 transition-colors"
+            >
+              ← Back to Home
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3D Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
