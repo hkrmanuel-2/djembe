@@ -518,7 +518,7 @@ const World1: React.FC = () => {
           }
         },
         () => {},
-        (xhr) => { },
+        (_xhr) => { },
         (error) => {
           console.error("Error loading flutist:", error);
           updateLoadingProgress();
@@ -609,7 +609,7 @@ const World1: React.FC = () => {
             updateLoadingProgress();
           }
         },
-        (xhr) => { },
+        (_xhr) => { },
         (error) => {
           console.error("Error loading guitarist:", error);
           updateLoadingProgress();

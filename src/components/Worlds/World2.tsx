@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { Timer } from "three";
-// @ts-ignore - Module resolution issue with three addons in this project setup
+// @ts-expect-error - Module resolution issue with three addons in this project setup
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-// @ts-ignore
+// @ts-expect-error - Module resolution issue with three addons in this project setup
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone, X } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
@@ -33,7 +33,7 @@ const World2: React.FC = () => {
 
   // Raycasting & Interaction references
   const raycasterRef = useRef(new THREE.Raycaster());
-  const mouseRef = useRef(new THREE.Vector2());
+  const _mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
 
