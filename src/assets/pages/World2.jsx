@@ -70,6 +70,7 @@ export default function World2() {
     loader.load(
       "/models/auditorium_cinema/scene.gltf",
       (gltf) => {
+        console.log('✅ Auditorium model LOADED successfully', gltf);
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, -1, 0);
         gltf.scene.rotation.y = Math.PI;
@@ -89,12 +90,13 @@ export default function World2() {
         });
 
         scene.add(gltf.scene);
+        console.log('✅ Auditorium added to scene');
       },
       (xhr) => {
-        logger.log('Auditorium Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        console.log('Auditorium Loading: ' + (xhr.loaded / xhr.total * 100).toFixed(1) + '%');
       },
       (error) => {
-        console.error('Error loading auditorium model:', error);
+        console.error('❌ Error loading auditorium model:', error);
       }
     );
 
