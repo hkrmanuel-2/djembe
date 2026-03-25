@@ -124,7 +124,7 @@ const Landing_page = () => {
 
           {/* Nav Links */}
           <div className="hidden md:flex items-center gap-1">
-            {["About", "Features", "Tutorials", "Contact"].map((item) => (
+            {["About", "Features"].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}

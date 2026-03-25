@@ -10,14 +10,14 @@ export default function World2() {
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
   const animationFrameRef = useRef(null);
-  
+
   // Animation references - separate for each character
   const drummerMixerRef = useRef(null);
   const drummerActionRef = useRef(null);
   const pianistMixerRef = useRef(null);
   const pianistActionRef = useRef(null);
-  const clockRef = useRef(new THREE.Clock());
-  
+  const timerRef = useRef(new THREE.Timer());
+
   // Raycasting references
   const raycasterRef = useRef(new THREE.Raycaster());
   const mouseRef = useRef(new THREE.Vector2());
@@ -68,7 +68,7 @@ export default function World2() {
     // Load auditorium model
     const loader = new GLTFLoader();
     loader.load(
-      '/src/components/3D_World_2/auditorium_cinema (1)/scene.gltf',
+      "public/models/auditorium_cinema/scene.gltf",
       (gltf) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, -1, 0);
@@ -107,7 +107,7 @@ export default function World2() {
         model.scale.set(4, 4, 4);
         model.position.set(6, 5, -95);
         model.rotation.y = 0;
-        
+
         // Store reference for raycasting
         drummerModelRef.current = model;
 
@@ -116,7 +116,7 @@ export default function World2() {
             logger.log('Mesh found:', child.name, child.material);
             // Enable raycasting on meshes
             child.userData.clickable = true;
-            
+
             if (child.material) {
               const materials = Array.isArray(child.material) ? child.material : [child.material];
               materials.forEach((material) => {
@@ -196,13 +196,13 @@ export default function World2() {
     // Load pianist model with animation
     const loader3 = new GLTFLoader();
     loader3.load(
-      '/src/components/3D_World_1/Black_Student_Boy/pianist_black_boy.glb', 
+      '/src/components/3D_World_1/Black_Student_Boy/pianist_black_boy.glb',
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(4, 4, 4);
         model.position.set(12, 5, -95);
         model.rotation.y = 0;
-        
+
         // Store reference for raycasting
         pianistModelRef.current = model;
 
@@ -211,7 +211,7 @@ export default function World2() {
             logger.log('Mesh found:', child.name, child.material);
             // Enable raycasting on meshes
             child.userData.clickable = true;
-            
+
             if (child.material) {
               const materials = Array.isArray(child.material) ? child.material : [child.material];
               materials.forEach((material) => {
@@ -298,7 +298,8 @@ export default function World2() {
       animationFrameRef.current = requestAnimationFrame(animate);
 
       // Update animation mixers for both characters
-      const delta = clockRef.current.getDelta();
+      timerRef.current.update();
+      const delta = timerRef.current.getDelta();
       if (drummerMixerRef.current) {
         drummerMixerRef.current.update(delta);
       }

@@ -27,7 +27,7 @@ const World1: React.FC = () => {
   // Animation references
   const mixersRef = useRef<THREE.AnimationMixer[]>([]);
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
-  const clockRef = useRef(new THREE.Clock());
+  const timerRef = useRef(new THREE.Timer());
 
   // Raycasting and Dragging references
   const raycasterRef = useRef(new THREE.Raycaster());
@@ -787,7 +787,8 @@ const World1: React.FC = () => {
       rafId = requestAnimationFrame(animate);
 
       // Update all animation mixers
-      const delta = clockRef.current.getDelta();
+      timerRef.current.update();
+      const delta = timerRef.current.getDelta();
       mixersRef.current.forEach((mixer) => {
         mixer.update(delta);
       });
