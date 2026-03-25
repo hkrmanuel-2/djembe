@@ -312,7 +312,7 @@ const World2: React.FC = () => {
     // Load main auditorium model
     const audiLoader = new GLTFLoader();
     audiLoader.load(
-      "src/components/3D_World_2/theater_cinema_auditorium_style_2_of_2/scene.gltf",
+      "/models/theater_auditorium/scene.gltf",
       (gltf: any) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, -2, 1);
@@ -322,8 +322,7 @@ const World2: React.FC = () => {
         updateLoadingProgress();
       },
       (xhr: any) => {
-        const progress = (xhr.loaded / xhr.total) * 100;
-        logger.log(`Auditorium loading: ${progress}%`);
+        if (xhr.total > 0) logger.log(`Auditorium loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
       },
       (error: any) => {
         console.error("Error loading auditorium:", error);

@@ -263,7 +263,7 @@ const World1: React.FC = () => {
           logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          if (xhr.total > 0) logger.log(`${name} loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -324,7 +324,7 @@ const World1: React.FC = () => {
           logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          if (xhr.total > 0) logger.log(`${name} loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -357,8 +357,7 @@ const World1: React.FC = () => {
         updateLoadingProgress();
       },
       (xhr) => {
-        const progress = (xhr.loaded / xhr.total) * 100;
-        logger.log(`Campfire loading: ${progress}%`);
+        if (xhr.total > 0) logger.log(`Campfire loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
       },
       (error) => {
         console.error("Error loading campfire:", error);

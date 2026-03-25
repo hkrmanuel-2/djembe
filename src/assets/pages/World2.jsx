@@ -91,7 +91,7 @@ export default function World2() {
         scene.add(gltf.scene);
       },
       (xhr) => {
-        logger.log('Auditorium Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        if (xhr.total > 0) logger.log('Auditorium Loading: ' + (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
       },
       (error) => {
         console.error('Error loading auditorium model:', error);
@@ -153,7 +153,7 @@ export default function World2() {
         }
       },
       (xhr) => {
-        logger.log('Drummer Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        if (xhr.total > 0) logger.log('Drummer Loading: ' + (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
       },
       (error) => {
         console.error('Error loading drummer model:', error);
@@ -248,7 +248,7 @@ export default function World2() {
         }
       },
       (xhr) => {
-        logger.log('Pianist Loading: ' + (xhr.loaded / xhr.total * 100) + '%');
+        if (xhr.total > 0) logger.log('Pianist Loading: ' + (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
       },
       (error) => {
         console.error('Error loading pianist model:', error);
