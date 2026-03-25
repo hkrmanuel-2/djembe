@@ -68,7 +68,7 @@ export default function World2() {
     // Load auditorium model
     const loader = new GLTFLoader();
     loader.load(
-      "public/models/auditorium_cinema/scene.gltf",
+      "/models/auditorium_cinema/scene.gltf",
       (gltf) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, -1, 0);
