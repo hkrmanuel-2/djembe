@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useStore } from "../../../store/useStore.js";
+import { supabase } from "../../../lib/supabase.js";
 import LoopLibrary from "../../../components/ui/DAW-Lite/LoopLibrary.jsx";
 import Timeline from "../../../components/ui/DAW-Lite/Timeline.jsx";
 import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols.jsx";
@@ -16,6 +17,8 @@ export default function DAWLite() {
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true); // For toggling loop library on mobile
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get("assignmentId");
 
   // Check for portrait mode and mobile device
   useEffect(() => {
@@ -52,10 +55,16 @@ export default function DAWLite() {
 
   // Get actions from store
   const loadLoops = useStore((state) => state.loadLoops);
+  const loadAssignmentLoops = useStore((state) => state.loadAssignmentLoops);
+  const setAssignmentContext = useStore((state) => state.setAssignmentContext);
+  const clearAssignmentContext = useStore((state) => state.clearAssignmentContext);
+  const assignmentContext = useStore((state) => state.assignmentContext);
   const addPlacedLoop = useStore((state) => state.addPlacedLoop);
   const removePlacedLoop = useStore((state) => state.removePlacedLoop);
   const updatePlacedLoop = useStore((state) => state.updatePlacedLoop);
   const setProjectName = useStore((state) => state.setProjectName);
+  const setBpm = useStore((state) => state.setBpm);
+  const newProject = useStore((state) => state.newProject);
   const updateProjectDimensions = useStore((state) => state.updateProjectDimensions);
 
   // Calculate loop span based on audio duration and BPM (target: 4 bars = 16 beats)
@@ -80,10 +89,36 @@ export default function DAWLite() {
     });
   };
 
-  // Load loops from database on mount
+  // Load loops from database on mount (or assignment loops if in assignment mode)
   useEffect(() => {
-    loadLoops();
-  }, [loadLoops]);
+    if (assignmentId) {
+      (async () => {
+        // Fetch assignment metadata
+        const { data: assignment } = await supabase
+          .from("assignments")
+          .select("title, bpm, bars")
+          .eq("assignment_id", assignmentId)
+          .single();
+
+        if (assignment) {
+          setAssignmentContext({ assignmentId, ...assignment });
+          // Reset project and apply assignment settings
+          newProject();
+          setProjectName(assignment.title);
+          if (assignment.bpm) setBpm(assignment.bpm);
+          if (assignment.bars) updateProjectDimensions(assignment.bars, 5);
+        }
+        await loadAssignmentLoops(assignmentId);
+      })();
+    } else {
+      loadLoops();
+    }
+
+    return () => {
+      // Clean up assignment context when leaving DAW
+      clearAssignmentContext();
+    };
+  }, [assignmentId]);
 
   const handleDragStart = (loop) => {
     setDraggedLoop(loop);

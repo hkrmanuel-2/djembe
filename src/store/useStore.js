@@ -137,12 +137,50 @@ export const useStore = create(
           bars: 10,
         },
 
+        // Assignment mode context (not persisted)
+        assignmentContext: null,
+
         // Audio players (not persisted)
         players: {},
         audioInitialized: false,
         isLoading: false,
         error: null,
         userProjects: [],
+
+        // ==================== ASSIGNMENT LOOPS ====================
+        setAssignmentContext: (context) => set({ assignmentContext: context }),
+        clearAssignmentContext: () => set({ assignmentContext: null }),
+
+        loadAssignmentLoops: async (assignmentId) => {
+          set({ isLoading: true, error: null });
+          try {
+            const { data, error } = await supabase
+              .from("assignment_loops")
+              .select("*")
+              .eq("assignment_id", assignmentId)
+              .order("name", { ascending: true });
+
+            if (error) throw error;
+
+            const loops = data.map((loop) => ({
+              id: loop.id,
+              name: loop.name,
+              url: loop.url,
+              color: loop.color || "bg-purple-400",
+              hoverColor: loop.hover_color || "hover:bg-purple-500",
+              border: loop.border || "border-purple-600",
+              icon: loop.icon || "🎵",
+              bpm: loop.bpm || 120,
+            }));
+
+            set({ library: loops, isLoading: false });
+            return { success: true, data: loops };
+          } catch (error) {
+            console.error("Load assignment loops error:", error);
+            set({ error: error.message, isLoading: false });
+            return { success: false, error: error.message };
+          }
+        },
 
         // ==================== LOAD LOOPS FROM DATABASE ====================
         loadLoops: async () => {

@@ -1,10 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../../../store/useStore.js";
-import { exportProjectAsAudio } from "../../../lib/audioExport.js";
+import { useAuthStore } from "../../../store/useAuthStore.js";
+import { exportProjectAsAudio, exportProjectAsBlob } from "../../../lib/audioExport.js";
+import { uploadAssignmentSubmission } from "../../../lib/storageApi.js";
+import { supabase } from "../../../lib/supabase.js";
+import { useProgressStore } from "../../../store/useProgressStore.js";
 
 export default function ProjectMenu({ isMobile }) {
     const [showProjects, setShowProjects] = useState(false);
     const [notification, setNotification] = useState(null);
+    const navigate = useNavigate();
 
     const saveProject = useStore((state) => state.saveProject);
     const loadProject = useStore((state) => state.loadProject);
@@ -18,6 +24,7 @@ export default function ProjectMenu({ isMobile }) {
     const bpm = useStore((state) => state.transport.bpm);
     const bars = useStore((state) => state.project.bars);
     const projectName = useStore((state) => state.project.name);
+    const assignmentContext = useStore((state) => state.assignmentContext);
     const [isExporting, setIsExporting] = useState(false);
 
     const showNotification = (message, type = "success") => {
@@ -84,37 +91,109 @@ export default function ProjectMenu({ isMobile }) {
         }
     };
 
+    const handleExportAndSubmit = async () => {
+        if (placedLoops.length === 0) {
+            showNotification("Add some loops before submitting.", "error");
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const filename = projectName || 'assignment-submission';
+            const { blob, extension } = await exportProjectAsBlob(placedLoops, bpm, bars);
+
+            // Upload to Supabase Storage
+            const file = new File([blob], `${filename}.${extension}`, { type: blob.type });
+            const userProfile = useAuthStore.getState().userProfile;
+            const uploadResult = await uploadAssignmentSubmission(
+                file,
+                userProfile.student_id,
+                assignmentContext.assignmentId
+            );
+
+            if (!uploadResult.success) throw new Error(uploadResult.error);
+
+            // Create submission record
+            const { error: insertError } = await supabase.from("submissions").upsert({
+                assignment_id: assignmentContext.assignmentId,
+                student_id: userProfile.student_id,
+                file_url: uploadResult.data.secure_url,
+                file_name: `${filename}.${extension}`,
+                submitted_at: new Date().toISOString(),
+            });
+
+            if (insertError) throw insertError;
+
+            // Track progress
+            try {
+                useProgressStore.getState().trackAssignmentSubmit(
+                    userProfile.student_id,
+                    assignmentContext.assignmentId,
+                    assignmentContext.title,
+                    true
+                );
+            } catch (_) { /* non-critical */ }
+
+            showNotification("Assignment submitted successfully!", "success");
+            setTimeout(() => navigate("/assignments"), 1500);
+        } catch (error) {
+            console.error('Submit error:', error);
+            showNotification(`Submission failed: ${error.message}`, "error");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm px-2 md:px-4 py-1.5 md:py-2 flex-shrink-0">
             {/* Buttons */}
             <div className="flex gap-1.5 md:gap-2 flex-wrap">
-                <button
-                    onClick={handleNew}
-                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-blue-500/80 text-white rounded-md hover:bg-blue-500 transition-colors font-semibold shadow-lg`}
-                >
-                    📄 {isMobile ? '' : 'New'}
-                </button>
-                <button
-                    onClick={handleSave}
-                    disabled={isLoading}
-                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-green-500/80 text-white rounded-md hover:bg-green-500 transition-colors font-semibold disabled:opacity-50 shadow-lg`}
-                >
-                    💾 {isLoading ? "..." : (isMobile ? '' : 'Save')}
-                </button>
-                <button
-                    onClick={handleLoadClick}
-                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-purple-500/80 text-white rounded-md hover:bg-purple-500 transition-colors font-semibold shadow-lg`}
-                >
-                    📂 {isMobile ? '' : 'Load'}
-                </button>
-                <button
-                    onClick={handleExport}
-                    disabled={isExporting || placedLoops.length === 0}
-                    className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-orange-500/80 text-white rounded-md hover:bg-orange-500 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
-                    title={placedLoops.length === 0 ? "Add loops to export" : "Export project as MP3 audio file"}
-                >
-                    {isExporting ? "⏳" : "⬇️"} {isMobile ? '' : 'Export'}
-                </button>
+                {assignmentContext ? (
+                    <>
+                        {/* Assignment mode: only show Export & Submit */}
+                        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-teal-300 font-semibold flex items-center px-2`}>
+                            📋 {isMobile ? 'Assignment' : assignmentContext.title}
+                        </div>
+                        <button
+                            onClick={handleExportAndSubmit}
+                            disabled={isExporting || placedLoops.length === 0}
+                            className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-4 py-1.5 text-xs'} bg-teal-500/80 text-white rounded-md hover:bg-teal-500 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
+                            title={placedLoops.length === 0 ? "Add loops to submit" : "Export and submit your assignment"}
+                        >
+                            {isExporting ? "⏳ Submitting..." : "🚀"} {isMobile ? '' : (isExporting ? '' : 'Export & Submit')}
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button
+                            onClick={handleNew}
+                            className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-blue-500/80 text-white rounded-md hover:bg-blue-500 transition-colors font-semibold shadow-lg`}
+                        >
+                            📄 {isMobile ? '' : 'New'}
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isLoading}
+                            className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-green-500/80 text-white rounded-md hover:bg-green-500 transition-colors font-semibold disabled:opacity-50 shadow-lg`}
+                        >
+                            💾 {isLoading ? "..." : (isMobile ? '' : 'Save')}
+                        </button>
+                        <button
+                            onClick={handleLoadClick}
+                            className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-purple-500/80 text-white rounded-md hover:bg-purple-500 transition-colors font-semibold shadow-lg`}
+                        >
+                            📂 {isMobile ? '' : 'Load'}
+                        </button>
+                        <button
+                            onClick={handleExport}
+                            disabled={isExporting || placedLoops.length === 0}
+                            className={`${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'} bg-orange-500/80 text-white rounded-md hover:bg-orange-500 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
+                            title={placedLoops.length === 0 ? "Add loops to export" : "Export project as MP3 audio file"}
+                        >
+                            {isExporting ? "⏳" : "⬇️"} {isMobile ? '' : 'Export'}
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* Notification */}
