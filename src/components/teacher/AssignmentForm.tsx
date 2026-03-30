@@ -132,7 +132,7 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-lg rounded-2xl backdrop-blur-md border p-6"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl backdrop-blur-md border p-6"
         style={{
           backgroundColor: "rgba(26, 43, 74, 0.95)",
           borderColor: "rgba(255, 255, 255, 0.15)",
