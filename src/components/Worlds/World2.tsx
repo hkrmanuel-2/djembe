@@ -8,6 +8,8 @@ import { Timer } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 // @ts-expect-error - Module resolution issue with three addons in this project setup
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+// @ts-expect-error - Module resolution issue with three addons
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone, X } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 import { useVoicesStore } from "../../store/useVoicesStore";
@@ -178,6 +180,7 @@ const World2: React.FC = () => {
 
     // Shared loader instance for all models (reuses parser & cache)
     const sharedLoader = new GLTFLoader();
+    sharedLoader.setMeshoptDecoder(MeshoptDecoder);
 
     // Helper function to setup model materials
     const setupModelMaterials = (model: THREE.Object3D) => {
@@ -312,7 +315,7 @@ const World2: React.FC = () => {
 
     // Load main auditorium model
     sharedLoader.load(
-      "/models/theater_auditorium/scene.gltf",
+      "/models/theater_auditorium/scene.glb",
       (gltf: any) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, -2, 1);

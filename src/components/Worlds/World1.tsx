@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 import { useVoicesStore } from "../../store/useVoicesStore";
@@ -194,6 +195,7 @@ const World1: React.FC = () => {
 
     // Shared loader instance (reuses parser & cache)
     const sharedLoader = new GLTFLoader();
+    sharedLoader.setMeshoptDecoder(MeshoptDecoder);
 
     // Track loading progress
     let modelsLoaded = 0;
