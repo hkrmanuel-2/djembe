@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { LucideIcon, LogOut } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface NavItem {
   name: string;
@@ -40,6 +41,7 @@ function getItemColor(name: string) {
 
 export function Sidebar({ items, userProfile, onSignOut }: SidebarProps) {
   const location = useLocation();
+  const userType = useAuthStore((state) => state.userType);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
@@ -120,8 +122,36 @@ export function Sidebar({ items, userProfile, onSignOut }: SidebarProps) {
           const isActive = activeTab === item.name || (item.name === "Worlds" && (location.pathname === "/world1" || location.pathname === "/world2"));
           const color = getItemColor(item.name);
           const isWorldItem = item.name === "Worlds";
+          const isTeacher = userType === "teacher";
 
           if (isWorldItem) {
+            // Teachers: direct link to world settings page (no dropdown needed)
+            if (isTeacher) {
+              return (
+                <RouterLink key={item.name} to="/teacher/worlds" title={item.name}>
+                  <motion.div
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    className="flex items-center gap-3 rounded-xl transition-all duration-200 cursor-pointer"
+                    style={{
+                      height: 48,
+                      padding: expanded ? "0 14px" : "0",
+                      justifyContent: expanded ? "flex-start" : "center",
+                      background: isActive ? color : "transparent",
+                      color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
+                      fontFamily: "'Fredoka', sans-serif",
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: 15,
+                    }}
+                  >
+                    <Icon size={24} strokeWidth={2} />
+                    {expanded && <span>{item.name}</span>}
+                  </motion.div>
+                </RouterLink>
+              );
+            }
+
+            // Students: dropdown with world sub-pages
             return (
               <div key={item.name}>
                 <motion.div
@@ -157,7 +187,7 @@ export function Sidebar({ items, userProfile, onSignOut }: SidebarProps) {
                 </motion.div>
 
                 <AnimatePresence>
-                  {isWorldItem && worldMenuOpen && expanded && (
+                  {worldMenuOpen && expanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
