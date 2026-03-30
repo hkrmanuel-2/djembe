@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useAuthStore } from "./useAuthStore";
 import { useProgressStore } from "./useProgressStore";
 import { logger } from "../lib/logger";
+import { preloadDurations } from "../lib/audioDurationCache";
 
 export const useStore = create(
   persist(
@@ -17,18 +18,23 @@ export const useStore = create(
       // Track which loop instances have been triggered at which beat
       // This prevents retriggering the same loop instance multiple times
       const triggeredLoops = new Set(); // Set of "loopId-beatIndex" strings
+      const activeAudioElements = new Set(); // Track playing Audio elements so we can stop them
 
       // helper: play a loop once (DAW-style, not continuous looping)
       const playLoopOnce = (loop) => {
         if (!loop || !loop.url) return;
         try {
           const audio = new Audio(loop.url);
-          audio.loop = false; // Play once, don't loop
-          audio.volume = 1.0; // Full volume for clear playback
+          audio.loop = false;
+          audio.volume = 1.0;
+          activeAudioElements.add(audio);
+          audio.addEventListener('ended', () => {
+            activeAudioElements.delete(audio);
+          });
           audio.play().catch((err) => {
             logger.warn("Audio play error:", err);
+            activeAudioElements.delete(audio);
           });
-          // Let the audio play to completion naturally - don't track it
         } catch (err) {
           logger.warn("Failed to play placed loop:", err);
         }
@@ -36,8 +42,12 @@ export const useStore = create(
 
       // Stop all loops (for stop/rewind)
       const stopAllLoops = () => {
-        // Clear triggered loops tracking so they can play again
         triggeredLoops.clear();
+        activeAudioElements.forEach((audio) => {
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        activeAudioElements.clear();
       };
 
       // update loop called by requestAnimationFrame
@@ -225,6 +235,11 @@ export const useStore = create(
             }));
 
             set({ library: loops, isLoading: false });
+
+            // Background preload audio durations so timeline drops are instant
+            const urls = loops.map(l => l.url).filter(Boolean);
+            preloadDurations(urls);
+
             return { success: true, data: loops };
           } catch (error) {
             console.error("Load loops error:", error);

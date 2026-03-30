@@ -176,6 +176,9 @@ const World2: React.FC = () => {
       }
     };
 
+    // Shared loader instance for all models (reuses parser & cache)
+    const sharedLoader = new GLTFLoader();
+
     // Helper function to setup model materials
     const setupModelMaterials = (model: THREE.Object3D) => {
       model.traverse((child) => {
@@ -204,8 +207,7 @@ const World2: React.FC = () => {
       scale: THREE.Vector3,
       rotation: number | THREE.Euler = 0
     ) => {
-      const loader = new GLTFLoader();
-      loader.load(
+      sharedLoader.load(
         path,
         (gltf: any) => {
           const model = gltf.scene;
@@ -253,8 +255,7 @@ const World2: React.FC = () => {
       scale: THREE.Vector3,
       rotation: number | THREE.Euler = 0
     ) => {
-      const loader = new GLTFLoader();
-      loader.load(
+      sharedLoader.load(
         path,
         (gltf: any) => {
           const model = gltf.scene;
@@ -310,8 +311,7 @@ const World2: React.FC = () => {
     };
 
     // Load main auditorium model
-    const audiLoader = new GLTFLoader();
-    audiLoader.load(
+    sharedLoader.load(
       "/models/theater_auditorium/scene.gltf",
       (gltf: any) => {
         gltf.scene.scale.set(1, 1, 1);

@@ -41,7 +41,7 @@ function getItemColor(name: string) {
 
 export function Sidebar({ items, userProfile, onSignOut }: SidebarProps) {
   const location = useLocation();
-  const userType = useAuthStore((state) => state.userType);
+  const userType = useAuthStore((state: any) => state.userType);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);

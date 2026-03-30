@@ -9,8 +9,8 @@ import Signup from './assets/pages/Auth/Signup';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { Button } from './components/ui/button';
-import World1 from './components/Worlds/World1';
-import World2 from './components/Worlds/World2';
+const World1 = React.lazy(() => import('./components/Worlds/World1'));
+const World2 = React.lazy(() => import('./components/Worlds/World2'));
 import Assignments from './assets/pages/Assignments';
 import StudentProgress from './assets/pages/StudentProgress';
 import TeacherDashboard from './assets/pages/TeacherDashboard';
@@ -169,12 +169,30 @@ function AppContent() {
             } />
             <Route path="/world1" element={
               <ProtectedRoute allowedRoles={['student']}>
-                <World1 />
+                <React.Suspense fallback={
+                  <div className="flex items-center justify-center h-screen bg-black">
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4 border-purple-800 border-t-orange-500" />
+                      <p className="text-white text-lg font-semibold">Loading World...</p>
+                    </div>
+                  </div>
+                }>
+                  <World1 />
+                </React.Suspense>
               </ProtectedRoute>
             } />
             <Route path="/world2" element={
               <ProtectedRoute allowedRoles={['student']}>
-                <World2 />
+                <React.Suspense fallback={
+                  <div className="flex items-center justify-center h-screen bg-black">
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4 border-purple-800 border-t-orange-500" />
+                      <p className="text-white text-lg font-semibold">Loading World...</p>
+                    </div>
+                  </div>
+                }>
+                  <World2 />
+                </React.Suspense>
               </ProtectedRoute>
             } />
 

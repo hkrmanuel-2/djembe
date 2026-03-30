@@ -9,6 +9,7 @@ import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
 import AILoopGenerator from "../../../components/ui/DAW-Lite/AILoopGenerator.jsx";
 import { Home, RotateCcw, Smartphone } from "lucide-react";
 import { logger } from "../../../lib/logger";
+import { getCachedDuration } from "../../../lib/audioDurationCache";
 
 export default function DAWLite() {
   const [draggedLoop, setDraggedLoop] = useState(null);
@@ -69,21 +70,29 @@ export default function DAWLite() {
 
   // Calculate loop span based on audio duration and BPM (target: 4 bars = 16 beats)
   const calculateSpan = async (audioUrl, targetBars = 4) => {
+    const durationToSpan = (duration) => {
+      const secondsPerBeat = 60 / bpm;
+      const beats = duration / secondsPerBeat;
+      const targetBeats = targetBars * 4;
+      const calculatedBeats = Math.max(targetBeats, Math.round(beats));
+      const gridUnits = calculatedBeats * 4;
+      return Math.max(16, Math.round(gridUnits));
+    };
+
+    // Use cached duration if available (instant, no network wait)
+    const cached = getCachedDuration(audioUrl);
+    if (cached !== null) {
+      return durationToSpan(cached);
+    }
+
+    // Fallback: load metadata (only for uncached loops)
     return new Promise((resolve) => {
       const audio = new Audio(audioUrl);
       audio.addEventListener('loadedmetadata', () => {
-        const duration = audio.duration; // seconds
-        const secondsPerBeat = 60 / bpm;
-        const beats = duration / secondsPerBeat;
-        // Round to nearest beat, minimum target bars
-        const targetBeats = targetBars * 4; // 4 beats per bar
-        const calculatedBeats = Math.max(targetBeats, Math.round(beats));
-        // Convert to grid units (4 subdivisions per beat = 16th notes)
-        const gridUnits = calculatedBeats * 4;
-        resolve(Math.max(16, Math.round(gridUnits))); // Minimum 4 bars (16 beats * 4 = 64 grid units, but let's use 16 for 4 bars)
+        resolve(durationToSpan(audio.duration));
       });
       audio.addEventListener('error', () => {
-        resolve(64); // Fallback: 4 bars * 4 beats * 4 subdivisions = 64 grid units
+        resolve(64);
       });
       audio.load();
     });
