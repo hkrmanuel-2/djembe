@@ -409,7 +409,7 @@ const World2: React.FC = () => {
 
     // Flute - back left
     loadStaticModel(
-      "/models/Black_Student_Boy/flute (1).glb",
+      "/models/Black_Student_Boy/flute.glb",
       "flute",
       new THREE.Vector3(167.08, 80.00, 394.11),
       new THREE.Vector3(0.6, 0.6, 0.6),
