@@ -113,6 +113,8 @@ export async function createAssignment(teacherId, schoolId, data) {
           description: data.description,
           due_date: data.due_date,
           assignment_type: data.assignment_type || "upload",
+          bpm: data.bpm || null,
+          bars: data.bars || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -150,6 +152,8 @@ export async function updateAssignment(assignmentId, data) {
         description: data.description,
         due_date: data.due_date,
         assignment_type: data.assignment_type,
+        bpm: data.bpm || null,
+        bars: data.bars || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", assignmentId)
@@ -487,6 +491,57 @@ export async function getStudentDifficulties(schoolId, classId = null) {
   } catch (error) {
     console.error("Get student difficulties error:", error);
     return { data: [], error: error.message };
+  }
+}
+
+// ============================================
+// ASSIGNMENT LOOPS
+// ============================================
+
+/**
+ * Get all loops for a specific assignment
+ */
+export async function getAssignmentLoops(assignmentId) {
+  try {
+    const { data, error } = await supabase
+      .from("assignment_loops")
+      .select("*")
+      .eq("assignment_id", assignmentId)
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return { data: data || [], error: null };
+  } catch (error) {
+    console.error("Get assignment loops error:", error);
+    return { data: [], error: error.message };
+  }
+}
+
+/**
+ * Create a loop record for an assignment
+ */
+export async function createAssignmentLoop(assignmentId, loopData) {
+  try {
+    const { data, error } = await supabase
+      .from("assignment_loops")
+      .insert([{
+        assignment_id: assignmentId,
+        name: loopData.name,
+        url: loopData.url,
+        icon: loopData.icon || "🎵",
+        color: loopData.color || "bg-purple-400",
+        hover_color: loopData.hover_color || "hover:bg-purple-500",
+        border: loopData.border || "border-purple-600",
+        bpm: loopData.bpm,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error("Create assignment loop error:", error);
+    return { data: null, error: error.message };
   }
 }
 

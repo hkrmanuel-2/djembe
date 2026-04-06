@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 import { useVoicesStore } from "../../store/useVoicesStore";
@@ -27,7 +28,7 @@ const World1: React.FC = () => {
   // Animation references
   const mixersRef = useRef<THREE.AnimationMixer[]>([]);
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
-  const clockRef = useRef(new THREE.Clock());
+  const timerRef = useRef(new THREE.Timer());
 
   // Raycasting and Dragging references
   const raycasterRef = useRef(new THREE.Raycaster());
@@ -194,6 +195,7 @@ const World1: React.FC = () => {
 
     // Shared loader instance (reuses parser & cache)
     const sharedLoader = new GLTFLoader();
+    sharedLoader.setMeshoptDecoder(MeshoptDecoder);
 
     // Track loading progress
     let modelsLoaded = 0;
@@ -263,7 +265,7 @@ const World1: React.FC = () => {
           logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          if (xhr.total > 0) logger.log(`${name} loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -324,7 +326,7 @@ const World1: React.FC = () => {
           logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          logger.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          if (xhr.total > 0) logger.log(`${name} loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -357,8 +359,7 @@ const World1: React.FC = () => {
         updateLoadingProgress();
       },
       (xhr) => {
-        const progress = (xhr.loaded / xhr.total) * 100;
-        logger.log(`Campfire loading: ${progress}%`);
+        if (xhr.total > 0) logger.log(`Campfire loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
       },
       (error) => {
         console.error("Error loading campfire:", error);
@@ -518,7 +519,7 @@ const World1: React.FC = () => {
           }
         },
         () => {},
-        (xhr) => { },
+        (_xhr) => { },
         (error) => {
           console.error("Error loading flutist:", error);
           updateLoadingProgress();
@@ -609,7 +610,7 @@ const World1: React.FC = () => {
             updateLoadingProgress();
           }
         },
-        (xhr) => { },
+        (_xhr) => { },
         (error) => {
           console.error("Error loading guitarist:", error);
           updateLoadingProgress();
@@ -787,7 +788,8 @@ const World1: React.FC = () => {
       rafId = requestAnimationFrame(animate);
 
       // Update all animation mixers
-      const delta = clockRef.current.getDelta();
+      timerRef.current.update();
+      const delta = timerRef.current.getDelta();
       mixersRef.current.forEach((mixer) => {
         mixer.update(delta);
       });

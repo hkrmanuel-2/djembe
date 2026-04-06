@@ -8,6 +8,8 @@ export default function TransportControls({ isMobile }) {
     const rewind = useStore((state) => state.rewind);
     const setBpm = useStore((state) => state.setBpm);
     const audioInitialized = useStore((state) => state.audioInitialized);
+    const assignmentContext = useStore((state) => state.assignmentContext);
+    const bpmLocked = !!assignmentContext;
 
     const handleBpmChange = (e) => {
         setBpm(parseInt(e.target.value));
@@ -49,7 +51,8 @@ export default function TransportControls({ isMobile }) {
 
                 <button
                     onClick={() => setBpm(Math.max(60, transport.bpm - 5))}
-                    className={`${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white`}
+                    disabled={bpmLocked}
+                    className={`${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed`}
                 >
                     −
                 </button>
@@ -61,7 +64,8 @@ export default function TransportControls({ isMobile }) {
                     max="180"
                     value={transport.bpm}
                     onChange={handleBpmChange}
-                    className={`${isMobile ? 'w-[60px] h-[8px]' : 'w-[120px] h-[10px]'} bg-white/20 rounded-full appearance-none cursor-pointer`}
+                    disabled={bpmLocked}
+                    className={`${isMobile ? 'w-[60px] h-[8px]' : 'w-[120px] h-[10px]'} bg-white/20 rounded-full appearance-none ${bpmLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                     style={{
                         background: `linear-gradient(to right, #60a5fa 0%, #60a5fa ${((transport.bpm - 60) / 120) * 100
                             }%, rgba(255,255,255,0.2) ${((transport.bpm - 60) / 120) * 100}%, rgba(255,255,255,0.2) 100%)`,
@@ -70,7 +74,8 @@ export default function TransportControls({ isMobile }) {
 
                 <button
                     onClick={() => setBpm(Math.min(180, transport.bpm + 5))}
-                    className={`${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white`}
+                    disabled={bpmLocked}
+                    className={`${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'} rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed`}
                 >
                     +
                 </button>

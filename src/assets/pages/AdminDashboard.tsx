@@ -22,6 +22,7 @@ import {
   rejectUser,
   getSchoolStatistics,
   getSchoolTeachers,
+  getSchoolStudents,
   getSchoolClasses,
   getTeacherClasses,
   assignTeacherToClass,
@@ -30,6 +31,7 @@ import {
   getAccessControls,
   upsertAccessControl
 } from '@/lib/adminApi';
+import { Search } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { userProfile, userType } = useAuthStore();
@@ -54,6 +56,11 @@ export default function AdminDashboard() {
   const [classes, setClasses] = useState([]);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [teacherClasses, setTeacherClasses] = useState([]);
+
+  // Students state
+  const [students, setStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentSearch, setStudentSearch] = useState('');
 
   // Access control state
   const [accessControls, setAccessControls] = useState([]);
@@ -86,6 +93,8 @@ export default function AdminDashboard() {
         await loadPendingApprovals();
       } else if (activeTab === 'teachers') {
         await loadTeachersAndClasses();
+      } else if (activeTab === 'students') {
+        await loadStudentsAndClasses();
       } else if (activeTab === 'access') {
         await loadAccessControls();
       }
@@ -120,10 +129,36 @@ export default function AdminDashboard() {
     if (classesResult.data) setClasses(classesResult.data);
   };
 
+  const loadStudentsAndClasses = async () => {
+    const [studentsResult, classesResult] = await Promise.all([
+      getSchoolStudents(userProfile.school_id),
+      getSchoolClasses(userProfile.school_id)
+    ]);
+    if (studentsResult.data) setStudents(studentsResult.data);
+    if (classesResult.data) setClasses(classesResult.data);
+  };
+
   const loadAccessControls = async () => {
     const result = await getAccessControls(userProfile.school_id);
     if (result.data) {
       setAccessControls(result.data);
+    }
+  };
+
+  const handleDeactivateUser = async (userTypeToDeactivate: string, userId: string) => {
+    if (!confirm(`Are you sure you want to deactivate this ${userTypeToDeactivate}?`)) return;
+    const result = await rejectUser(userTypeToDeactivate, userId, userProfile.admin_id);
+    if (result.error) {
+      setError(result.error.message);
+    } else {
+      if (activeTab === 'teachers') {
+        loadTeachersAndClasses();
+        setSelectedTeacher(null);
+      } else if (activeTab === 'students') {
+        loadStudentsAndClasses();
+        setSelectedStudent(null);
+      }
+      loadStatistics();
     }
   };
 
@@ -302,6 +337,7 @@ export default function AdminDashboard() {
               { id: 'overview', label: 'Overview', icon: BarChart3 },
               { id: 'approvals', label: 'Pending Approvals', icon: Clock },
               { id: 'teachers', label: 'Manage Teachers', icon: GraduationCap },
+              { id: 'students', label: 'Manage Students', icon: Users },
               { id: 'access', label: 'Access Control', icon: Settings }
             ].map((tab, index) => (
               <motion.button
@@ -377,6 +413,7 @@ export default function AdminDashboard() {
                       value={stats.totalTeachers}
                       color="blue"
                       delay={0}
+                      onClick={() => setActiveTab('teachers')}
                     />
                     <StatCard
                       icon={Users}
@@ -384,6 +421,7 @@ export default function AdminDashboard() {
                       value={stats.totalStudents}
                       color="green"
                       delay={0.1}
+                      onClick={() => setActiveTab('students')}
                     />
                     <StatCard
                       icon={BookOpen}
@@ -399,6 +437,7 @@ export default function AdminDashboard() {
                       color="yellow"
                       alert={stats.pendingApprovals > 0}
                       delay={0.3}
+                      onClick={() => setActiveTab('approvals')}
                     />
                   </div>
                 )}
@@ -498,10 +537,23 @@ export default function AdminDashboard() {
                               border: '1px solid rgba(255, 255, 255, 0.1)'
                             }}
                           >
-                            <p className="text-white font-semibold">
-                              {teacher.first_name} {teacher.last_name}
-                            </p>
-                            <p className="text-white/60 text-sm">{teacher.email}</p>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-white font-semibold">
+                                  {teacher.first_name} {teacher.last_name}
+                                </p>
+                                <p className="text-white/60 text-sm">{teacher.email}</p>
+                              </div>
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => { e.stopPropagation(); handleDeactivateUser('teacher', teacher.teacher_id); }}
+                                className="p-2 rounded-lg hover:bg-red-500/20 transition-colors cursor-pointer"
+                                title="Deactivate teacher"
+                              >
+                                <XCircle size={16} className="text-red-400" />
+                              </motion.div>
+                            </div>
                           </motion.button>
                         ))}
                       </div>
@@ -652,6 +704,217 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
+                {/* Students Tab */}
+                {activeTab === 'students' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Students List */}
+                    <div className="space-y-4">
+                      <h2 className="text-xl font-bold text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>Students</h2>
+                      <div className="relative">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                        <input
+                          type="text"
+                          placeholder="Search students..."
+                          value={studentSearch}
+                          onChange={(e) => setStudentSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 rounded-xl text-white transition-all focus:outline-none placeholder:text-white/40"
+                          style={{
+                            background: 'rgba(62, 36, 104, 0.6)',
+                            border: '2px solid rgba(255, 255, 255, 0.1)',
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = 'rgba(230, 184, 77, 0.5)'}
+                          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+                        />
+                      </div>
+                      <div className="space-y-2 max-h-[28rem] overflow-y-auto">
+                        {students
+                          .filter((s: any) => {
+                            if (!studentSearch) return true;
+                            const q = studentSearch.toLowerCase();
+                            return (
+                              s.first_name?.toLowerCase().includes(q) ||
+                              s.last_name?.toLowerCase().includes(q) ||
+                              s.email?.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((student: any, index: number) => {
+                            const studentClass = classes.find((c: any) => c.class_id === student.class_id);
+                            return (
+                              <motion.button
+                                key={student.student_id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setSelectedStudent(student)}
+                                className="w-full text-left p-4 rounded-xl transition-all"
+                                style={(selectedStudent as any)?.student_id === student.student_id ? {
+                                  background: 'linear-gradient(135deg, rgba(230, 184, 77, 0.2) 0%, rgba(217, 119, 70, 0.2) 100%)',
+                                  border: '2px solid rgba(230, 184, 77, 0.5)',
+                                  backdropFilter: 'blur(20px)'
+                                } : {
+                                  background: 'linear-gradient(145deg, rgba(91,61,143,0.4) 0%, rgba(62,36,104,0.6) 100%)',
+                                  backdropFilter: 'blur(20px)',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                                }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-white font-semibold">
+                                      {student.first_name} {student.last_name}
+                                    </p>
+                                    <p className="text-white/60 text-sm">{student.email}</p>
+                                    {studentClass && (
+                                      <p className="text-white/40 text-xs mt-1">{(studentClass as any).class_name}</p>
+                                    )}
+                                  </div>
+                                  <motion.div
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={(e) => { e.stopPropagation(); handleDeactivateUser('student', student.student_id); }}
+                                    className="p-2 rounded-lg hover:bg-red-500/20 transition-colors cursor-pointer"
+                                    title="Deactivate student"
+                                  >
+                                    <XCircle size={16} className="text-red-400" />
+                                  </motion.div>
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        {students.length === 0 && (
+                          <p className="text-white/60 text-center py-8">No students found</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Student Details */}
+                    <div className="space-y-4">
+                      {selectedStudent ? (
+                        <>
+                          <h2 className="text-xl font-bold text-white" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+                            {(selectedStudent as any).first_name} {(selectedStudent as any).last_name}
+                          </h2>
+
+                          {/* Student Info Card */}
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-2xl p-5 space-y-3"
+                            style={{
+                              background: 'linear-gradient(145deg, rgba(91,61,143,0.5) 0%, rgba(62,36,104,0.7) 100%)',
+                              backdropFilter: 'blur(20px)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
+                          >
+                            <h3 className="text-white font-semibold mb-3">Student Info</h3>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-white/60">Email</span>
+                                <span className="text-white">{(selectedStudent as any).email}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/60">Current Class</span>
+                                <span className="text-white">
+                                  {classes.find((c: any) => c.class_id === (selectedStudent as any).class_id)
+                                    ? (classes.find((c: any) => c.class_id === (selectedStudent as any).class_id) as any).class_name
+                                    : 'No class assigned'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/60">Status</span>
+                                <span className="text-green-400">{(selectedStudent as any).approval_status}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+
+                          {/* Change Class */}
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="rounded-2xl p-5 space-y-3"
+                            style={{
+                              background: 'linear-gradient(145deg, rgba(91,61,143,0.5) 0%, rgba(62,36,104,0.7) 100%)',
+                              backdropFilter: 'blur(20px)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
+                          >
+                            <h3 className="text-white font-semibold mb-2">Assign to Class</h3>
+                            <div className="space-y-2">
+                              {classes.map((cls: any) => {
+                                const isCurrentClass = cls.class_id === (selectedStudent as any).class_id;
+                                return (
+                                  <motion.button
+                                    key={cls.class_id}
+                                    whileHover={{ scale: 1.02, x: 5 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    disabled={isCurrentClass}
+                                    onClick={async () => {
+                                      // Update student's class_id directly
+                                      const { supabase } = await import('@/lib/supabase');
+                                      await supabase
+                                        .from('students')
+                                        .update({ class_id: cls.class_id })
+                                        .eq('student_id', (selectedStudent as any).student_id);
+                                      // Refresh
+                                      const result = await getSchoolStudents(userProfile.school_id);
+                                      if (result.data) {
+                                        setStudents(result.data);
+                                        const updated = result.data.find((s: any) => s.student_id === (selectedStudent as any).student_id);
+                                        if (updated) setSelectedStudent(updated);
+                                      }
+                                    }}
+                                    className="w-full text-left p-3 rounded-lg flex items-center justify-between group transition-all"
+                                    style={{
+                                      background: isCurrentClass ? 'rgba(74, 186, 110, 0.15)' : 'rgba(62, 36, 104, 0.6)',
+                                      border: isCurrentClass ? '1px solid rgba(74, 186, 110, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
+                                      opacity: isCurrentClass ? 0.7 : 1
+                                    }}
+                                  >
+                                    <span className="text-white">{cls.class_name}</span>
+                                    {isCurrentClass ? (
+                                      <CheckCircle size={16} className="text-green-400" />
+                                    ) : (
+                                      <UserPlus size={16} className="text-white/40 group-hover:text-white/80 transition-colors" />
+                                    )}
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+
+                          {/* Deactivate */}
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                          >
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => handleDeactivateUser('student', (selectedStudent as any).student_id)}
+                              className="w-full px-4 py-3 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
+                              style={{
+                                background: 'rgba(232, 98, 122, 0.15)',
+                                border: '2px solid rgba(232, 98, 122, 0.3)',
+                                color: '#E8627A'
+                              }}
+                            >
+                              <XCircle size={18} />
+                              Deactivate Student
+                            </motion.button>
+                          </motion.div>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-white/60">
+                          Select a student to view details
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Access Control Tab */}
                 {activeTab === 'access' && (
                   <motion.div
@@ -709,9 +972,10 @@ interface StatCardProps {
   color: 'blue' | 'green' | 'purple' | 'yellow';
   alert?: boolean;
   delay: number;
+  onClick?: () => void;
 }
 
-function StatCard({ icon: Icon, label, value, color, alert, delay }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, color, alert, delay, onClick }: StatCardProps) {
   const colors = {
     blue: { from: 'rgba(66, 153, 225, 0.2)', to: 'rgba(49, 130, 206, 0.2)', border: 'rgba(66, 153, 225, 0.3)' },
     green: { from: 'rgba(74, 186, 110, 0.2)', to: 'rgba(56, 161, 105, 0.2)', border: 'rgba(74, 186, 110, 0.3)' },
@@ -725,7 +989,8 @@ function StatCard({ icon: Icon, label, value, color, alert, delay }: StatCardPro
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, delay }}
       whileHover={{ scale: 1.05, y: -5 }}
-      className={`rounded-2xl p-6 shadow-lg ${alert ? 'animate-pulse' : ''}`}
+      onClick={onClick}
+      className={`rounded-2xl p-6 shadow-lg ${alert ? 'animate-pulse' : ''} ${onClick ? 'cursor-pointer' : ''}`}
       style={{
         background: `linear-gradient(135deg, ${colors[color].from} 0%, ${colors[color].to} 100%)`,
         border: `2px solid ${colors[color].border}`,

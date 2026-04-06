@@ -35,3 +35,6 @@ env.download
 
 # Internal docs (not for git)
 /docs-internal/
+
+# Claude Code
+.claude/

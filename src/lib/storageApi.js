@@ -160,6 +160,51 @@ export async function uploadAssignmentSubmission(
 }
 
 /**
+ * Upload an audio loop file for a teacher assignment
+ * @param {File} file - Audio file (.mp3 or .wav)
+ * @param {string} assignmentId - Assignment UUID
+ * @returns {Promise<Object>} Upload result with public URL
+ */
+export async function uploadAssignmentLoop(file, assignmentId) {
+  try {
+    const timestamp = Date.now();
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `loops/assignment_${assignmentId}/${timestamp}_${safeFileName}`;
+
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error("[STORAGE] Loop upload error:", error);
+      throw error;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(filePath);
+
+    return {
+      success: true,
+      data: {
+        url: urlData.publicUrl,
+        file_name: file.name,
+        path: filePath,
+      },
+    };
+  } catch (error) {
+    console.error("[STORAGE] Error in uploadAssignmentLoop:", error);
+    return {
+      success: false,
+      error: error.message || "Loop upload failed",
+    };
+  }
+}
+
+/**
  * Get file type display name
  * @param {string} mimeType - MIME type
  * @returns {string} Display name

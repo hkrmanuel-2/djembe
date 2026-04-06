@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useStore } from "../../../store/useStore.js";
+import { supabase } from "../../../lib/supabase.js";
 import LoopLibrary from "../../../components/ui/DAW-Lite/LoopLibrary.jsx";
 import Timeline from "../../../components/ui/DAW-Lite/Timeline.jsx";
 import TransportControls from "../../../components/ui/DAW-Lite/Transportcontrols.jsx";
@@ -8,6 +9,7 @@ import ProjectMenu from "../../../components/ui/DAW-Lite/Projectmenu.jsx";
 import AILoopGenerator from "../../../components/ui/DAW-Lite/AILoopGenerator.jsx";
 import { Home, RotateCcw, Smartphone } from "lucide-react";
 import { logger } from "../../../lib/logger";
+import { getCachedDuration } from "../../../lib/audioDurationCache";
 
 export default function DAWLite() {
   const [draggedLoop, setDraggedLoop] = useState(null);
@@ -16,6 +18,8 @@ export default function DAWLite() {
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true); // For toggling loop library on mobile
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get("assignmentId");
 
   // Check for portrait mode and mobile device
   useEffect(() => {
@@ -52,38 +56,78 @@ export default function DAWLite() {
 
   // Get actions from store
   const loadLoops = useStore((state) => state.loadLoops);
+  const loadAssignmentLoops = useStore((state) => state.loadAssignmentLoops);
+  const setAssignmentContext = useStore((state) => state.setAssignmentContext);
+  const clearAssignmentContext = useStore((state) => state.clearAssignmentContext);
+  const assignmentContext = useStore((state) => state.assignmentContext);
   const addPlacedLoop = useStore((state) => state.addPlacedLoop);
   const removePlacedLoop = useStore((state) => state.removePlacedLoop);
   const updatePlacedLoop = useStore((state) => state.updatePlacedLoop);
   const setProjectName = useStore((state) => state.setProjectName);
+  const setBpm = useStore((state) => state.setBpm);
+  const newProject = useStore((state) => state.newProject);
   const updateProjectDimensions = useStore((state) => state.updateProjectDimensions);
 
   // Calculate loop span based on audio duration and BPM (target: 4 bars = 16 beats)
   const calculateSpan = async (audioUrl, targetBars = 4) => {
+    const durationToSpan = (duration) => {
+      const secondsPerBeat = 60 / bpm;
+      const beats = duration / secondsPerBeat;
+      const targetBeats = targetBars * 4;
+      const calculatedBeats = Math.max(targetBeats, Math.round(beats));
+      const gridUnits = calculatedBeats * 4;
+      return Math.max(16, Math.round(gridUnits));
+    };
+
+    // Use cached duration if available (instant, no network wait)
+    const cached = getCachedDuration(audioUrl);
+    if (cached !== null) {
+      return durationToSpan(cached);
+    }
+
+    // Fallback: load metadata (only for uncached loops)
     return new Promise((resolve) => {
       const audio = new Audio(audioUrl);
       audio.addEventListener('loadedmetadata', () => {
-        const duration = audio.duration; // seconds
-        const secondsPerBeat = 60 / bpm;
-        const beats = duration / secondsPerBeat;
-        // Round to nearest beat, minimum target bars
-        const targetBeats = targetBars * 4; // 4 beats per bar
-        const calculatedBeats = Math.max(targetBeats, Math.round(beats));
-        // Convert to grid units (4 subdivisions per beat = 16th notes)
-        const gridUnits = calculatedBeats * 4;
-        resolve(Math.max(16, Math.round(gridUnits))); // Minimum 4 bars (16 beats * 4 = 64 grid units, but let's use 16 for 4 bars)
+        resolve(durationToSpan(audio.duration));
       });
       audio.addEventListener('error', () => {
-        resolve(64); // Fallback: 4 bars * 4 beats * 4 subdivisions = 64 grid units
+        resolve(64);
       });
       audio.load();
     });
   };
 
-  // Load loops from database on mount
+  // Load loops from database on mount (or assignment loops if in assignment mode)
   useEffect(() => {
-    loadLoops();
-  }, [loadLoops]);
+    if (assignmentId) {
+      (async () => {
+        // Fetch assignment metadata
+        const { data: assignment } = await supabase
+          .from("assignments")
+          .select("title, bpm, bars")
+          .eq("assignment_id", assignmentId)
+          .single();
+
+        if (assignment) {
+          setAssignmentContext({ assignmentId, ...assignment });
+          // Reset project and apply assignment settings
+          newProject();
+          setProjectName(assignment.title);
+          if (assignment.bpm) setBpm(assignment.bpm);
+          if (assignment.bars) updateProjectDimensions(assignment.bars, 5);
+        }
+        await loadAssignmentLoops(assignmentId);
+      })();
+    } else {
+      loadLoops();
+    }
+
+    return () => {
+      // Clean up assignment context when leaving DAW
+      clearAssignmentContext();
+    };
+  }, [assignmentId]);
 
   const handleDragStart = (loop) => {
     setDraggedLoop(loop);

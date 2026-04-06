@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { Timer } from "three";
-// @ts-ignore - Module resolution issue with three addons in this project setup
+// @ts-expect-error - Module resolution issue with three addons in this project setup
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-// @ts-ignore
+// @ts-expect-error - Module resolution issue with three addons in this project setup
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+// @ts-expect-error - Module resolution issue with three addons
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone, X } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 import { useVoicesStore } from "../../store/useVoicesStore";
@@ -33,7 +35,7 @@ const World2: React.FC = () => {
 
   // Raycasting & Interaction references
   const raycasterRef = useRef(new THREE.Raycaster());
-  const mouseRef = useRef(new THREE.Vector2());
+  const _mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
 
@@ -176,6 +178,10 @@ const World2: React.FC = () => {
       }
     };
 
+    // Shared loader instance for all models (reuses parser & cache)
+    const sharedLoader = new GLTFLoader();
+    sharedLoader.setMeshoptDecoder(MeshoptDecoder);
+
     // Helper function to setup model materials
     const setupModelMaterials = (model: THREE.Object3D) => {
       model.traverse((child) => {
@@ -204,8 +210,7 @@ const World2: React.FC = () => {
       scale: THREE.Vector3,
       rotation: number | THREE.Euler = 0
     ) => {
-      const loader = new GLTFLoader();
-      loader.load(
+      sharedLoader.load(
         path,
         (gltf: any) => {
           const model = gltf.scene;
@@ -253,8 +258,7 @@ const World2: React.FC = () => {
       scale: THREE.Vector3,
       rotation: number | THREE.Euler = 0
     ) => {
-      const loader = new GLTFLoader();
-      loader.load(
+      sharedLoader.load(
         path,
         (gltf: any) => {
           const model = gltf.scene;
@@ -310,9 +314,8 @@ const World2: React.FC = () => {
     };
 
     // Load main auditorium model
-    const audiLoader = new GLTFLoader();
-    audiLoader.load(
-      "src/components/3D_World_2/theater_cinema_auditorium_style_2_of_2/scene.gltf",
+    sharedLoader.load(
+      "/models/theater_auditorium/scene.glb",
       (gltf: any) => {
         gltf.scene.scale.set(1, 1, 1);
         gltf.scene.position.set(0, -2, 1);
@@ -322,8 +325,7 @@ const World2: React.FC = () => {
         updateLoadingProgress();
       },
       (xhr: any) => {
-        const progress = (xhr.loaded / xhr.total) * 100;
-        logger.log(`Auditorium loading: ${progress}%`);
+        if (xhr.total > 0) logger.log(`Auditorium loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
       },
       (error: any) => {
         console.error("Error loading auditorium:", error);
@@ -407,7 +409,7 @@ const World2: React.FC = () => {
 
     // Flute - back left
     loadStaticModel(
-      "/models/Black_Student_Boy/flute (1).glb",
+      "/models/Black_Student_Boy/flute.glb",
       "flute",
       new THREE.Vector3(167.08, 80.00, 394.11),
       new THREE.Vector3(0.6, 0.6, 0.6),

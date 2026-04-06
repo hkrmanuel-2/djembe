@@ -437,11 +437,11 @@ export default function SignupNew() {
             }}
             disabled={isLoadingSchools}
           >
-            <option value="">
+            <option value="" style={{ backgroundColor: "#3E2468", color: "rgba(255,255,255,0.6)" }}>
               {isLoadingSchools ? "Loading schools..." : "Select your school"}
             </option>
             {schools.map((school) => (
-              <option key={school.school_id} value={school.school_id}>
+              <option key={school.school_id} value={school.school_id} style={{ backgroundColor: "#3E2468", color: "white" }}>
                 {school.name}
               </option>
             ))}

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProgressStore } from "@/store/useProgressStore";
 import { supabase } from "@/lib/supabase";
 import { notifyTeacherSubmission } from "@/lib/notificationApi";
-import { Upload, File, CheckCircle2, Circle, X, Calendar, Sparkles } from "lucide-react";
+import { Upload, File, CheckCircle2, Circle, X, Calendar, Sparkles, Music } from "lucide-react";
 import { logger } from "@/lib/logger";
 
 export default function AssignmentsNew() {
+  const navigate = useNavigate();
   const { userProfile } = useAuthStore();
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
@@ -663,6 +665,23 @@ export default function AssignmentsNew() {
                                 return null;
                               })()}
                             </div>
+                          ) : assignment.assignment_type === "project" ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/daw?assignmentId=${assignmentId}`);
+                              }}
+                              className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-sm transition-all hover:scale-105 active:scale-95"
+                              style={{
+                                background: 'linear-gradient(135deg, #4A9B9B 0%, #42C9C9 100%)',
+                                color: 'white',
+                                boxShadow: '0 4px 16px rgba(74, 155, 155, 0.3)',
+                                fontFamily: "'Fredoka', sans-serif",
+                              }}
+                            >
+                              <Music size={16} />
+                              <span>Start Assignment</span>
+                            </button>
                           ) : (
                             <button
                               onClick={(e) => {
