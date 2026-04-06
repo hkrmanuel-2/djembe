@@ -16,7 +16,7 @@ import StudentProgress from './assets/pages/StudentProgress';
 import TeacherDashboard from './assets/pages/TeacherDashboard';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { Sidebar } from './components/ui/Sidebar';
-import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen, FileCheck, GraduationCap } from 'lucide-react';
+import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen, FileCheck, GraduationCap, Shield, Clock, BookOpen } from 'lucide-react';
 import TeacherAssignments from './assets/pages/teacher/TeacherAssignments';
 import TeacherSubmissions from './assets/pages/TeacherSubmissions';
 import Tutorials from './assets/pages/Tutorials';
@@ -64,8 +64,13 @@ function AppContent() {
     navigate('/');
   };
 
-  // Navigation items for authenticated users - different for students vs teachers
+  // Navigation items for authenticated users - different per role
   const navItems = isAuthenticated ? (
+    userType === 'admin' ? [
+      // Admin navigation
+      { name: 'Dashboard', url: '/admin', icon: Shield },
+      { name: 'Settings', url: '/settings', icon: SettingsIcon },
+    ] :
     userType === 'teacher' ? [
       // Teacher navigation
       { name: 'Students', url: '/students', icon: Users },

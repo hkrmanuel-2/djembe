@@ -6,6 +6,7 @@
  *   2. Run: node scripts/create-test-accounts.js
  *
  * Creates:
+ *   - 1 admin account
  *   - 1 teacher account
  *   - 12 student accounts
  *   - All pre-approved and ready to log in
@@ -42,6 +43,13 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 const SCHOOL_NAME = "God's Grace International School";
 const EMAIL_DOMAIN = 'godsgrace.test';
 const DEFAULT_PASSWORD = 'djembe2026';
+
+// Admin account
+const admin = {
+  first_name: 'Admin',
+  last_name: 'GodGrace',
+  email: `admin@${EMAIL_DOMAIN}`,
+};
 
 // Teacher account
 const teacher = {
@@ -105,11 +113,15 @@ async function main() {
 
   const schoolId = school.school_id;
 
-  // 2. Create teacher first (needed for class)
-  console.log('\n2. Creating teacher account...');
+  // 2. Create admin account
+  console.log('\n2. Creating admin account...');
+  await createAdmin(admin, schoolId);
+
+  // 3. Create teacher (needed for class)
+  console.log('\n3. Creating teacher account...');
   await createUser(teacher, 'teachers', 'teacher_id', schoolId, null);
 
-  // Get teacher_id
+  // Get teacher_id (needed for class)
   const { data: teacherRow } = await supabase
     .from('teachers')
     .select('teacher_id')
@@ -121,8 +133,8 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. Create a class for the students
-  console.log('\n3. Setting up class...');
+  // 4. Create a class for the students
+  console.log('\n4. Setting up class...');
   let { data: cls } = await supabase
     .from('classes')
     .select('class_id')
@@ -155,20 +167,64 @@ async function main() {
 
   const classId = cls.class_id;
 
-  // 4. Create students
-  console.log('\n4. Creating student accounts...');
+  // 5. Create students
+  console.log('\n5. Creating student accounts...');
   for (const student of students) {
     await createUser(student, 'students', 'student_id', schoolId, classId);
   }
 
-  // 4. Print summary
+  // 6. Print summary
   console.log('\n=== All Done! ===\n');
   console.log('Password for ALL accounts:', DEFAULT_PASSWORD);
+  console.log('\nAdmin:');
+  console.log(`  Email: ${admin.email}`);
   console.log('\nTeacher:');
   console.log(`  Email: ${teacher.email}`);
   console.log('\nStudents:');
   students.forEach(s => console.log(`  Email: ${s.email}`));
   console.log(`\nSchool: ${SCHOOL_NAME}`);
+}
+
+async function createAdmin(user, schoolId) {
+  // Check if admin profile already exists
+  const { data: existing } = await supabase
+    .from('admins')
+    .select('admin_id')
+    .eq('email', user.email)
+    .single();
+
+  if (existing) {
+    console.log(`   [skip] ${user.email} already exists`);
+    return;
+  }
+
+  // Create auth user
+  const { error: authError } = await supabase.auth.admin.createUser({
+    email: user.email,
+    password: DEFAULT_PASSWORD,
+    email_confirm: true,
+  });
+
+  if (authError && !authError.message.includes('already been registered')) {
+    console.error(`   [error] ${user.email}: ${authError.message}`);
+    return;
+  }
+
+  // Create admin profile record
+  const { error: profileError } = await supabase
+    .from('admins')
+    .insert({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      school_id: schoolId,
+    });
+
+  if (profileError) {
+    console.error(`   [error] ${user.email} profile: ${profileError.message}`);
+  } else {
+    console.log(`   [created] ${user.email}`);
+  }
 }
 
 async function createUser(user, table, idColumn, schoolId, classId) {

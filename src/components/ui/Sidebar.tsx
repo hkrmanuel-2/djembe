@@ -33,6 +33,8 @@ const itemColors: Record<string, string> = {
   Submissions: "#E8627A",
   Analytics: "#42C9C9",
   Projects: "#D97746",
+  // Admin items
+  Dashboard: "#E6B84D",
 };
 
 function getItemColor(name: string) {
