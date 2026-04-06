@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { supabase } from "@/lib/supabase";
 import { validateEmailDomain } from "@/lib/emailValidation";
 import { Mail, Lock, User, Building2, ArrowRight, ArrowLeft } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface School {
   school_id: string;
@@ -57,6 +58,7 @@ export default function SignupNew() {
 
   useEffect(() => {
     loadSchools();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSchools = async () => {
@@ -87,17 +89,17 @@ export default function SignupNew() {
       setSchools(data || []);
 
       if (!data || data.length === 0) {
-        console.warn("No schools found in database");
+        logger.warn("No schools found in database");
         useAuthStore.setState({
           error: "No schools available. Please contact your administrator.",
         });
       } else {
         clearError();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading schools:", err);
       useAuthStore.setState({
-        error: `Error loading schools: ${err.message || "Unknown error"}`,
+        error: `Error loading schools: ${err instanceof Error ? err.message : "Unknown error"}`,
       });
     } finally {
       setIsLoadingSchools(false);
@@ -435,11 +437,11 @@ export default function SignupNew() {
             }}
             disabled={isLoadingSchools}
           >
-            <option value="">
+            <option value="" style={{ backgroundColor: "#3E2468", color: "rgba(255,255,255,0.6)" }}>
               {isLoadingSchools ? "Loading schools..." : "Select your school"}
             </option>
             {schools.map((school) => (
-              <option key={school.school_id} value={school.school_id}>
+              <option key={school.school_id} value={school.school_id} style={{ backgroundColor: "#3E2468", color: "white" }}>
                 {school.name}
               </option>
             ))}

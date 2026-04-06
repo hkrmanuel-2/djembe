@@ -1,9 +1,11 @@
+import { logger } from "@/lib/logger";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module";
 import { Info, Maximize2, Minimize2, RotateCcw, Home, Music, Smartphone } from "lucide-react";
 import VoicesPanel from "../Voices/VoicesPanel";
 import { useVoicesStore } from "../../store/useVoicesStore";
@@ -26,11 +28,11 @@ const World1: React.FC = () => {
   // Animation references
   const mixersRef = useRef<THREE.AnimationMixer[]>([]);
   const actionsRef = useRef<Map<string, THREE.AnimationAction>>(new Map());
-  const clockRef = useRef(new THREE.Clock());
+  const timerRef = useRef(new THREE.Timer());
 
   // Raycasting and Dragging references
   const raycasterRef = useRef(new THREE.Raycaster());
-  const mouseRef = useRef(new THREE.Vector2());
+  const _mouseRef = useRef(new THREE.Vector2());
   const clickableModelsRef = useRef<Map<string, THREE.Object3D>>(new Map());
 
   // Map stem categories to 3D model names
@@ -88,7 +90,7 @@ const World1: React.FC = () => {
     };
   }, []);
 
-  const resetCamera = () => {
+  const _resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
       cameraRef.current.position.set(13.19, 2.51, -1.94);
       cameraRef.current.rotation.set(-2.23, 1.33, 2.24);
@@ -193,6 +195,7 @@ const World1: React.FC = () => {
 
     // Shared loader instance (reuses parser & cache)
     const sharedLoader = new GLTFLoader();
+    sharedLoader.setMeshoptDecoder(MeshoptDecoder);
 
     // Track loading progress
     let modelsLoaded = 0;
@@ -259,10 +262,10 @@ const World1: React.FC = () => {
           clickableModelsRef.current.set(name, model);
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          if (xhr.total > 0) logger.log(`${name} loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -316,14 +319,14 @@ const World1: React.FC = () => {
             action.timeScale = 0.2; // idle speed — slow subtle movement
             action.play();
 
-            console.log(`${name} animation ready (idle)`);
+            logger.log(`${name} animation ready (idle)`);
           }
 
           updateLoadingProgress();
-          console.log(`${name} loaded successfully`);
+          logger.log(`${name} loaded successfully`);
         },
         (xhr) => {
-          console.log(`${name} loading: ${(xhr.loaded / xhr.total) * 100}%`);
+          if (xhr.total > 0) logger.log(`${name} loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
         },
         (error) => {
           console.error(`Error loading ${name}:`, error);
@@ -356,8 +359,7 @@ const World1: React.FC = () => {
         updateLoadingProgress();
       },
       (xhr) => {
-        const progress = (xhr.loaded / xhr.total) * 100;
-        console.log(`Campfire loading: ${progress}%`);
+        if (xhr.total > 0) logger.log(`Campfire loading: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
       },
       (error) => {
         console.error("Error loading campfire:", error);
@@ -415,9 +417,9 @@ const World1: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log("pianist loaded successfully");
+          logger.log("pianist loaded successfully");
         },
-        (xhr) => { },
+        () => {},
         (error) => {
           console.error("Error loading pianist:", error);
           updateLoadingProgress();
@@ -470,14 +472,14 @@ const World1: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log("flutist loaded successfully");
+          logger.log("flutist loaded successfully");
 
           // Find hand bone and attach flute instrument
           let handBone: THREE.Object3D | null = null;
           model.traverse((child) => {
             if ((child as any).isBone) {
               const n = child.name.toLowerCase();
-              console.log("flutist bone:", child.name);
+              logger.log("flutist bone:", child.name);
               if (!handBone && ((n.includes('right') && n.includes('hand')) ||
                 n.endsWith('hand_r') || n.endsWith('hand.r'))) {
                 handBone = child;
@@ -503,7 +505,7 @@ const World1: React.FC = () => {
                 });
                 (handBone as THREE.Object3D).add(flute);
                 updateLoadingProgress();
-                console.log("flute attached to bone:", (handBone as THREE.Object3D).name);
+                logger.log("flute attached to bone:", (handBone as THREE.Object3D).name);
               },
               undefined,
               (error) => {
@@ -512,11 +514,12 @@ const World1: React.FC = () => {
               }
             );
           } else {
-            console.warn("No hand bone found for flutist");
+            logger.warn("No hand bone found for flutist");
             updateLoadingProgress();
           }
         },
-        (xhr) => { },
+        () => {},
+        (_xhr) => { },
         (error) => {
           console.error("Error loading flutist:", error);
           updateLoadingProgress();
@@ -561,14 +564,14 @@ const World1: React.FC = () => {
           }
 
           updateLoadingProgress();
-          console.log("guitarist loaded successfully");
+          logger.log("guitarist loaded successfully");
 
           // Find hand bone and attach guitar instrument
           let handBone: THREE.Object3D | null = null;
           model.traverse((child) => {
             if ((child as any).isBone) {
               const n = child.name.toLowerCase();
-              console.log("guitarist bone:", child.name);
+              logger.log("guitarist bone:", child.name);
               if (!handBone && ((n.includes('right') && n.includes('hand')) ||
                 n.endsWith('hand_r') || n.endsWith('hand.r'))) {
                 handBone = child;
@@ -594,7 +597,7 @@ const World1: React.FC = () => {
                 });
                 (handBone as THREE.Object3D).add(guitar);
                 updateLoadingProgress();
-                console.log("guitar attached to bone:", (handBone as THREE.Object3D).name);
+                logger.log("guitar attached to bone:", (handBone as THREE.Object3D).name);
               },
               undefined,
               (error) => {
@@ -603,11 +606,11 @@ const World1: React.FC = () => {
               }
             );
           } else {
-            console.warn("No hand bone found for guitarist");
+            logger.warn("No hand bone found for guitarist");
             updateLoadingProgress();
           }
         },
-        (xhr) => { },
+        (_xhr) => { },
         (error) => {
           console.error("Error loading guitarist:", error);
           updateLoadingProgress();
@@ -655,9 +658,9 @@ const World1: React.FC = () => {
           scene.add(model);
           clickableModelsRef.current.set("piano", model);
           updateLoadingProgress();
-          console.log("piano loaded successfully");
+          logger.log("piano loaded successfully");
         },
-        (xhr) => { },
+        () => {},
         (error) => {
           console.error("Error loading piano:", error);
           updateLoadingProgress();
@@ -706,9 +709,9 @@ const World1: React.FC = () => {
           scene.add(model);
           clickableModelsRef.current.set("tambourine", model);
           updateLoadingProgress();
-          console.log("tambourine loaded successfully");
+          logger.log("tambourine loaded successfully");
         },
-        (xhr) => { },
+        () => {},
         (error) => {
           console.error("Error loading tambourine:", error);
           updateLoadingProgress();
@@ -785,7 +788,8 @@ const World1: React.FC = () => {
       rafId = requestAnimationFrame(animate);
 
       // Update all animation mixers
-      const delta = clockRef.current.getDelta();
+      timerRef.current.update();
+      const delta = timerRef.current.getDelta();
       mixersRef.current.forEach((mixer) => {
         mixer.update(delta);
       });

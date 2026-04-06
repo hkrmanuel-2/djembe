@@ -6,9 +6,11 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -72,7 +74,8 @@ export default async function handler(
         console.log("[MVSEP] Files is object, keys:", Object.keys(files));
         for (const [key, value] of Object.entries(files)) {
           const keyLower = key.toLowerCase();
-          const url = typeof value === "string" ? value : (value as any)?.url || (value as any)?.download_url || "";
+          const val = value as Record<string, string> | undefined;
+          const url = typeof value === "string" ? value : val?.url || val?.download_url || "";
           console.log("[MVSEP] Object entry:", { key: keyLower, url: url.substring(0, 50) });
 
           if (keyLower.includes("drum")) stems.drums = url;

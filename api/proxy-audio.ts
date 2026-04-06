@@ -9,9 +9,11 @@ export default async function handler(
   res: VercelResponse
 ) {
   // Set CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -36,14 +38,18 @@ export default async function handler(
     "cdn2.suno.ai",
   ];
 
-  // Check if URL contains any allowed domain
-  const isAllowed = allowedDomains.some(domain => url.includes(domain));
+  // Validate URL hostname against allowed domains (prevents bypass via url.includes)
+  let isAllowed = false;
+  try {
+    const parsed = new URL(url);
+    isAllowed = allowedDomains.some(
+      (d) => parsed.hostname === d || parsed.hostname.endsWith("." + d)
+    );
+  } catch {
+    isAllowed = false;
+  }
   if (!isAllowed) {
-    return res.status(403).json({
-      error: "URL domain not allowed",
-      url,
-      allowedDomains
-    });
+    return res.status(403).json({ error: "URL domain not allowed" });
   }
 
   try {

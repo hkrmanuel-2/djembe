@@ -1,120 +1,6 @@
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useAuthStore } from "@/store/useAuthStore";
-import { getTutorials, getCategoryName } from "@/lib/tutorialsApi";
-import TutorialCard from "@/components/tutorials/TutorialCard";
-import VideoPlayerModal from "@/components/tutorials/VideoPlayerModal";
-import { Search } from "lucide-react";
-
-interface Tutorial {
-  id: string;
-  title: string;
-  description: string;
-  video_url: string;
-  thumbnail_url: string;
-  category: string;
-  target_audience: string;
-  difficulty_level: string;
-  duration_minutes: number;
-}
 
 export default function Tutorials() {
-  const { userType } = useAuthStore();
-  const [tutorials, setTutorials] = useState<Tutorial[]>([]);
-  const [filteredTutorials, setFilteredTutorials] = useState<Tutorial[]>([]);
-
-  const [selectedTutorial, setSelectedTutorial] = useState<Tutorial | null>(
-    null
-  );
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
-  const [showSearch, setShowSearch] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load tutorials on mount
-  useEffect(() => {
-    loadTutorials();
-  }, [userType]);
-
-  // Apply filters when tutorials or filter values change
-  useEffect(() => {
-    applyFilters();
-  }, [tutorials, searchQuery, selectedCategory, selectedDifficulty]);
-
-  const loadTutorials = async () => {
-    setError(null);
-    try {
-      const result = await getTutorials({
-        targetAudience: userType,
-      });
-
-      if (result.error) {
-        console.error("Tutorials API error:", result.error);
-        setError(result.error);
-      }
-
-      console.log("Tutorials loaded:", result.data?.length || 0, "tutorials", result.data);
-      setTutorials(result.data || []);
-    } catch (error: any) {
-      console.error("Error loading tutorials:", error);
-      setError(error.message || "Failed to load tutorials");
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...tutorials];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.title.toLowerCase().includes(query) ||
-          t.description.toLowerCase().includes(query)
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((t) => t.category === selectedCategory);
-    }
-
-    // Difficulty filter
-    if (selectedDifficulty !== "all") {
-      filtered = filtered.filter((t) => t.difficulty_level === selectedDifficulty);
-    }
-
-    setFilteredTutorials(filtered);
-  };
-
-  const handleTutorialClick = (tutorial: Tutorial) => {
-    setSelectedTutorial(tutorial);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => setSelectedTutorial(null), 300);
-  };
-
-  // Group tutorials by category
-  const groupedTutorials = filteredTutorials.reduce((acc, tutorial) => {
-    if (!acc[tutorial.category]) {
-      acc[tutorial.category] = [];
-    }
-    acc[tutorial.category].push(tutorial);
-    return acc;
-  }, {} as Record<string, Tutorial[]>);
-
-  // Get unique categories and difficulties from all tutorials
-  const categories = Array.from(new Set(tutorials.map((t) => t.category)));
-  const difficulties = Array.from(
-    new Set(tutorials.map((t) => t.difficulty_level))
-  );
 
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -235,13 +121,13 @@ export default function Tutorials() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content — blurred with coming soon overlay */}
       <div className="relative z-10 min-h-screen px-4 sm:px-6 pt-16 pb-12">
-        <div className="max-w-5xl mx-auto">
-          {/* Title + Mascot + Filters Section */}
-          <motion.div {...fadeIn} className="relative mb-6">
-            {/* Title row with mascot */}
-            <div className="flex items-center gap-4 mb-4">
+        <div className="max-w-5xl mx-auto relative">
+
+          {/* Blurred background content (placeholder) */}
+          <div className="filter blur-[6px] pointer-events-none select-none opacity-50">
+            <div className="flex items-center gap-4 mb-6">
               <div>
                 <h1
                   className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight"
@@ -252,201 +138,87 @@ export default function Tutorials() {
                   <span style={{ color: "#3E2468" }}>ISLAND</span>
                 </h1>
               </div>
-
-              {/* Djembe mascot beside title */}
-              <div className="hidden sm:block flex-shrink-0 -mt-4">
-                <div
-                  className="w-[100px] h-[120px] md:w-[130px] md:h-[150px] overflow-hidden"
-                >
-                  <img
-                    src="/ui assets/djemb_fullbody.png"
-                    alt="Djembe mascot"
-                    className="w-[300%] h-[300%] max-w-none"
-                    style={{
-                      transform: "translate(-33.333%, -33.333%)",
-                      filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.15))",
-                      imageRendering: "auto",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Filter pills */}
-              <div className="flex flex-wrap gap-2 ml-auto items-start">
-                {/* Search pill */}
-                <button
-                  onClick={() => setShowSearch(!showSearch)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all"
-                  style={{
-                    background: showSearch ? "#D97746" : "linear-gradient(135deg, #D97746, #E6945A)",
-                    color: "white",
-                    boxShadow: "0 2px 8px rgba(217, 119, 70, 0.3)",
-                  }}
-                >
-                  <Search size={14} />
-                  Search for Adventures
-                </button>
-
-                {/* Category pill */}
-                <div className="relative">
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="appearance-none bg-white px-5 py-2.5 rounded-full text-sm font-semibold cursor-pointer outline-none transition-all"
-                    style={{
-                      color: selectedCategory !== "all" ? "#D97746" : "#3E2468",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                      border: selectedCategory !== "all" ? "2px solid #D97746" : "2px solid transparent",
-                    }}
-                  >
-                    <option value="all">Category</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {getCategoryName(category)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Difficulty pill */}
-                <div className="relative">
-                  <select
-                    value={selectedDifficulty}
-                    onChange={(e) => setSelectedDifficulty(e.target.value)}
-                    className="appearance-none bg-white px-5 py-2.5 rounded-full text-sm font-semibold cursor-pointer outline-none transition-all"
-                    style={{
-                      color: selectedDifficulty !== "all" ? "#D97746" : "#3E2468",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                      border: selectedDifficulty !== "all" ? "2px solid #D97746" : "2px solid transparent",
-                    }}
-                  >
-                    <option value="all">Difficulty</option>
-                    {difficulties.map((difficulty) => (
-                      <option key={difficulty} value={difficulty}>
-                        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
             </div>
 
-            {/* Search bar - expandable */}
-            {showSearch && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-4"
-              >
-                <div className="relative max-w-md">
-                  <Search
-                    size={18}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search tutorials..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    autoFocus
-                    className="w-full bg-white border-2 rounded-full pl-11 pr-4 py-2.5 text-gray-700 placeholder:text-gray-400 outline-none transition-all"
-                    style={{ borderColor: "#E8DFFF" }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#7B5BA8";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#E8DFFF";
-                    }}
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            <p className="text-gray-400 text-sm">
-              Master Djembe step by step with our video guides
-            </p>
-          </motion.div>
-
-          {/* Tutorial Background + Cards overlapping */}
-          <div className="relative">
-            {/* Background track image - sits behind the cards */}
-            <motion.div {...fadeIn} transition={{ duration: 0.4, delay: 0.1 }} className="pointer-events-none">
+            {/* Blurred placeholder cards */}
+            <div className="relative">
               <img
                 src="/ui assets/tutorial_bg.png"
                 alt=""
                 className="w-full"
-                style={{
-                  filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.06))",
-                }}
+                style={{ filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.06))" }}
               />
-              {/* Stars row */}
-              <div className="flex items-center justify-center gap-2 mt-3">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <svg key={i} width="20" height="20" viewBox="0 0 24 24" fill="#F2C94C" opacity={0.7}>
+              <div className="relative -mt-64 sm:-mt-80 md:-mt-[420px] lg:-mt-[550px] pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-2xl h-64"
+                      style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Coming Soon Overlay */}
+          <motion.div
+            {...fadeIn}
+            className="absolute inset-0 flex flex-col items-center justify-center z-20"
+          >
+            <div
+              className="bg-white/90 backdrop-blur-sm rounded-3xl px-10 py-12 sm:px-16 sm:py-16 flex flex-col items-center text-center max-w-lg mx-auto"
+              style={{ boxShadow: "0 12px 48px rgba(62, 36, 104, 0.15)" }}
+            >
+              {/* Djembe mascot */}
+              <div className="w-[140px] h-[160px] sm:w-[180px] sm:h-[200px] overflow-hidden mb-6">
+                <img
+                  src="/ui assets/djemb_fullbody.png"
+                  alt="Djembe mascot"
+                  className="w-[300%] h-[300%] max-w-none"
+                  style={{
+                    transform: "translate(-33.333%, -33.333%)",
+                    filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.15))",
+                    imageRendering: "auto",
+                  }}
+                />
+              </div>
+
+              <h2
+                className="text-3xl sm:text-4xl font-bold mb-3"
+                style={{ color: "#3E2468", fontFamily: "'Fredoka', sans-serif" }}
+              >
+                Coming Soon!
+              </h2>
+
+              <p
+                className="text-base sm:text-lg mb-2"
+                style={{ color: "#7B5BA8", fontFamily: "'Outfit', sans-serif" }}
+              >
+                Tutorial Island is getting ready for you!
+              </p>
+
+              <p
+                className="text-sm max-w-sm"
+                style={{ color: "#9B8AB8", fontFamily: "'Outfit', sans-serif" }}
+              >
+                We're creating fun video lessons to help you master the djembe.
+                Check back soon for rhythm adventures, technique guides, and more!
+              </p>
+
+              {/* Decorative stars */}
+              <div className="flex items-center gap-2 mt-6">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <svg key={i} width="24" height="24" viewBox="0 0 24 24" fill="#F2C94C" opacity={0.8}>
                     <path d="M12 2l2.09 6.26L20.18 9l-5.09 3.74L16.18 19 12 15.27 7.82 19l1.09-6.26L3.82 9l6.09-.74z" />
                   </svg>
                 ))}
               </div>
-            </motion.div>
-
-            {/* Tutorial cards overlapping the bg image */}
-            <div className="relative -mt-64 sm:-mt-80 md:-mt-[420px] lg:-mt-[550px] pt-4">
-              {error ? (
-                <div className="text-center py-16">
-                  <p className="text-red-500 text-lg font-semibold mb-2">
-                    Could not load tutorials
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    {error}
-                  </p>
-                </div>
-              ) : Object.keys(groupedTutorials).length === 0 ? (
-                <div className="text-center py-16">
-                  <p className="text-gray-500 text-lg">
-                    No tutorials found matching your filters.
-                  </p>
-                </div>
-              ) : (
-                Object.entries(groupedTutorials).map(([category, categoryTutorials], idx) => (
-                  <motion.div
-                    key={category}
-                    {...fadeIn}
-                    transition={{ duration: 0.4, delay: 0.2 + idx * 0.1 }}
-                    className="mb-10"
-                  >
-                    {/* Category Header */}
-                    <h2
-                      className="text-2xl font-bold mb-5 italic"
-                      style={{ color: "#3E2468", fontFamily: "'Fredoka', sans-serif" }}
-                    >
-                      {getCategoryName(category)}
-                    </h2>
-
-                    {/* Tutorial Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {categoryTutorials.map((tutorial) => (
-                        <TutorialCard
-                          key={tutorial.id}
-                          tutorial={tutorial}
-                          onClick={() => handleTutorialClick(tutorial)}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                ))
-              )}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
-
-      {/* Video Player Modal */}
-      <VideoPlayerModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        tutorial={selectedTutorial}
-      />
     </div>
   );
 }

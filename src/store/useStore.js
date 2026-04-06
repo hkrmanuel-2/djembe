@@ -4,6 +4,8 @@ import * as Tone from "tone";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "./useAuthStore";
 import { useProgressStore } from "./useProgressStore";
+import { logger } from "../lib/logger";
+import { preloadDurations } from "../lib/audioDurationCache";
 
 export const useStore = create(
   persist(
@@ -16,27 +18,36 @@ export const useStore = create(
       // Track which loop instances have been triggered at which beat
       // This prevents retriggering the same loop instance multiple times
       const triggeredLoops = new Set(); // Set of "loopId-beatIndex" strings
+      const activeAudioElements = new Set(); // Track playing Audio elements so we can stop them
 
       // helper: play a loop once (DAW-style, not continuous looping)
       const playLoopOnce = (loop) => {
         if (!loop || !loop.url) return;
         try {
           const audio = new Audio(loop.url);
-          audio.loop = false; // Play once, don't loop
-          audio.volume = 1.0; // Full volume for clear playback
-          audio.play().catch((err) => {
-            console.warn("Audio play error:", err);
+          audio.loop = false;
+          audio.volume = 1.0;
+          activeAudioElements.add(audio);
+          audio.addEventListener('ended', () => {
+            activeAudioElements.delete(audio);
           });
-          // Let the audio play to completion naturally - don't track it
+          audio.play().catch((err) => {
+            logger.warn("Audio play error:", err);
+            activeAudioElements.delete(audio);
+          });
         } catch (err) {
-          console.warn("Failed to play placed loop:", err);
+          logger.warn("Failed to play placed loop:", err);
         }
       };
 
       // Stop all loops (for stop/rewind)
       const stopAllLoops = () => {
-        // Clear triggered loops tracking so they can play again
         triggeredLoops.clear();
+        activeAudioElements.forEach((audio) => {
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        activeAudioElements.clear();
       };
 
       // update loop called by requestAnimationFrame
@@ -136,12 +147,50 @@ export const useStore = create(
           bars: 10,
         },
 
+        // Assignment mode context (not persisted)
+        assignmentContext: null,
+
         // Audio players (not persisted)
         players: {},
         audioInitialized: false,
         isLoading: false,
         error: null,
         userProjects: [],
+
+        // ==================== ASSIGNMENT LOOPS ====================
+        setAssignmentContext: (context) => set({ assignmentContext: context }),
+        clearAssignmentContext: () => set({ assignmentContext: null }),
+
+        loadAssignmentLoops: async (assignmentId) => {
+          set({ isLoading: true, error: null });
+          try {
+            const { data, error } = await supabase
+              .from("assignment_loops")
+              .select("*")
+              .eq("assignment_id", assignmentId)
+              .order("name", { ascending: true });
+
+            if (error) throw error;
+
+            const loops = data.map((loop) => ({
+              id: loop.id,
+              name: loop.name,
+              url: loop.url,
+              color: loop.color || "bg-purple-400",
+              hoverColor: loop.hover_color || "hover:bg-purple-500",
+              border: loop.border || "border-purple-600",
+              icon: loop.icon || "🎵",
+              bpm: loop.bpm || 120,
+            }));
+
+            set({ library: loops, isLoading: false });
+            return { success: true, data: loops };
+          } catch (error) {
+            console.error("Load assignment loops error:", error);
+            set({ error: error.message, isLoading: false });
+            return { success: false, error: error.message };
+          }
+        },
 
         // ==================== LOAD LOOPS FROM DATABASE ====================
         loadLoops: async () => {
@@ -186,6 +235,11 @@ export const useStore = create(
             }));
 
             set({ library: loops, isLoading: false });
+
+            // Background preload audio durations so timeline drops are instant
+            const urls = loops.map(l => l.url).filter(Boolean);
+            preloadDurations(urls);
+
             return { success: true, data: loops };
           } catch (error) {
             console.error("Load loops error:", error);
@@ -283,7 +337,7 @@ export const useStore = create(
             if (!Tone.Transport.state || Tone.Transport.state !== "started") {
               Tone.Transport.start("+0");
             }
-          } catch (err) {
+          } catch {
             // ignore if already started
           }
 
@@ -312,7 +366,7 @@ export const useStore = create(
           // stop Tone.Transport
           try {
             Tone.Transport.pause();
-          } catch (err) {
+          } catch {
             // ignore
           }
 
@@ -355,7 +409,7 @@ export const useStore = create(
 
           try {
             Tone.Transport.stop();
-          } catch (err) {
+          } catch {
             // ignore
           }
 
@@ -367,7 +421,7 @@ export const useStore = create(
           Object.values(players).forEach((player) => {
             try {
               player.stop();
-            } catch (e) { }
+            } catch { /* Tone.js may throw on disposed context */ }
           });
 
           set((state) => ({
@@ -383,7 +437,7 @@ export const useStore = create(
         rewind: () => {
           try {
             Tone.Transport.position = 0;
-          } catch (e) { }
+          } catch { /* Tone.js may throw on disposed context */ }
           set((state) => ({
             transport: { ...state.transport, currentBeat: 0 },
           }));
@@ -398,7 +452,7 @@ export const useStore = create(
           // update Tone transport bpm and store bpm
           try {
             Tone.Transport.bpm.value = bpm;
-          } catch (err) { }
+          } catch { /* Tone.js may throw on disposed context */ }
           set((state) => ({
             transport: { ...state.transport, bpm },
             project: { ...state.project, bpm },
@@ -460,7 +514,7 @@ export const useStore = create(
             const defaultRows = 5;
             // Allow shrinking back to default when loops are deleted
             const newBars = bars || defaultBars;
-            const newRows = rows || defaultRows;
+            const _newRows = rows || defaultRows;
             
             return {
               project: { 

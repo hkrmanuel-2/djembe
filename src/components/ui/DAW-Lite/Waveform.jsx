@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { logger } from "@/lib/logger";
 
 export default function Waveform({ audioUrl, width, height }) {
   const canvasRef = useRef(null);
@@ -76,7 +77,7 @@ export default function Waveform({ audioUrl, width, height }) {
 
       } catch (error) {
         if (!cancelled) {
-          console.warn('Failed to generate waveform:', error);
+          logger.warn('Failed to generate waveform:', error);
           // Draw a simple line as fallback
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';

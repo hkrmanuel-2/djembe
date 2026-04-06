@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Waveform from "./Waveform";
 
-export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onDrop, onDragOver, removeLoop, onLoopDrag, onLoopTrim, bars: propBars, rows: propRows, onExtendTimeline, selectedLoop, onTimelineClick, isMobile }) {
+export default function Timeline({ placedLoops, currentBeat, isPlaying, onDrop, onDragOver, removeLoop, onLoopDrag, onLoopTrim, bars: propBars, rows: propRows, onExtendTimeline, onTimelineClick, isMobile }) {
   const beatsPerBar = 4;
   const subdivisionsPerBeat = 4; // 16th notes
   const DEFAULT_BARS = 10;
@@ -55,7 +55,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     }
   }, [bars, rows, propBars, propRows, onExtendTimeline]);
   const [draggedLoopId, setDraggedLoopId] = useState(null);
-  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [, setDragStartPos] = useState({ x: 0, y: 0 });
   const [trimmingLoopId, setTrimmingLoopId] = useState(null);
   const [trimSide, setTrimSide] = useState(null); // 'left' or 'right'
 
@@ -104,18 +104,8 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     }
 
     const rect = timeline.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { col: newCol, row: newRow } = getPositionFromCoordinates(e.clientX, e.clientY, rect);
 
-    const cellWidth = rect.width / totalCols;
-    const currentCellHeight = baseCellHeight * zoom;
-    let newCol = Math.max(0, Math.min(totalCols - 1, Math.floor(x / cellWidth)));
-    let newRow = Math.max(0, Math.min(rows - 1, Math.floor(y / currentCellHeight)));
-
-    // Snap to grid
-    newCol = snapToGrid(newCol);
-
-    // Get the loop being dragged
     const draggedLoop = placedLoops.find(l => l.id === draggedLoopId);
     if (draggedLoop && !hasOverlap(newRow, newCol, draggedLoop.span, draggedLoopId)) {
       onLoopDrag(draggedLoopId, newRow, newCol);
@@ -138,11 +128,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     if (!timeline) return;
 
     const rect = timeline.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const cellWidth = rect.width / totalCols;
-    const currentCellHeight = baseCellHeight * zoom;
-    let newCol = Math.max(0, Math.min(totalCols - 1, Math.floor(x / cellWidth)));
-    newCol = snapToGrid(newCol);
+    const { col: newCol } = getPositionFromCoordinates(e.clientX, e.clientY, rect);
 
     const loop = placedLoops.find(l => l.id === trimmingLoopId);
     if (!loop) return;
@@ -221,7 +207,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
     setTouchDragPosition({ x: touch.clientX, y: touch.clientY });
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = () => {
     if (!touchDragLoop) return;
 
     const timeline = timelineRef.current;
@@ -430,7 +416,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
                       e.stopPropagation();
                       handleTrimStart(e, loop, 'left');
                     }}
-                    className="trim-handle absolute left-0 top-0 bottom-0 w-3 bg-blue-500 opacity-0 group-hover:opacity-100 cursor-ew-resize hover:bg-blue-600 transition-all z-30 border-r border-blue-700"
+                    className="trim-handle absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 opacity-0 group-hover:opacity-100 cursor-ew-resize hover:bg-blue-600 transition-all z-30 border-r border-blue-700"
                     style={{ cursor: 'ew-resize' }}
                     title="Drag to trim from start"
                   />
@@ -441,7 +427,7 @@ export default function Timeline({ placedLoops, currentBeat, isPlaying, bpm, onD
                       e.stopPropagation();
                       handleTrimStart(e, loop, 'right');
                     }}
-                    className="trim-handle absolute right-0 top-0 bottom-0 w-3 bg-blue-500 opacity-0 group-hover:opacity-100 cursor-ew-resize hover:bg-blue-600 transition-all z-30 border-l border-blue-700"
+                    className="trim-handle absolute right-0 top-0 bottom-0 w-1.5 bg-blue-500 opacity-0 group-hover:opacity-100 cursor-ew-resize hover:bg-blue-600 transition-all z-30 border-l border-blue-700"
                     style={{ cursor: 'ew-resize' }}
                     title="Drag to trim from end"
                   />

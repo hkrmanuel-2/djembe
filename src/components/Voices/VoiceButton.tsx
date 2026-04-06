@@ -13,12 +13,9 @@ interface VoiceButtonProps {
 }
 
 export default function VoiceButton({
-  id,
-  name,
   isActive,
   isPending,
   timeToNextBar,
-  secondsPerBar,
   onClick,
   disabled = false,
 }: VoiceButtonProps) {

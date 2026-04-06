@@ -185,7 +185,6 @@ export const useAuthStore = create(
 
           };
 
-          let profileResult;
           if (userType === "teacher") {
             const { data, error } = await supabase
               .from("teachers")
@@ -194,7 +193,7 @@ export const useAuthStore = create(
               .single();
 
             if (error) throw error;
-            profileResult = data;
+            void data;
           } else {
             const { data, error } = await supabase
               .from("students")
@@ -203,7 +202,7 @@ export const useAuthStore = create(
               .single();
 
             if (error) throw error;
-            profileResult = data;
+            void data;
           }
 
           // 3. Load user profile

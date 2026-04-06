@@ -38,7 +38,7 @@ export default function StudentProgress() {
       earned: earnedBadgeIds.has(badge.id),
     });
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Array<{ id: string; name: string; description: string; icon: string; category: string; xp_reward: number; earned: boolean }>>);
 
   const categoryLabels: Record<string, string> = {
     creative: "Creative",
@@ -550,13 +550,12 @@ function BadgeCard({
   description,
   icon,
   earned,
-  xpReward,
 }: {
   name: string;
   description: string;
   icon: string;
   earned: boolean;
-  xpReward: number;
+  xpReward?: number;
 }) {
   return (
     <div

@@ -14,28 +14,15 @@ export default function AILoopGenerator({ onLoopGenerated }) {
   const loadLoops = useStore((state) => state.loadLoops);
   const userProfile = useAuthStore((state) => state.userProfile);
 
-  // Get API key from .env file
-  const apiKey = import.meta.env.VITE_SUNO_API_KEY || '';
-
-  // Check credits on mount if API key is available
+  // Check credits on mount
   useEffect(() => {
-    if (apiKey) {
-      checkCredits(apiKey);
-    }
-  }, [apiKey]);
+    checkCredits();
+  }, []);
 
-  const checkCredits = async (key) => {
-    const result = await getRemainingCredits(key);
+  const checkCredits = async () => {
+    const result = await getRemainingCredits();
     if (result.success) {
       setCredits(result.credits);
-    }
-  };
-
-  const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('suno_api_key', apiKey.trim());
-      setShowApiKeyInput(false);
-      checkCredits(apiKey.trim());
     }
   };
 
@@ -45,17 +32,12 @@ export default function AILoopGenerator({ onLoopGenerated }) {
       return;
     }
 
-    if (!apiKey) {
-      setError('Suno API key not found. Please add VITE_SUNO_API_KEY to your .env file.');
-      return;
-    }
-
     setIsGenerating(true);
     setError(null);
 
     try {
-      // Generate music with Suno API
-      const result = await generateMusic(prompt.trim(), projectBpm, apiKey);
+      // Generate music via server-side Suno proxy
+      const result = await generateMusic(prompt.trim(), projectBpm);
 
       if (!result.success) {
         setError(result.error || 'Failed to generate music');
@@ -103,7 +85,7 @@ export default function AILoopGenerator({ onLoopGenerated }) {
       setPrompt('');
 
       // Update credits
-      await checkCredits(apiKey);
+      await checkCredits();
 
       // Notify parent component
       if (onLoopGenerated) {
@@ -129,24 +111,6 @@ export default function AILoopGenerator({ onLoopGenerated }) {
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">
-        {!apiKey && (
-          <div className="mb-3 p-2 bg-yellow-500/20 border border-yellow-400/30 rounded-lg backdrop-blur-sm flex-shrink-0">
-            <p className="text-[10px] text-yellow-200 mb-1">
-              <strong>Setup:</strong> Add API key
-            </p>
-            <p className="text-[10px] text-yellow-300/80">
-              <a
-                href="https://sunoapi.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-300 hover:underline font-semibold"
-              >
-                sunoapi.org
-              </a>
-            </p>
-          </div>
-        )}
-
         <div className="mb-3 flex-shrink-0">
           <label className="block text-xs font-semibold text-white/70 mb-1">
             Prompt ({projectBpm} BPM)

@@ -9,14 +9,14 @@ import Signup from './assets/pages/Auth/Signup';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import { Button } from './components/ui/button';
-import World1 from './components/Worlds/World1';
-import World2 from './components/Worlds/World2';
+const World1 = React.lazy(() => import('./components/Worlds/World1'));
+const World2 = React.lazy(() => import('./components/Worlds/World2'));
 import Assignments from './assets/pages/Assignments';
 import StudentProgress from './assets/pages/StudentProgress';
 import TeacherDashboard from './assets/pages/TeacherDashboard';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { Sidebar } from './components/ui/Sidebar';
-import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen, FileCheck, GraduationCap } from 'lucide-react';
+import { Home as HomeIcon, Music, FileText, Globe, Settings as SettingsIcon, Trophy, Users, TrendingUp, FolderOpen, FileCheck, GraduationCap, Shield, Clock, BookOpen } from 'lucide-react';
 import TeacherAssignments from './assets/pages/teacher/TeacherAssignments';
 import TeacherSubmissions from './assets/pages/TeacherSubmissions';
 import Tutorials from './assets/pages/Tutorials';
@@ -27,6 +27,7 @@ import AdminDashboard from './assets/pages/AdminDashboard';
 import { useSessionTracker } from './hooks/useSessionTracker';
 import OnboardingTour from './components/onboarding/OnboardingTour';
 import { useOnboarding } from './hooks/useOnboarding';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 
 function AppContent() {
@@ -63,8 +64,13 @@ function AppContent() {
     navigate('/');
   };
 
-  // Navigation items for authenticated users - different for students vs teachers
+  // Navigation items for authenticated users - different per role
   const navItems = isAuthenticated ? (
+    userType === 'admin' ? [
+      // Admin navigation
+      { name: 'Dashboard', url: '/admin', icon: Shield },
+      { name: 'Settings', url: '/settings', icon: SettingsIcon },
+    ] :
     userType === 'teacher' ? [
       // Teacher navigation
       { name: 'Students', url: '/students', icon: Users },
@@ -145,103 +151,104 @@ function AppContent() {
                 } replace />
               ) : <Signup />
             } />
+            {/* Student Routes */}
             <Route path="/home" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/daw" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <DAWLite />
               </ProtectedRoute>
             } />
-
-            {/* Assignments Route */}
             <Route path="/assignments" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <Assignments />
               </ProtectedRoute>
             } />
-
-            {/* Student Progress Route */}
             <Route path="/progress" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student']}>
                 <StudentProgress />
               </ProtectedRoute>
             } />
+            <Route path="/world1" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <React.Suspense fallback={
+                  <div className="flex items-center justify-center h-screen bg-black">
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4 border-purple-800 border-t-orange-500" />
+                      <p className="text-white text-lg font-semibold">Loading World...</p>
+                    </div>
+                  </div>
+                }>
+                  <World1 />
+                </React.Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/world2" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <React.Suspense fallback={
+                  <div className="flex items-center justify-center h-screen bg-black">
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-4 border-purple-800 border-t-orange-500" />
+                      <p className="text-white text-lg font-semibold">Loading World...</p>
+                    </div>
+                  </div>
+                }>
+                  <World2 />
+                </React.Suspense>
+              </ProtectedRoute>
+            } />
 
-            {/* Teacher Dashboard Route */}
+            {/* Teacher Routes */}
             <Route path="/students" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher']}>
                 <TeacherDashboard />
               </ProtectedRoute>
             } />
-
-            {/* Teacher Assignments Route */}
             <Route path="/teacher/assignments" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher']}>
                 <TeacherAssignments />
               </ProtectedRoute>
             } />
-
-            {/* Teacher Submissions Route */}
             <Route path="/teacher/submissions" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher']}>
                 <TeacherSubmissions />
               </ProtectedRoute>
             } />
-
-            {/* Teacher Analytics Route */}
             <Route path="/teacher/analytics" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher']}>
                 <StudentDifficulties />
               </ProtectedRoute>
             } />
-
-            {/* Teacher Projects Route */}
             <Route path="/teacher/projects" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher']}>
                 <StudentProjects />
               </ProtectedRoute>
             } />
-
-            {/* Teacher Worlds Settings Route */}
             <Route path="/teacher/worlds" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher']}>
                 <WorldsSettings />
               </ProtectedRoute>
             } />
 
-            {/* Admin Dashboard Route */}
+            {/* Admin Route */}
             <Route path="/admin" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
 
-            {/* Tutorials Route - for both students and teachers */}
+            {/* Shared Routes (student + teacher) */}
             <Route path="/tutorials" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student', 'teacher']}>
                 <Tutorials />
               </ProtectedRoute>
             } />
-
-            {/* Settings Route */}
             <Route path="/settings" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['student', 'teacher']}>
                 <Settings />
-              </ProtectedRoute>
-            } />
-
-            {/* Worlds Routes */}
-            <Route path="/world1" element={
-              <ProtectedRoute>
-                <World1 />
-              </ProtectedRoute>
-            } />
-            <Route path="/world2" element={
-              <ProtectedRoute>
-                <World2 />
               </ProtectedRoute>
             } />
           </Routes>
@@ -253,11 +260,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <LoadingProvider>
-        <AppContent />
-      </LoadingProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <LoadingProvider>
+          <AppContent />
+        </LoadingProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

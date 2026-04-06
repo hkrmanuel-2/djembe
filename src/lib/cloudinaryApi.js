@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 /**
  * Cloudinary Integration for Djembe
  * Handles file uploads to Cloudinary with proper folder organization
@@ -16,14 +17,14 @@ const CLOUDINARY_UPLOAD_PRESET = "djembe"; // Unsigned upload preset
  * @returns {Promise<Object>} Upload result with secure_url
  */
 export async function uploadToCloudinary(file, options = {}) {
-  console.log("[CLOUDINARY] Starting uploadToCloudinary");
+  logger.log("[CLOUDINARY] Starting uploadToCloudinary");
   const {
     folder = "Djembe Assignment Submissions",
     public_id = null,
     onProgress = null,
   } = options;
 
-  console.log("[CLOUDINARY] Upload options:", {
+  logger.log("[CLOUDINARY] Upload options:", {
     folder,
     public_id,
     hasOnProgress: !!onProgress,
@@ -33,7 +34,7 @@ export async function uploadToCloudinary(file, options = {}) {
   });
 
   try {
-    console.log("[CLOUDINARY] Creating FormData");
+    logger.log("[CLOUDINARY] Creating FormData");
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -44,7 +45,7 @@ export async function uploadToCloudinary(file, options = {}) {
 
     if (public_id) {
       formData.append("public_id", public_id);
-      console.log("[CLOUDINARY] Added public_id:", public_id);
+      logger.log("[CLOUDINARY] Added public_id:", public_id);
     }
 
     // Add resource type based on file type
@@ -58,15 +59,15 @@ export async function uploadToCloudinary(file, options = {}) {
     }
     // Audio files: using "auto" instead of "raw" to avoid auth issues with unsigned presets
     // Cloudinary will still handle audio files correctly with "auto"
-    console.log("[CLOUDINARY] Resource type:", resourceType, "for file type:", file.type);
+    logger.log("[CLOUDINARY] Resource type:", resourceType, "for file type:", file.type);
 
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
-    console.log("[CLOUDINARY] Upload URL:", uploadUrl);
-    console.log("[CLOUDINARY] Cloud name:", CLOUDINARY_CLOUD_NAME);
-    console.log("[CLOUDINARY] Upload preset:", CLOUDINARY_UPLOAD_PRESET);
-    console.log("[CLOUDINARY] Preset name length:", CLOUDINARY_UPLOAD_PRESET.length);
-    console.log("[CLOUDINARY] Preset name char codes:", JSON.stringify(Array.from(CLOUDINARY_UPLOAD_PRESET).map(c => ({ char: c, code: c.charCodeAt(0) }))));
-    console.log("[CLOUDINARY] FormData contents:", {
+    logger.log("[CLOUDINARY] Upload URL:", uploadUrl);
+    logger.log("[CLOUDINARY] Cloud name:", CLOUDINARY_CLOUD_NAME);
+    logger.log("[CLOUDINARY] Upload preset:", CLOUDINARY_UPLOAD_PRESET);
+    logger.log("[CLOUDINARY] Preset name length:", CLOUDINARY_UPLOAD_PRESET.length);
+    logger.log("[CLOUDINARY] Preset name char codes:", JSON.stringify(Array.from(CLOUDINARY_UPLOAD_PRESET).map(c => ({ char: c, code: c.charCodeAt(0) }))));
+    logger.log("[CLOUDINARY] FormData contents:", {
       hasFile: formData.has("file"),
       uploadPreset: CLOUDINARY_UPLOAD_PRESET,
       folder: folder,
@@ -74,17 +75,17 @@ export async function uploadToCloudinary(file, options = {}) {
     });
     
     // Log all FormData entries for debugging
-    console.log("[CLOUDINARY] All FormData entries:");
+    logger.log("[CLOUDINARY] All FormData entries:");
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
-        console.log(`  ${key}: [File] ${value.name} (${value.size} bytes, ${value.type})`);
+        logger.log(`  ${key}: [File] ${value.name} (${value.size} bytes, ${value.type})`);
       } else {
-        console.log(`  ${key}: ${value}`);
+        logger.log(`  ${key}: ${value}`);
       }
     }
 
     const xhr = new XMLHttpRequest();
-    console.log("[CLOUDINARY] XMLHttpRequest created");
+    logger.log("[CLOUDINARY] XMLHttpRequest created");
 
     return new Promise((resolve, reject) => {
       // Track upload progress
@@ -92,18 +93,18 @@ export async function uploadToCloudinary(file, options = {}) {
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
             const percentComplete = Math.round((e.loaded / e.total) * 100);
-            console.log(`[CLOUDINARY] Upload progress: ${percentComplete}% (${e.loaded}/${e.total} bytes)`);
+            logger.log(`[CLOUDINARY] Upload progress: ${percentComplete}% (${e.loaded}/${e.total} bytes)`);
             onProgress(percentComplete);
           }
         });
       }
 
       xhr.addEventListener("load", () => {
-        console.log("[CLOUDINARY] XHR load event fired, status:", xhr.status);
+        logger.log("[CLOUDINARY] XHR load event fired, status:", xhr.status);
         if (xhr.status === 200) {
           try {
             const response = JSON.parse(xhr.responseText);
-            console.log("[CLOUDINARY] Upload successful, response:", {
+            logger.log("[CLOUDINARY] Upload successful, response:", {
               secure_url: response.secure_url,
               public_id: response.public_id,
               resource_type: response.resource_type,
@@ -180,15 +181,15 @@ ${cldError ? `\nDetailed error: ${cldError}` : ''}`;
       });
 
       xhr.addEventListener("abort", () => {
-        console.warn("[CLOUDINARY] XHR upload aborted");
+        logger.warn("[CLOUDINARY] XHR upload aborted");
         reject(new Error("Upload aborted"));
       });
 
-      console.log("[CLOUDINARY] Opening POST request to:", uploadUrl);
+      logger.log("[CLOUDINARY] Opening POST request to:", uploadUrl);
       xhr.open("POST", uploadUrl);
-      console.log("[CLOUDINARY] Sending FormData");
+      logger.log("[CLOUDINARY] Sending FormData");
       xhr.send(formData);
-      console.log("[CLOUDINARY] FormData sent, waiting for response");
+      logger.log("[CLOUDINARY] FormData sent, waiting for response");
     });
   } catch (error) {
     console.error("[CLOUDINARY] Error in uploadToCloudinary:", {
@@ -217,8 +218,8 @@ export async function uploadAssignmentSubmission(
   assignmentId,
   onProgress = null
 ) {
-  console.log("[CLOUDINARY] Starting uploadAssignmentSubmission");
-  console.log("[CLOUDINARY] Parameters:", {
+  logger.log("[CLOUDINARY] Starting uploadAssignmentSubmission");
+  logger.log("[CLOUDINARY] Parameters:", {
     fileName: file?.name,
     fileSize: file?.size,
     fileType: file?.type,
@@ -234,9 +235,9 @@ export async function uploadAssignmentSubmission(
   // Include full path in public_id - the preset's asset folder will be prepended automatically
   const public_id = `student_${studentId}/assignment_${assignmentId}/${timestamp}_${safeFileName}`;
   
-  console.log("[CLOUDINARY] Generated public_id:", public_id);
-  console.log("[CLOUDINARY] Calling uploadToCloudinary (no folder param - using preset's asset folder)");
-  console.log("[CLOUDINARY] NOTE: Trying upload with minimal parameters to test preset");
+  logger.log("[CLOUDINARY] Generated public_id:", public_id);
+  logger.log("[CLOUDINARY] Calling uploadToCloudinary (no folder param - using preset's asset folder)");
+  logger.log("[CLOUDINARY] NOTE: Trying upload with minimal parameters to test preset");
 
   try {
     // Try without public_id first to see if that's causing the issue
@@ -245,7 +246,7 @@ export async function uploadAssignmentSubmission(
       public_id: null, // Temporarily remove public_id to test if that's causing the 401
       onProgress,
     });
-    console.log("[CLOUDINARY] uploadAssignmentSubmission result:", {
+    logger.log("[CLOUDINARY] uploadAssignmentSubmission result:", {
       success: result.success,
       hasData: !!result.data,
       error: result.error
@@ -289,10 +290,10 @@ export function getCloudinaryUrl(public_id, transformations = {}) {
  * @param {string} public_id - Cloudinary public ID
  * @returns {Promise<Object>} Deletion result
  */
-export async function deleteFromCloudinary(public_id) {
+export async function deleteFromCloudinary(_public_id) {
   // Note: Deletion requires authentication and should be done via backend
   // This function is a placeholder for future implementation
-  console.warn("Cloudinary deletion requires backend API endpoint");
+  logger.warn("Cloudinary deletion requires backend API endpoint");
   return {
     success: false,
     error: "Deletion not implemented - requires backend endpoint",
@@ -306,8 +307,8 @@ export async function deleteFromCloudinary(public_id) {
  * @returns {Object} Validation result
  */
 export function validateFile(file, options = {}) {
-  console.log("[CLOUDINARY] Starting file validation");
-  console.log("[CLOUDINARY] File info:", {
+  logger.log("[CLOUDINARY] Starting file validation");
+  logger.log("[CLOUDINARY] File info:", {
     name: file?.name,
     size: file?.size,
     type: file?.type
@@ -333,7 +334,7 @@ export function validateFile(file, options = {}) {
     ],
   } = options;
 
-  console.log("[CLOUDINARY] Validation options:", {
+  logger.log("[CLOUDINARY] Validation options:", {
     maxSizeMB,
     allowedTypesCount: allowedTypes.length
   });
@@ -342,7 +343,7 @@ export function validateFile(file, options = {}) {
 
   // Check file size
   const fileSizeMB = file.size / (1024 * 1024);
-  console.log("[CLOUDINARY] File size check:", {
+  logger.log("[CLOUDINARY] File size check:", {
     fileSizeMB: fileSizeMB.toFixed(2),
     maxSizeMB,
     passes: fileSizeMB <= maxSizeMB
@@ -352,7 +353,7 @@ export function validateFile(file, options = {}) {
   }
 
   // Check file type
-  console.log("[CLOUDINARY] File type check:", {
+  logger.log("[CLOUDINARY] File type check:", {
     fileType: file.type,
     isAllowed: allowedTypes.includes(file.type)
   });
@@ -364,7 +365,7 @@ export function validateFile(file, options = {}) {
     valid: errors.length === 0,
     errors,
   };
-  console.log("[CLOUDINARY] Validation result:", result);
+  logger.log("[CLOUDINARY] Validation result:", result);
   return result;
 }
 

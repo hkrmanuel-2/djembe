@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 // Audio export utility for mixing and exporting projects as MP3/WAV
 
 /**
@@ -17,7 +18,7 @@ async function loadAudioBuffer(audioContext, url) {
 /**
  * Convert seconds to beat position based on BPM
  */
-function secondsToBeat(seconds, bpm) {
+function _secondsToBeat(seconds, bpm) {
   const secondsPerBeat = 60 / bpm;
   return seconds / secondsPerBeat;
 }
@@ -55,7 +56,7 @@ function mixAudioBuffers(audioContext, buffers, startTimes, durations) {
     const startTime = startTimes[index];
     const startFrame = Math.floor(startTime * sampleRate);
     const sourceFrames = buffer.length;
-    const endFrame = Math.min(startFrame + sourceFrames, frameCount);
+    const _endFrame = Math.min(startFrame + sourceFrames, frameCount);
     
     // Copy and mix audio data
     for (let channel = 0; channel < Math.min(buffer.numberOfChannels, 2); channel++) {
@@ -180,21 +181,21 @@ async function audioBufferToMp3(buffer) {
 }
 
 /**
- * Export project as audio file (MP3 or WAV format)
+ * Export project as an audio Blob (MP3 or WAV format)
  * @param {Array} placedLoops - Array of placed loops with col, span, url, etc.
  * @param {number} bpm - Project BPM
  * @param {number} bars - Number of bars in project
- * @param {string} filename - Output filename
  * @param {string} format - Export format: 'mp3' or 'wav' (default: 'mp3')
+ * @returns {Promise<{blob: Blob, extension: string}>}
  */
-export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'project', format = 'mp3') {
+export async function exportProjectAsBlob(placedLoops, bpm, bars, format = 'mp3') {
   if (!placedLoops || placedLoops.length === 0) {
     throw new Error('No loops to export');
   }
 
+  // Create audio context
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   try {
-    // Create audio context
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const subdivisionsPerBeat = 4;
     const beatsPerBar = 4;
     const totalBeats = bars * beatsPerBar;
@@ -207,7 +208,7 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
 
     for (const loop of placedLoops) {
       if (!loop.url) {
-        console.warn(`Loop ${loop.id} has no URL, skipping`);
+        logger.warn(`Loop ${loop.id} has no URL, skipping`);
         continue;
       }
 
@@ -220,10 +221,9 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
 
         buffers.push(buffer);
         startTimes.push(startTime);
-        durations.push(Math.min(duration, buffer.duration)); // Use actual buffer duration if shorter
+        durations.push(Math.min(duration, buffer.duration));
       } catch (error) {
         console.error(`Failed to load loop ${loop.id}:`, error);
-        // Continue with other loops
       }
     }
 
@@ -254,41 +254,49 @@ export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'p
     // Export in requested format
     let blob;
     let extension;
-    
+
     if (format === 'mp3') {
       try {
         blob = await audioBufferToMp3(trimmedBuffer);
         extension = 'mp3';
       } catch (error) {
-        console.warn('MP3 encoding failed, falling back to WAV:', error);
-        // Fallback to WAV
+        logger.warn('MP3 encoding failed, falling back to WAV:', error);
         const wavArrayBuffer = audioBufferToWav(trimmedBuffer);
         blob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
         extension = 'wav';
       }
     } else {
-      // Export as WAV
       const wavArrayBuffer = audioBufferToWav(trimmedBuffer);
       blob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
       extension = 'wav';
     }
 
-    // Create download link
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    // Clean up
+    return { blob, extension };
+  } finally {
     audioContext.close();
-
-    return { success: true, format: extension };
-  } catch (error) {
-    console.error('Export error:', error);
-    throw error;
   }
+}
+
+/**
+ * Export project as audio file and trigger download
+ * @param {Array} placedLoops - Array of placed loops with col, span, url, etc.
+ * @param {number} bpm - Project BPM
+ * @param {number} bars - Number of bars in project
+ * @param {string} filename - Output filename
+ * @param {string} format - Export format: 'mp3' or 'wav' (default: 'mp3')
+ */
+export async function exportProjectAsAudio(placedLoops, bpm, bars, filename = 'project', format = 'mp3') {
+  const { blob, extension } = await exportProjectAsBlob(placedLoops, bpm, bars, format);
+
+  // Create download link
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  return { success: true, format: extension };
 }

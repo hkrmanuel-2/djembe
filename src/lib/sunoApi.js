@@ -1,66 +1,36 @@
-// Suno API integration
-// Documentation: https://docs.sunoapi.org/
-
-const SUNO_API_BASE_URL = 'https://api.sunoapi.org';
+// Suno API integration (via server-side proxy)
+// API key is kept server-side in /api/generate* endpoints
 
 /**
- * Generate music using Suno API
+ * Generate music using Suno API via server proxy
  * @param {string} prompt - Music generation prompt
  * @param {number} bpm - Target BPM for the music
- * @param {string} apiKey - Suno API key
  * @returns {Promise<{success: boolean, data?: any, error?: string}>}
  */
-export async function generateMusic(prompt, bpm, apiKey) {
-    if (!apiKey) {
-        return { success: false, error: 'Suno API key is required' };
-    }
-
+export async function generateMusic(prompt, bpm) {
     try {
-        // Generate music with prompt and BPM
-        // According to Suno API docs: https://docs.sunoapi.org/
-        const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate`, {
+        const response = await fetch('/api/generate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt: `${prompt} at ${bpm} BPM`,
-                model: 'V4_5ALL',
-                instrumental: true,
-                customMode: true,
-                callBackUrl: 'https://example.com/callback', // Required by API, we poll instead
+                bpm,
             }),
         });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `API error: ${response.status}`);
+            throw new Error(errorData.error || `API error: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Suno generate response:', data);
 
-        // Handle response format: { code: 200, data: { taskId: "..." } }
-        const taskId = data.data?.taskId || data.taskId || data.task_id || (data.ids && data.ids[0]) || data.id;
-
-        if (taskId) {
-            // Poll for completion
-            return await pollForCompletion(taskId, apiKey);
+        if (!data.success || !data.taskId) {
+            throw new Error(data.error || 'No task ID received');
         }
 
-        // If audio_url is already present, return immediately
-        if (data.audio_url || data.url || data.audioUrl) {
-            return {
-                success: true,
-                data: {
-                    ...data,
-                    audio_url: data.audio_url || data.url || data.audioUrl
-                }
-            };
-        }
-
-        return { success: true, data };
+        // Poll for completion
+        return await pollForCompletion(data.taskId);
     } catch (error) {
         console.error('Suno API error:', error);
         return { success: false, error: error.message || 'Failed to generate music' };
@@ -68,66 +38,39 @@ export async function generateMusic(prompt, bpm, apiKey) {
 }
 
 /**
- * Poll for music generation completion
+ * Poll for music generation completion via server proxy
  * @param {string} taskId - Task ID from generation request
- * @param {string} apiKey - Suno API key
  * @returns {Promise<{success: boolean, data?: any, error?: string}>}
  */
-async function pollForCompletion(taskId, apiKey, maxAttempts = 60) {
+async function pollForCompletion(taskId, maxAttempts = 60) {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
-            // Use GET endpoint to check status
-            const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate/record-info?taskId=${taskId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-            });
+            const response = await fetch(`/api/generate-status?taskId=${taskId}`);
 
             if (!response.ok) {
                 throw new Error(`Polling error: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('Suno poll response:', data);
 
-            // Response format: { code: 200, data: { status: "SUCCESS", response: { sunoData: [{ audioUrl: "..." }] } } }
-            const taskData = data.data;
-            if (!taskData) {
-                continue; // No data yet, keep polling
+            if (data.status === 'done' && data.audioUrl) {
+                return {
+                    success: true,
+                    data: { audio_url: data.audioUrl, audioId: data.audioId },
+                };
             }
 
-            const status = taskData.status;
-            console.log('Task status:', status);
-
-            // Check for completion - audio URLs are in response.sunoData array
-            if (status === 'SUCCESS' || status === 'FIRST_SUCCESS') {
-                const sunoData = taskData.response?.sunoData;
-                if (Array.isArray(sunoData) && sunoData[0]) {
-                    const audioUrl = sunoData[0].audioUrl || sunoData[0].streamAudioUrl;
-                    console.log('Audio URL found:', audioUrl);
-                    if (audioUrl) {
-                        return { success: true, data: { ...sunoData[0], audio_url: audioUrl } };
-                    }
-                }
+            if (data.status === 'failed') {
+                return { success: false, error: data.error || 'Generation failed' };
             }
 
-            // Check for failures
-            if (status === 'CREATE_TASK_FAILED' || status === 'GENERATE_AUDIO_FAILED' ||
-                status === 'CALLBACK_EXCEPTION' || status === 'SENSITIVE_WORD_ERROR') {
-                return { success: false, error: taskData.errorMessage || `Generation failed: ${status}` };
-            }
-
-            // Still pending (PENDING, TEXT_SUCCESS) - keep polling
-
-            // Wait before next poll (exponential backoff, max 5 seconds)
+            // Still processing - wait with backoff
             const waitTime = Math.min(1000 + (attempt * 500), 5000);
             await new Promise(resolve => setTimeout(resolve, waitTime));
         } catch (error) {
             if (attempt === maxAttempts - 1) {
                 return { success: false, error: error.message || 'Polling timeout' };
             }
-            // Wait a bit before retrying on error
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
     }
@@ -136,22 +79,12 @@ async function pollForCompletion(taskId, apiKey, maxAttempts = 60) {
 }
 
 /**
- * Get remaining API credits
- * @param {string} apiKey - Suno API key
+ * Get remaining API credits via server proxy
  * @returns {Promise<{success: boolean, credits?: number, error?: string}>}
  */
-export async function getRemainingCredits(apiKey) {
-    if (!apiKey) {
-        return { success: false, error: 'Suno API key is required' };
-    }
-
+export async function getRemainingCredits() {
     try {
-        const response = await fetch(`${SUNO_API_BASE_URL}/api/v1/generate/credit`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-            },
-        });
+        const response = await fetch('/api/generate-credits');
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);

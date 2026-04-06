@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
-import { createAssignment, updateAssignment, getTeacherClasses } from "@/lib/teacherApi";
-import { X, FileText, Music, Upload, Calendar, Users } from "lucide-react";
+import { createAssignment, updateAssignment, getTeacherClasses, createAssignmentLoop } from "@/lib/teacherApi";
+import { uploadAssignmentLoop } from "@/lib/storageApi";
+import { X, FileText, Music, Upload, Calendar, Users, Plus, Trash2 } from "lucide-react";
 
 type Assignment = {
   id: string;
@@ -30,6 +31,8 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loopFiles, setLoopFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: assignment?.title || "",
     description: assignment?.description || "",
@@ -38,6 +41,8 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
       : "",
     assignment_type: assignment?.assignment_type || "upload",
     class_id: assignment?.class_id || "",
+    bpm: 120,
+    bars: 10,
   });
 
   // Load teacher's assigned classes
@@ -71,10 +76,39 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
         });
       } else {
         // Create new
-        await createAssignment(userProfile.teacher_id, userProfile.school_id, {
+        const result = await createAssignment(userProfile.teacher_id, userProfile.school_id, {
           ...formData,
           due_date: new Date(formData.due_date).toISOString(),
         });
+
+        // Upload loops for project-type assignments
+        if (formData.assignment_type === "project" && loopFiles.length > 0 && result.data) {
+          const assignmentId = result.data.id || result.data.assignment_id;
+          const colors = [
+            { color: "bg-purple-400", hover_color: "hover:bg-purple-500", border: "border-purple-600" },
+            { color: "bg-yellow-300", hover_color: "hover:bg-yellow-400", border: "border-yellow-500" },
+            { color: "bg-orange-300", hover_color: "hover:bg-orange-400", border: "border-orange-500" },
+            { color: "bg-pink-300", hover_color: "hover:bg-pink-400", border: "border-pink-500" },
+            { color: "bg-teal-300", hover_color: "hover:bg-teal-400", border: "border-teal-500" },
+            { color: "bg-blue-300", hover_color: "hover:bg-blue-400", border: "border-blue-500" },
+          ];
+          const icons = ["🥁", "🔔", "🎵", "🎹", "🎸", "🎺"];
+
+          for (let i = 0; i < loopFiles.length; i++) {
+            const file = loopFiles[i];
+            const uploadResult = await uploadAssignmentLoop(file, assignmentId);
+            if (uploadResult.success) {
+              const colorSet = colors[i % colors.length];
+              await createAssignmentLoop(assignmentId, {
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                url: uploadResult.data.url,
+                icon: icons[i % icons.length],
+                ...colorSet,
+                bpm: formData.bpm,
+              });
+            }
+          }
+        }
       }
       onSuccess();
     } catch (error) {
@@ -98,7 +132,7 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-lg rounded-2xl backdrop-blur-md border p-6"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl backdrop-blur-md border p-6"
         style={{
           backgroundColor: "rgba(26, 43, 74, 0.95)",
           borderColor: "rgba(255, 255, 255, 0.15)",
@@ -271,6 +305,89 @@ export default function AssignmentForm({ assignment, onClose, onSuccess }: Assig
               </button>
             </div>
           </div>
+
+          {/* Project Settings (shown when type is "project") */}
+          {formData.assignment_type === "project" && (
+            <div className="space-y-4 p-4 rounded-xl border border-[#4A9B9B]/30 bg-[#4A9B9B]/10">
+              <p className="text-sm font-medium text-[#4A9B9B]">Music Project Settings</p>
+
+              {/* BPM and Bars */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-white/70 text-xs font-medium mb-1">BPM</label>
+                  <input
+                    type="number"
+                    value={formData.bpm}
+                    onChange={(e) => setFormData({ ...formData, bpm: parseInt(e.target.value) || 120 })}
+                    min={60}
+                    max={200}
+                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15 text-white text-sm focus:outline-none focus:border-[#4A9B9B] transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white/70 text-xs font-medium mb-1">Bars</label>
+                  <input
+                    type="number"
+                    value={formData.bars}
+                    onChange={(e) => setFormData({ ...formData, bars: parseInt(e.target.value) || 10 })}
+                    min={4}
+                    max={32}
+                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15 text-white text-sm focus:outline-none focus:border-[#4A9B9B] transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Loop Upload */}
+              <div>
+                <label className="block text-white/70 text-xs font-medium mb-2">
+                  Audio Loops ({loopFiles.length} selected)
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".mp3,.wav,audio/mpeg,audio/wav"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setLoopFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-white/20 text-white/60 hover:border-[#4A9B9B] hover:text-[#4A9B9B] transition-colors text-sm"
+                >
+                  <Plus size={16} />
+                  Add Audio Loops (.mp3, .wav)
+                </button>
+
+                {/* File list */}
+                {loopFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {loopFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 text-sm"
+                      >
+                        <span className="text-white/80 truncate flex-1 mr-2">
+                          🎵 {file.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setLoopFiles((prev) => prev.filter((_, i) => i !== idx))}
+                          className="text-red-400 hover:text-red-300 flex-shrink-0"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3 pt-2">
