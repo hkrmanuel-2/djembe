@@ -31,6 +31,56 @@ export default function AssignmentsNew() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile?.student_id]);
 
+  // Real-time subscription: remove deleted assignments and detect new submissions
+  useEffect(() => {
+    if (!userProfile?.school_id || !userProfile?.student_id) return;
+
+    const channel = supabase
+      .channel("student-assignments-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "assignments",
+          filter: `school_id=eq.${userProfile.school_id}`,
+        },
+        (payload) => {
+          // Remove the deleted assignment from local state immediately
+          const deletedId = payload.old?.id || payload.old?.assignment_id;
+          if (deletedId) {
+            setAssignments((prev) =>
+              prev.filter((a) => a.id !== deletedId && a.assignment_id !== deletedId)
+            );
+            // Close modal if the deleted assignment was selected
+            setSelectedAssignment((prev) => {
+              const selectedId = prev?.id || prev?.assignment_id;
+              return selectedId === deletedId ? null : prev;
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "submissions",
+          filter: `student_id=eq.${userProfile.student_id}`,
+        },
+        () => {
+          // Reload submissions when a new one is created (e.g. from DAW)
+          loadSubmissions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile?.school_id, userProfile?.student_id]);
+
   const loadAssignments = async () => {
     if (!userProfile?.school_id) return;
 
@@ -637,6 +687,22 @@ export default function AssignmentsNew() {
                               >
                                 Turned In
                               </span>
+                              {assignment.assignment_type === "project" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/daw?assignmentId=${assignmentId}`);
+                                  }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+                                  style={{
+                                    backgroundColor: 'rgba(74, 155, 155, 0.15)',
+                                    color: '#2D7A7A',
+                                  }}
+                                >
+                                  <Music size={13} />
+                                  Open in Studio
+                                </button>
+                              )}
                               {(() => {
                                 const submission = getSubmissionWithFeedback(assignmentId);
                                 if (submission?.feedback) {
