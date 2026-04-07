@@ -583,7 +583,12 @@ export default function AssignmentsNew() {
                 minHeight: 'fit-content',
               }}
             >
-              {assignments.length === 0 ? (
+              {(() => {
+                // Filter out assignments whose deadline has passed
+                const activeAssignments = assignments.filter(
+                  (a) => !a.due_date || new Date(a.due_date) >= new Date()
+                );
+                return activeAssignments.length === 0 ? (
                 <div className="text-center py-12">
                   <div
                     className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -603,7 +608,7 @@ export default function AssignmentsNew() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {assignments.map((assignment) => {
+                  {activeAssignments.map((assignment) => {
                     const assignmentId = getAssignmentId(assignment);
                     const status = getSubmissionStatus(assignmentId);
                     const isSubmitted = status === "submitted";
@@ -772,7 +777,8 @@ export default function AssignmentsNew() {
                     );
                   })}
                 </div>
-              )}
+              );
+              })()}
             </div>
           </motion.div>
         </motion.div>
