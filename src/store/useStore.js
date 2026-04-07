@@ -692,13 +692,56 @@ export const useStore = create(
               name: project.title || project.name,
             }));
 
-            set({ userProjects: mappedData, isLoading: false, error: null });
-            return { success: true, data: mappedData };
+            // Also fetch submitted assignment projects (students only)
+            let submittedProjects = [];
+            if (authState.userType === "student" && userProfile.student_id) {
+              const { data: subs } = await supabase
+                .from("submissions")
+                .select("submission_id, assignment_id, project_data, submitted_at, file_name, assignments(title)")
+                .eq("student_id", userProfile.student_id)
+                .not("project_data", "is", null)
+                .order("submitted_at", { ascending: false });
+
+              if (subs) {
+                submittedProjects = subs.map(sub => ({
+                  project_id: `submission_${sub.submission_id}`,
+                  name: `📋 ${sub.assignments?.title || sub.file_name || "Assignment"}`,
+                  bpm: sub.project_data?.bpm || 120,
+                  updated_at: sub.submitted_at,
+                  created_at: sub.submitted_at,
+                  isSubmission: true,
+                  submissionData: sub.project_data,
+                }));
+              }
+            }
+
+            set({ userProjects: [...mappedData, ...submittedProjects], isLoading: false, error: null });
+            return { success: true, data: [...mappedData, ...submittedProjects] };
           } catch (error) {
             console.error("Load projects error:", error);
             set({ isLoading: false, error: error.message });
             return { success: false };
           }
+        },
+
+        loadSubmissionProject: (submissionData) => {
+          if (!submissionData?.placedLoops) return { success: false };
+
+          set({
+            project: {
+              id: null,
+              project_id: null,
+              name: "Loaded Submission",
+              bpm: submissionData.bpm || 120,
+              placedLoops: submissionData.placedLoops || [],
+              bars: submissionData.bars || 10,
+            },
+            isLoading: false,
+            error: null,
+          });
+
+          get().setBpm(submissionData.bpm || 120);
+          return { success: true };
         },
 
         deleteProject: async (projectId) => {

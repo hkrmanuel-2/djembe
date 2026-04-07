@@ -14,6 +14,7 @@ export default function ProjectMenu({ isMobile }) {
 
     const saveProject = useStore((state) => state.saveProject);
     const loadProject = useStore((state) => state.loadProject);
+    const loadSubmissionProject = useStore((state) => state.loadSubmissionProject);
     const newProject = useStore((state) => state.newProject);
     const loadUserProjects = useStore((state) => state.loadUserProjects);
     const deleteProject = useStore((state) => state.deleteProject);
@@ -51,8 +52,13 @@ export default function ProjectMenu({ isMobile }) {
         }
     };
 
-    const handleLoadProject = async (projectId) => {
-        const result = await loadProject(projectId);
+    const handleLoadProject = async (project) => {
+        let result;
+        if (project.isSubmission) {
+            result = loadSubmissionProject(project.submissionData);
+        } else {
+            result = await loadProject(project.project_id);
+        }
         showNotification(
             result.success ? "Project loaded!" : "Failed to load",
             result.success ? "success" : "error"
@@ -113,13 +119,14 @@ export default function ProjectMenu({ isMobile }) {
 
             if (!uploadResult.success) throw new Error(uploadResult.error);
 
-            // Create submission record
+            // Create submission record (include project_data so student can reopen their work)
             const { error: insertError } = await supabase.from("submissions").upsert({
                 assignment_id: assignmentContext.assignmentId,
                 student_id: userProfile.student_id,
                 file_url: uploadResult.data.secure_url,
                 file_name: `${filename}.${extension}`,
                 submitted_at: new Date().toISOString(),
+                project_data: { placedLoops, bpm, bars },
             });
 
             if (insertError) throw insertError;
@@ -224,6 +231,8 @@ export default function ProjectMenu({ isMobile }) {
                                     key={project.project_id}
                                     className={`flex items-center justify-between p-2 md:p-3 rounded-md border-2 ${project.project_id === currentProjectId
                                         ? "border-blue-400/50 bg-blue-500/20"
+                                        : project.isSubmission
+                                        ? "border-teal-400/30 bg-teal-500/10"
                                         : "border-white/20 bg-white/5"
                                         }`}
                                 >
@@ -231,23 +240,26 @@ export default function ProjectMenu({ isMobile }) {
                                         <h4 className={`font-semibold text-white truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{project.name}</h4>
                                         <p className="text-[10px] md:text-xs text-white/60">
                                             {project.bpm}bpm • {new Date(project.updated_at).toLocaleDateString()}
+                                            {project.isSubmission && " • Submitted"}
                                         </p>
                                     </div>
                                     <div className="flex gap-1 md:gap-2 flex-shrink-0">
                                         {project.project_id !== currentProjectId && (
                                             <button
-                                                onClick={() => handleLoadProject(project.project_id)}
+                                                onClick={() => handleLoadProject(project)}
                                                 className={`${isMobile ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-sm'} bg-blue-500 text-white rounded hover:bg-blue-600 shadow-lg`}
                                             >
                                                 Load
                                             </button>
                                         )}
-                                        <button
-                                            onClick={() => handleDelete(project.project_id, project.name)}
-                                            className={`${isMobile ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-sm'} bg-red-500 text-white rounded hover:bg-red-600 shadow-lg`}
-                                        >
-                                            Del
-                                        </button>
+                                        {!project.isSubmission && (
+                                            <button
+                                                onClick={() => handleDelete(project.project_id, project.name)}
+                                                className={`${isMobile ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-sm'} bg-red-500 text-white rounded hover:bg-red-600 shadow-lg`}
+                                            >
+                                                Del
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

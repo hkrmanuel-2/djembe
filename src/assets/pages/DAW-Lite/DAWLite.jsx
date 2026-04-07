@@ -118,6 +118,31 @@ export default function DAWLite() {
           if (assignment.bars) updateProjectDimensions(assignment.bars, 5);
         }
         await loadAssignmentLoops(assignmentId);
+
+        // Check if student has a previous submission with saved project data
+        try {
+          const { useAuthStore } = await import("../../../store/useAuthStore.js");
+          const userProfile = useAuthStore.getState().userProfile;
+          if (userProfile?.student_id) {
+            const { data: submission } = await supabase
+              .from("submissions")
+              .select("project_data")
+              .eq("assignment_id", assignmentId)
+              .eq("student_id", userProfile.student_id)
+              .single();
+
+            if (submission?.project_data?.placedLoops?.length > 0) {
+              // Restore the saved arrangement
+              const { placedLoops: savedLoops, bpm: savedBpm, bars: savedBars } = submission.project_data;
+              if (savedBpm) setBpm(savedBpm);
+              if (savedBars) updateProjectDimensions(savedBars, 5);
+              savedLoops.forEach((loop) => addPlacedLoop(loop));
+            }
+          }
+        } catch (e) {
+          // Non-critical: if no previous submission exists, student starts fresh
+          logger.log("[DAW] No previous submission found for assignment:", e.message);
+        }
       })();
     } else {
       loadLoops();
