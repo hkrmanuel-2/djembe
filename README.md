@@ -1,134 +1,105 @@
 # Djembe - Music Education Platform
 
-An interactive music education platform for children aged 5-12 that teaches rhythm through 3D immersive worlds and AI-generated music.
+A web-based music education platform designed for children aged 5-12, built as a capstone project. Students learn music production through a simplified DAW (Digital Audio Workstation), explore 3D interactive worlds with AI-generated music, complete teacher-assigned challenges, and track their progress through a gamified XP system.
 
-## Features
+## Key Features
 
-### 3D Worlds
-Students can explore interactive 3D environments:
-- **Fireside World** (`world1`) - A cozy campfire setting
-- **Auditorium World** (`world2`) - A grand performance space
-
-### Voices Panel
-Each world includes a Voices Panel for interactive music:
-- AI-generated music stems (rhythm, bass, harmony, melody)
-- Beat-synced voice switching using Tone.js
-- Per-world settings configured by teachers
-
-### Teacher Dashboard
-Teachers can configure music generation settings per world:
-- **Genre**: afrobeat, jazz, electronic, hip-hop, classical, rock, reggae, funk, world, ambient
-- **Style**: upbeat, relaxed, energetic, chill, intense, groovy, melodic, rhythmic
-- **Mood**: happy, calm, intense, dreamy, playful, focused, inspiring, mysterious
-- **BPM**: 60-200 (tempo)
-- **Custom Prompt**: Additional instructions for music generation
+- **Music Studio (DAW-Lite)** - A simplified digital audio workstation where students create beats by dragging loops onto a timeline, with playback, export, and project saving
+- **3D Worlds** - Two immersive Three.js environments (Fireside and Auditorium) where students explore AI-generated music with interactive stem mixing
+- **Assignment System** - Teachers create assignments (file upload or project-based), students submit work, and teachers provide feedback with scores
+- **Progress & Gamification** - XP system, badges, daily streaks, and level tracking to keep students motivated
+- **Role-Based Access** - Three user roles (Admin, Teacher, Student) with Supabase Row Level Security
+- **Real-Time Notifications** - Live notifications for new assignments, submissions, and feedback via Supabase Realtime
+- **Onboarding Tours** - Guided walkthroughs for first-time users using React Joyride
 
 ## Tech Stack
 
-- **Frontend**: React + Vite + TypeScript
-- **3D Graphics**: Three.js with React Three Fiber
-- **Audio**: Tone.js for beat-synchronized playback
-- **State Management**: Zustand
-- **Database**: Supabase (PostgreSQL)
-- **Music Generation**: Suno API
-- **Stem Separation**: Replicate Demucs
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Vite |
+| Styling | Tailwind CSS, Framer Motion, Radix UI |
+| State Management | Zustand |
+| Backend | Supabase (PostgreSQL, Auth, Realtime, Storage) |
+| Audio | Tone.js, Web Audio API, lamejs (MP3 export) |
+| 3D Graphics | Three.js |
+| AI Music | Suno API (generation), MVSEP (stem separation) |
+| Hosting | Vercel |
 
-## Setup
+## Getting Started
 
-### 1. Install dependencies
+### Prerequisites
+
+- Node.js v18+
+- A Supabase project (free tier works)
+- Suno API key (optional, for AI music generation)
+- MVSEP API key (optional, for stem separation)
+
+### Installation
+
 ```bash
+git clone <repo-url>
+cd djembe
 npm install
 ```
 
-### 2. Environment Variables
-Create a `.env.local` file with:
+### Environment Variables
+
+Create a `.env.local` file in the project root:
+
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_SUNO_API_KEY=your_suno_api_key
-REPLICATE_API_TOKEN=your_replicate_token
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUNO_API_KEY=your_suno_key
+MVSEP_API_KEY=your_mvsep_key
 ```
 
-### 3. Database Setup
-Run the SQL in `database/voice_settings_setup.sql` in your Supabase SQL editor.
+### Running the App
 
-If you have an existing `voice_settings` table, run the migration:
-```sql
-ALTER TABLE voice_settings ADD COLUMN IF NOT EXISTS world_id VARCHAR(50) NOT NULL DEFAULT 'world1';
-ALTER TABLE voice_settings DROP CONSTRAINT IF EXISTS voice_settings_school_id_key;
-ALTER TABLE voice_settings ADD CONSTRAINT voice_settings_school_world_unique UNIQUE(school_id, world_id);
-```
-
-### 4. Run Development Server
 ```bash
-npm run dev
+npm run dev        # Start development server (localhost:5173)
+npm run build      # Production build
+npm run test       # Run tests
 ```
+
+### Test Accounts
+
+Run `node scripts/create-test-accounts.js` to create test users:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@godsgrace.test` | `djembe2026` |
+| Teacher | `teacher@godsgrace.test` | `djembe2026` |
+| Students | `student1@godsgrace.test` - `student12@godsgrace.test` | `djembe2026` |
 
 ## Project Structure
 
 ```
-src/
-├── assets/pages/
-│   ├── teacher/
-│   │   └── WorldsSettings.tsx    # Teacher settings for world music
-│   └── ...
-├── components/
-│   ├── Voices/
-│   │   ├── VoicesPanel.tsx       # Music control panel in worlds
-│   │   ├── VoiceButton.tsx       # Individual voice toggle
-│   │   ├── VoiceCategory.tsx     # Category container
-│   │   └── VoicesGlobalControls.tsx
-│   └── Worlds/
-│       ├── World1.tsx            # Fireside World
-│       └── World2.tsx            # Auditorium World
-├── lib/
-│   ├── voicesApi.js              # Suno + Demucs API integration
-│   └── teacherApi.js             # Database API functions
-├── store/
-│   ├── useVoicesStore.js         # Voices state management
-│   └── useAuthStore.js           # Auth state management
-└── ...
-
-api/
-├── separate.ts                   # Stem separation API route
-└── ...
-
-database/
-└── voice_settings_setup.sql      # Database schema
+djembe/
+├── api/                    # Vercel serverless functions (CORS proxy, API routes)
+├── public/models/          # Compressed 3D GLB models
+├── src/
+│   ├── assets/pages/       # Page components (Dashboard, DAW, Auth, etc.)
+│   ├── components/         # Reusable UI, 3D Worlds, Voices, DAW controls
+│   ├── store/              # Zustand state management
+│   ├── lib/                # API functions and utilities
+│   └── hooks/              # Custom React hooks
+├── scripts/                # Test account creation
+└── docs/                   # Screenshots and additional documentation
 ```
 
-## Music Generation Prompt
+## Documentation
 
-The platform generates kid-friendly music using the following template:
+- [DOCUMENTATION.md](DOCUMENTATION.md) - Full technical documentation covering architecture, features, database schema, API reference, and deployment
+- [AI_USE_DOCUMENTATION.md](AI_USE_DOCUMENTATION.md) - Disclosure of AI tool usage during development
 
-```
-Create a kid-friendly, instrumental music track for children aged 5-12
-that teaches rhythm through listening and movement.
+## Deployment
 
-STRICT PARAMETERS:
-- Genre: {teacher's selected genre}
-- Tempo: {BPM} BPM
-- Style: {teacher's selected style}
-- Mood: {teacher's selected mood}
-
-Instrumentation:
-- Use instruments typical of the selected genre
-- Supporting instruments: light percussion
-- No vocals, no lyrics, no chanting
-
-Guidelines:
-- Child-safe and positive
-- Simple, repetitive rhythmic patterns
-- Clear rhythmic loop, predictable patterns
-- Clean and warm mix
-```
-
-## Audio Timing
-
-The Voices system uses BPM-quantized playback:
-- All stems start synchronized at transport position 0
-- Voice switches are queued for the next bar boundary
-- Seamless transitions without audio glitches
+The project is deployed on Vercel with:
+- SPA routing rewrites for client-side navigation
+- Security headers (HSTS, CSP, X-Frame-Options)
+- Long-lived cache for 3D model assets
+- Serverless functions for external API proxying
 
 ## License
 

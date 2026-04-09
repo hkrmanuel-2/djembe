@@ -472,17 +472,9 @@ All tables have RLS enabled. Key policies:
 - Admins can manage all records in their school
 - Voice settings: teachers write, students read (school-scoped)
 
-### SQL Files
+### Database Setup
 
-Run these in Supabase SQL Editor in order:
-
-1. `src/lib/admin_setup.sql` — Admins, classes, access controls, approval columns
-2. `database/progress_tracking_setup.sql` — XP, levels, badges, streaks
-3. `database/teacher_features_setup.sql` — Assignments, submissions, feedback
-4. `database/voice_settings_setup.sql` — Voice settings per world
-5. `database/assignment_loops_setup.sql` — Loop library per assignment
-6. `src/lib/notifications_setup.sql` — Notifications table and realtime
-7. `src/lib/tutorials_setup.sql` — Tutorials table with seed data
+All database tables, Row Level Security policies, and seed data are managed directly in the Supabase dashboard. Refer to the table descriptions above when setting up a new environment.
 
 ---
 
@@ -568,7 +560,6 @@ djembe/
 │   ├── lib/                 # API functions, utilities
 │   ├── hooks/               # useOnboarding, useSessionTracker
 │   └── contexts/            # LoadingContext
-├── database/                # SQL schema files
 ├── scripts/                 # create-test-accounts.js
 ├── api/                     # Vercel serverless functions
 ├── vercel.json              # Vercel config (rewrites, headers)

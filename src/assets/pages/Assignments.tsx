@@ -6,7 +6,6 @@ import { useProgressStore } from "@/store/useProgressStore";
 import { supabase } from "@/lib/supabase";
 import { notifyTeacherSubmission } from "@/lib/notificationApi";
 import { Upload, File, CheckCircle2, Circle, X, Calendar, Sparkles, Music } from "lucide-react";
-import { logger } from "@/lib/logger";
 
 export default function AssignmentsNew() {
   const navigate = useNavigate();
@@ -93,14 +92,6 @@ export default function AssignmentsNew() {
         .order("due_date", { ascending: true });
 
       if (error) throw error;
-      logger.log("[ASSIGNMENTS] Loaded assignments:", data?.map(a => ({
-        id: a.id,
-        assignment_id: a.assignment_id,
-        title: a.title,
-        hasId: !!a.id,
-        hasAssignmentId: !!a.assignment_id,
-        keys: Object.keys(a)
-      })));
       setAssignments(data || []);
     } catch (error) {
       console.error("Error loading assignments:", error);
@@ -165,93 +156,43 @@ export default function AssignmentsNew() {
   };
 
   const handleFileSelect = async (event) => {
-    logger.log("[ASSIGNMENT SUBMISSION] Starting file selection handler");
     const file = event.target.files[0];
-    logger.log("[ASSIGNMENT SUBMISSION] File selected:", {
-      name: file?.name,
-      size: file?.size,
-      type: file?.type,
-      exists: !!file
-    });
     const assignmentId = getAssignmentId(selectedAssignment);
-    logger.log("[ASSIGNMENT SUBMISSION] Selected assignment:", {
-      id: selectedAssignment?.id,
-      assignment_id: selectedAssignment?.assignment_id,
-      resolvedId: assignmentId,
-      title: selectedAssignment?.title,
-      exists: !!selectedAssignment,
-      allKeys: selectedAssignment ? Object.keys(selectedAssignment) : [],
-      fullObject: selectedAssignment
-    });
 
-    // Validate assignment has an ID
     if (selectedAssignment && !assignmentId) {
-      console.error("[ASSIGNMENT SUBMISSION] CRITICAL: Assignment missing id field!", selectedAssignment);
       alert("Error: Assignment is missing an ID. Please refresh the page and try again.");
       setUploading(false);
       return;
     }
-    logger.log("[ASSIGNMENT SUBMISSION] User profile:", {
-      student_id: userProfile?.student_id,
-      exists: !!userProfile
-    });
 
-    if (!file || !selectedAssignment) {
-      logger.warn("[ASSIGNMENT SUBMISSION] Missing file or assignment, aborting");
-      return;
-    }
+    if (!file || !selectedAssignment) return;
 
     try {
-      logger.log("[ASSIGNMENT SUBMISSION] Setting uploading state to true");
       setUploading(true);
 
       // Validate file before upload
-      logger.log("[ASSIGNMENT SUBMISSION] Starting file validation");
       const { validateFile } = await import("@/lib/storageApi");
-      logger.log("[ASSIGNMENT SUBMISSION] validateFile imported successfully");
       const validation = validateFile(file);
-      logger.log("[ASSIGNMENT SUBMISSION] Validation result:", validation);
       if (!validation.valid) {
-        console.error("[ASSIGNMENT SUBMISSION] File validation failed:", validation.errors);
         alert(`Invalid file:\n${validation.errors.join("\n")}`);
         setUploading(false);
         return;
       }
-      logger.log("[ASSIGNMENT SUBMISSION] File validation passed");
 
       // Upload to Supabase Storage
-      logger.log("[ASSIGNMENT SUBMISSION] Starting Supabase Storage upload");
       const { uploadAssignmentSubmission } = await import("@/lib/storageApi");
-      logger.log("[ASSIGNMENT SUBMISSION] uploadAssignmentSubmission imported successfully");
-      logger.log("[ASSIGNMENT SUBMISSION] Upload parameters:", {
-        student_id: userProfile?.student_id,
-        assignment_id: assignmentId,
-        file_name: file.name,
-        file_size: file.size
-      });
-
       const uploadResult = await uploadAssignmentSubmission(
         file,
         userProfile?.student_id,
         assignmentId,
-        null // Supabase Storage doesn't support progress callbacks easily
+        null
       );
 
-      logger.log("[ASSIGNMENT SUBMISSION] Upload result:", {
-        success: uploadResult.success,
-        hasData: !!uploadResult.data,
-        secure_url: uploadResult.data?.secure_url,
-        error: uploadResult.error
-      });
-
       if (!uploadResult.success) {
-        console.error("[ASSIGNMENT SUBMISSION] Upload failed:", uploadResult.error);
         throw new Error(uploadResult.error || "Upload failed");
       }
-      logger.log("[ASSIGNMENT SUBMISSION] Upload successful, secure_url:", uploadResult.data.secure_url);
 
-      // Save submission to database with Supabase Storage URL
-      logger.log("[ASSIGNMENT SUBMISSION] Preparing database insert");
+      // Save submission to database
       const submissionData = {
         assignment_id: assignmentId,
         student_id: userProfile?.student_id,
@@ -259,34 +200,17 @@ export default function AssignmentsNew() {
         file_name: file.name,
         submitted_at: new Date().toISOString(),
       };
-      logger.log("[ASSIGNMENT SUBMISSION] Submission data to insert:", submissionData);
 
-      const { error: insertError, data: insertData } = await supabase
+      const { error: insertError } = await supabase
         .from("submissions")
         .upsert(submissionData);
 
-      logger.log("[ASSIGNMENT SUBMISSION] Database insert result:", {
-        error: insertError,
-        hasData: !!insertData,
-        data: insertData
-      });
-
-      if (insertError) {
-        console.error("[ASSIGNMENT SUBMISSION] Database insert error:", insertError);
-        throw insertError;
-      }
-      logger.log("[ASSIGNMENT SUBMISSION] Database insert successful");
+      if (insertError) throw insertError;
 
       // Track assignment submission for progress
-      logger.log("[ASSIGNMENT SUBMISSION] Calculating on-time status");
       const isOnTime = new Date() <= new Date(selectedAssignment.due_date);
-      logger.log("[ASSIGNMENT SUBMISSION] Is on time:", isOnTime, {
-        currentDate: new Date().toISOString(),
-        dueDate: selectedAssignment.due_date
-      });
 
       if (userProfile?.student_id) {
-        logger.log("[ASSIGNMENT SUBMISSION] Tracking progress");
         try {
           useProgressStore.getState().trackAssignmentSubmit(
             userProfile.student_id,
@@ -294,53 +218,32 @@ export default function AssignmentsNew() {
             selectedAssignment.title,
             isOnTime
           );
-          logger.log("[ASSIGNMENT SUBMISSION] Progress tracking successful");
         } catch (progressError) {
-          console.error("[ASSIGNMENT SUBMISSION] Progress tracking error:", progressError);
+          console.error("Progress tracking error:", progressError);
         }
-      } else {
-        logger.warn("[ASSIGNMENT SUBMISSION] Skipping progress tracking - no student_id");
       }
 
       // Notify the teacher about the submission
       if (selectedAssignment.teacher_id && userProfile) {
-        logger.log("[ASSIGNMENT SUBMISSION] Sending teacher notification");
-        const notificationData = {
+        notifyTeacherSubmission({
           teacherId: selectedAssignment.teacher_id,
           studentId: userProfile.student_id,
           studentName: `${userProfile.first_name} ${userProfile.last_name || ""}`.trim(),
           assignmentId: assignmentId,
           assignmentTitle: selectedAssignment.title,
           isLate: !isOnTime,
-        };
-        logger.log("[ASSIGNMENT SUBMISSION] Notification data:", notificationData);
-        notifyTeacherSubmission(notificationData)
-          .then(() => {
-            logger.log("[ASSIGNMENT SUBMISSION] Teacher notification sent successfully");
-          })
-          .catch((err) => {
-            console.error("[ASSIGNMENT SUBMISSION] Failed to send submission notification:", err);
-          });
-      } else {
-        logger.warn("[ASSIGNMENT SUBMISSION] Skipping notification - missing teacher_id or userProfile");
+        }).catch((err) => {
+          console.error("Failed to send submission notification:", err);
+        });
       }
 
-      logger.log("[ASSIGNMENT SUBMISSION] Reloading submissions");
       await loadSubmissions();
-      logger.log("[ASSIGNMENT SUBMISSION] Closing modal and showing success");
       setSelectedAssignment(null);
       alert("Assignment submitted successfully!");
-      logger.log("[ASSIGNMENT SUBMISSION] Submission completed successfully");
     } catch (error) {
-      console.error("[ASSIGNMENT SUBMISSION] Error in submission process:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        error: error
-      });
+      console.error("Submission error:", error);
       alert(`Failed to submit assignment: ${error.message || "Please try again."}`);
     } finally {
-      logger.log("[ASSIGNMENT SUBMISSION] Setting uploading state to false");
       setUploading(false);
     }
   };
@@ -624,17 +527,9 @@ export default function AssignmentsNew() {
                           borderColor: isSubmitted ? '#B8E6E6' : '#E8DFFF',
                         }}
                         onClick={() => {
-                          const clickedAssignmentId = getAssignmentId(assignment);
-                          logger.log("[ASSIGNMENTS] Assignment clicked:", {
-                            id: assignment.id,
-                            assignment_id: assignment.assignment_id,
-                            resolvedId: clickedAssignmentId,
-                            title: assignment.title,
-                            fullObject: assignment
-                          });
                           if (!isSubmitted) {
+                            const clickedAssignmentId = getAssignmentId(assignment);
                             if (!clickedAssignmentId) {
-                              console.error("[ASSIGNMENTS] Assignment missing id field!", assignment);
                               alert("Error: Assignment is missing an ID. Please refresh the page.");
                               return;
                             }
