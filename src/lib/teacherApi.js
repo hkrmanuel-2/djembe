@@ -888,12 +888,9 @@ export async function getVoiceSettings(schoolId, worldId = "world1") {
       .select("*")
       .eq("school_id", schoolId)
       .eq("world_id", worldId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 = no rows returned (not an error, just no settings yet)
-      throw error;
-    }
+    if (error) throw error;
 
     // Return default settings if none exist
     if (!settings) {
@@ -933,7 +930,7 @@ export async function updateVoiceSettings(schoolId, teacherId, settings, worldId
       .select("id")
       .eq("school_id", schoolId)
       .eq("world_id", worldId)
-      .single();
+      .maybeSingle();
 
     let result;
 

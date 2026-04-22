@@ -76,31 +76,47 @@ export const useVoicesStore = create((set, get) => ({
   },
 
   /**
-   * Fetch voice settings from database
+   * Fetch voice settings from database.
+   * Always hits the DB. If the teacher's settings have changed since the last
+   * visit to this world, invalidate the cached stems so the student regenerates
+   * in the new genre on their next play.
    */
   fetchSettings: async (schoolId, worldId = null) => {
     const currentWorldId = worldId || get().worldId;
 
     try {
-      // Update worldId in state if provided
       if (worldId) {
         set({ worldId });
       }
 
-      // Check session cache first
-      const cacheKey = getSettingsCacheKey(currentWorldId);
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        const parsedSettings = JSON.parse(cached);
-        set({ settings: parsedSettings });
-        return { success: true, data: parsedSettings };
+      const result = await getVoiceSettings(schoolId, currentWorldId);
+      if (!result.data) return result;
+
+      const fresh = result.data;
+      const snapshotKey = getSettingsCacheKey(currentWorldId);
+      const prevSnapshot = sessionStorage.getItem(snapshotKey);
+
+      const stemRelevant = (s) =>
+        JSON.stringify({
+          bpm: s.bpm,
+          genre: s.genre,
+          style: s.style,
+          mood: s.mood,
+          custom_prompt: s.custom_prompt ?? null,
+        });
+
+      const freshSnapshot = stemRelevant(fresh);
+      if (prevSnapshot && prevSnapshot !== freshSnapshot) {
+        // Teacher changed settings since stems were generated — drop stems.
+        sessionStorage.removeItem(getStemsCacheKey(currentWorldId));
+        set({
+          stems: { rhythm: [], bass: [], harmony: [], melody: [], extras: [] },
+          stemsLoaded: false,
+        });
       }
 
-      const result = await getVoiceSettings(schoolId, currentWorldId);
-      if (result.data) {
-        set({ settings: result.data });
-        sessionStorage.setItem(cacheKey, JSON.stringify(result.data));
-      }
+      sessionStorage.setItem(snapshotKey, freshSnapshot);
+      set({ settings: fresh });
       return result;
     } catch (error) {
       console.error("[VoicesStore] Fetch settings error:", error);

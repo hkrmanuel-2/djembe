@@ -38,3 +38,10 @@ env.download
 
 # Claude Code
 .claude/
+
+# Presentation / capstone artifacts (local only)
+*.pdf
+DJEMBE SCRIPT.*
+DJEMBE SLIDES.*
+_slides_pdf/
+_merge_slides.py
